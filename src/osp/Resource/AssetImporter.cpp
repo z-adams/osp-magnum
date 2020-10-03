@@ -222,6 +222,17 @@ DependRes<Mesh> osp::AssetImporter::compile_mesh(
     return pkg.add<Mesh>(meshData.name(), Magnum::MeshTools::compile(*meshData));
 }
 
+DependRes<Magnum::GL::Mesh> AssetImporter::compile_mesh(
+    const std::string& meshDataName, Package& package)
+{
+    DependRes<MeshData> meshData = package.get<MeshData>(meshDataName);
+    if (meshData.empty())
+    {
+        return DependRes<Mesh>();
+    }
+    return compile_mesh(meshData, package);
+}
+
 DependRes<Texture2D> osp::AssetImporter::compile_tex(
     const DependRes<ImageData2D> imageData, Package& package)
 {
@@ -246,6 +257,17 @@ DependRes<Texture2D> osp::AssetImporter::compile_tex(
         .setSubImage(0, {}, view);
 
     return package.add<Texture2D>(imageData.name(), std::move(tex));
+}
+
+DependRes<Magnum::GL::Texture2D> AssetImporter::compile_tex(
+    const std::string& imageDataName, Package& package)
+{
+    DependRes<ImageData2D> imgData = package.get<ImageData2D>(imageDataName);
+    if (imgData.empty())
+    {
+        return DependRes<Magnum::GL::Texture2D>();
+    }
+    return compile_tex(imgData, package);
 }
 
 //either an appendable package, or

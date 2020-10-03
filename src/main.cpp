@@ -32,7 +32,6 @@
 #include "planet-a/Satellites/SatPlanet.h"
 #include "planet-a/Active/SysPlanetA.h"
 
-
 namespace universe
 {
     using namespace osp::universe;
@@ -94,6 +93,10 @@ void create_solar_system();
 osp::universe::Satellite debug_add_random_vehicle(std::string const& name);
 
 osp::universe::Satellite debug_add_deterministic_vehicle(std::string const& name);
+
+Vector3 part_offset(osp::PrototypePart const& attachTo, std::string const& attachToName,
+    osp::PrototypePart const& toAttach, std::string const& toAttachName);
+osp::universe::Satellite debug_add_part_vehicle(std::string const& name);
 
 /**
  * The spaghetti command line interface that gets inputs from stdin. This
@@ -367,9 +370,28 @@ void load_a_bunch_of_stuff()
     // Create a new package
     osp::Package lazyDebugPack("lzdb", "lazy-debug");
 
+    std::string datapath = "OSPData/adera/";
     // Load sturdy glTF files
-    osp::AssetImporter::load_sturdy_file("OSPData/adera/spamcan.sturdy.gltf", lazyDebugPack);
-    osp::AssetImporter::load_sturdy_file("OSPData/adera/stomper.sturdy.gltf", lazyDebugPack);
+    // TODO: meshes conflict because they have the same underlying names
+    //osp::AssetImporter::load_sturdy_file(datapath + "spamcan.sturdy.gltf", lazyDebugPack);
+    //osp::AssetImporter::load_sturdy_file(datapath + "stomper.sturdy.gltf", lazyDebugPack);
+    osp::AssetImporter::load_sturdy_file(datapath + "ph_capsule.sturdy.gltf", lazyDebugPack);
+    osp::AssetImporter::load_sturdy_file(datapath + "ph_fuselage.sturdy.gltf", lazyDebugPack);
+    osp::AssetImporter::load_sturdy_file(datapath + "ph_engine.sturdy.gltf", lazyDebugPack);
+    osp::AssetImporter::load_sturdy_file(datapath + "ph_plume.sturdy.gltf", lazyDebugPack);
+    osp::AssetImporter::load_sturdy_file(datapath + "ph_rcs.sturdy.gltf", lazyDebugPack);
+    osp::AssetImporter::load_sturdy_file(datapath + "ph_rcs_plume.sturdy.gltf", lazyDebugPack);
+
+    // Immediately load noise textures
+    std::string const noise256 = "noise256";
+    std::string const noise1024 = "noise1024";
+    std::string const n256path = datapath + noise256 + ".png";
+    std::string const n1024path = datapath + noise1024 + ".png";
+
+    osp::AssetImporter::load_image(n256path, lazyDebugPack);
+    osp::AssetImporter::load_image(n1024path, lazyDebugPack);
+    osp::AssetImporter::compile_tex(n256path, lazyDebugPack);
+    osp::AssetImporter::compile_tex(n1024path, lazyDebugPack);
 
     // Add package to the univere
     g_osp.debug_get_packges().push_back(std::move(lazyDebugPack));
@@ -395,26 +417,26 @@ void create_solar_system()
     auto &stationary = uni.trajectory_create<universe::TrajStationary>(
                                         uni, uni.sat_root());
 
-    for (int i = 0; i < 20; i ++)
-    {
-        // Creates a random mess of spamcans
-        universe::Satellite sat = debug_add_random_vehicle("TestyMcTestFace Mk"
-                                                 + std::to_string(i));
+    //for (int i = 0; i < 20; i ++)
+    //{
+    //    // Creates a random mess of spamcans
+    //    universe::Satellite sat = debug_add_random_vehicle("TestyMcTestFace Mk"
+    //                                             + std::to_string(i));
 
-        auto &posTraj = uni.get_reg().get<universe::UCompTransformTraj>(sat);
+    //    auto &posTraj = uni.get_reg().get<universe::UCompTransformTraj>(sat);
 
-        posTraj.m_position = osp::Vector3s(i * 1024l * 5l, 0l, 0l);
-        posTraj.m_dirty = true;
+    //    posTraj.m_position = osp::Vector3s(i * 1024l * 5l, 0l, 0l);
+    //    posTraj.m_dirty = true;
 
-        stationary.add(sat);
-    }
+    //    stationary.add(sat);
+    //}
 
-    universe::Satellite sat = debug_add_deterministic_vehicle("Stomper Mk. I");
+    //universe::Satellite sat = debug_add_deterministic_vehicle("Stomper Mk. I");
+    universe::Satellite sat = debug_add_part_vehicle("Placeholder Mk. I");
     auto& posTraj = uni.get_reg().get<universe::UCompTransformTraj>(sat);
     posTraj.m_position = osp::Vector3s(22 * 1024l * 5l, 0l, 0l);
     posTraj.m_dirty = true;
     stationary.add(sat);
-
 
     // Add Grid of planets too
     // for now, planets are hard-coded to 128 meters in radius
@@ -445,7 +467,6 @@ void create_solar_system()
 
 osp::universe::Satellite debug_add_random_vehicle(std::string const& name)
 {
-
     using osp::BlueprintVehicle;
     using osp::PrototypePart;
     using osp::DependRes;
@@ -563,6 +584,149 @@ osp::universe::Satellite debug_add_deterministic_vehicle(std::string const & nam
     UCompVehicle.m_blueprint = std::move(depend);
 
     return sat;
+}
+
+Vector3 part_offset(osp::PrototypePart const& attachTo, std::string const& attachToName,
+    osp::PrototypePart const& toAttach, std::string const& toAttachName)
+{
+    using namespace osp;
+
+    Vector3 oset1{0.0f};
+    Vector3 oset2{0.0f};
+
+    for (PrototypeObject const& obj : attachTo.get_objects())
+    {
+        if (obj.m_name == attachToName)
+        {
+            oset1 = obj.m_translation;
+            break;
+        }
+    }
+
+    for (PrototypeObject const& obj : toAttach.get_objects())
+    {
+        if (obj.m_name == toAttachName)
+        {
+            oset2 = obj.m_translation;
+            break;
+        }
+    }
+
+    return oset1 - oset2;
+}
+
+osp::universe::Satellite debug_add_part_vehicle(std::string const& name)
+{
+    using osp::BlueprintVehicle;
+    using osp::PrototypePart;
+    using osp::DependRes;
+
+    // Start making the blueprint
+    BlueprintVehicle blueprint;
+
+    osp::Package& pkg = g_osp.debug_get_packges()[0];
+
+    // Parts
+    DependRes<PrototypePart> capsule = pkg.get<PrototypePart>("part_phCapsule");
+    DependRes<PrototypePart> fuselage = pkg.get<PrototypePart>("part_phFuselage");
+    DependRes<PrototypePart> engine = pkg.get<PrototypePart>("part_phEngine");
+    DependRes<PrototypePart> rcs = pkg.get<PrototypePart>("part_phLinRCS");
+
+    Vector3 fcOset = part_offset(*fuselage, "attach_top_fuselage",
+        *capsule, "attach_bottom_capsule");
+    Vector3 feOset = part_offset(*fuselage, "attach_bottom_fuselage",
+        *engine, "attach_top_eng");
+    Vector3 rcsOsetTop = Vector3{1.0f, 0.0f, 2.0f};
+    Vector3 rcsOsetBtm = Vector3{1.0f, 0.0f, -2.0f};
+
+    Quaternion idRot;
+    Vector3 scl{1};
+    Magnum::Rad qtrTurn(90.0_degf);
+    Quaternion rotY_090 = Quaternion::rotation(qtrTurn, Vector3{0, 1, 0});
+    Quaternion rotZ_090 = Quaternion::rotation(qtrTurn, Vector3{0, 0, 1});
+    Quaternion rotZ_180 = Quaternion::rotation(2 * qtrTurn, Vector3{0, 0, 1});
+    Quaternion rotZ_270 = Quaternion::rotation(3 * qtrTurn, Vector3{0, 0, 1});
+
+    blueprint.add_part(fuselage, Vector3{0}, idRot, scl);
+    blueprint.add_part(capsule, fcOset, idRot, scl);
+    blueprint.add_part(engine, feOset, idRot, scl);
+
+    // Top RCS ring
+    blueprint.add_part(rcs, rcsOsetTop, rotY_090, Vector3{1});
+    blueprint.add_part(rcs, rotZ_090.transformVector(rcsOsetTop), rotZ_090 * rotY_090, scl);
+    blueprint.add_part(rcs, rotZ_180.transformVector(rcsOsetTop), rotZ_180 * rotY_090, scl);
+    blueprint.add_part(rcs, rotZ_270.transformVector(rcsOsetTop), rotZ_270 * rotY_090, scl);
+
+    // Bottom RCS ring
+    blueprint.add_part(rcs, rcsOsetBtm, rotY_090, Vector3{1});
+    blueprint.add_part(rcs, rotZ_090.transformVector(rcsOsetBtm), rotZ_090 * rotY_090, scl);
+    blueprint.add_part(rcs, rotZ_180.transformVector(rcsOsetBtm), rotZ_180 * rotY_090, scl);
+    blueprint.add_part(rcs, rotZ_270.transformVector(rcsOsetBtm), rotZ_270 * rotY_090, scl);
+
+    enum Machine
+    {
+        USERCONTROL = 0,
+        ROCKET = 1,
+        FREEENERGYGENERATOR = 2
+    };
+
+    enum Parts
+    {
+        FUSELAGE = 0,
+        CAPSULE = 1,
+        ENGINE = 2,
+        RCS1 = 3,
+        RCS2 = 4,
+        RCS3 = 5,
+        RCS4 = 6,
+        RCS5 = 7,
+        RCS6 = 8,
+        RCS7 = 9,
+        RCS8 = 10
+    };
+
+    std::vector<int> rcsPorts = {RCS1, RCS2, RCS3, RCS4,
+        RCS5, RCS6, RCS7, RCS8};
+
+    // Wire throttle control
+    // from (output): a MachineUserControl m_woThrottle
+    // to    (input): a MachineRocket m_wiThrottle
+    blueprint.add_wire(Parts::FUSELAGE, Machine::USERCONTROL, 1,
+        Parts::ENGINE, Machine::ROCKET, 2);
+
+    // Wire attitude control to gimbal
+    // from (output): a MachineUserControl m_woAttitude
+    // to    (input): a MachineRocket m_wiGimbal
+    blueprint.add_wire(Parts::FUSELAGE, Machine::USERCONTROL, 0,
+        Parts::FUSELAGE, Machine::ROCKET, 0);
+
+
+    // put blueprint in package
+    DependRes<BlueprintVehicle> depend = pkg.add<BlueprintVehicle>(name, std::move(blueprint));
+
+    // Create the Satellite containing a SatVehicle
+
+    // TODO: make this more safe
+
+    universe::Universe &uni = g_osp.get_universe();
+
+    // Create blank satellite
+    universe::Satellite sat = uni.sat_create();
+
+    // Set the name
+    auto &posTraj = uni.get_reg().get<universe::UCompTransformTraj>(sat);
+    posTraj.m_name = name;
+
+    // Make it into a vehicle
+    auto &typeVehicle = *static_cast<universe::SatVehicle*>(
+        uni.sat_type_find("Vehicle")->second.get());
+    universe::UCompVehicle &UCompVehicle = typeVehicle.add_get_ucomp(sat);
+
+    // set the SatVehicle's blueprint to the one just made
+    UCompVehicle.m_blueprint = std::move(depend);
+
+    return sat;
+
 }
 
 void debug_print_help()

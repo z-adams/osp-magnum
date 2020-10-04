@@ -289,6 +289,7 @@ ActiveEnt SysVehicle::part_instantiate(PrototypePart& part,
             CompDrawableDebug& bBocks
                     = m_scene.reg_emplace<CompDrawableDebug>(
                         currentEnt, &(*meshRes), std::move(textureResources), m_shader.get(), 0x0202EE_rgbf);
+            m_scene.reg_emplace<CompVisibleDebug>(currentEnt, true);
 
             //new DrawablePhongColored(*obj, *m_shader, *mesh, 0xff0000_rgbf, m_drawables);
         }

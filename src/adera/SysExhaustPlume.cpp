@@ -21,11 +21,12 @@ osp::active::SysExhaustPlume::SysExhaustPlume(ActiveScene& scene)
 void osp::active::SysExhaustPlume::update_plumes()
 {
     using adera::active::machines::MachineRocket;
-    auto plumeView = m_scene.get_registry().view<ACompExhaustPlume>();
+    auto plumeView = m_scene.get_registry().view<ACompExhaustPlume, CompVisibleDebug>();
 
     for (ActiveEnt plumeEnt : plumeView)
     {
         ACompExhaustPlume& plume = plumeView.get<ACompExhaustPlume>(plumeEnt);
+        CompVisibleDebug& visibility = plumeView.get<CompVisibleDebug>(plumeEnt);
 
         auto& machine = m_scene.reg_get<MachineRocket>(plume.m_parentMachineRocket);
         const auto& throttle = *machine.request_input(2)->connected_value();
@@ -33,7 +34,11 @@ void osp::active::SysExhaustPlume::update_plumes()
 
         if (throttlePos > 0.0f)
         {
-            std::cout << "ON!\n";
+            visibility.state = true;
+        }
+        else
+        {
+            visibility.state = false;
         }
     }
 }

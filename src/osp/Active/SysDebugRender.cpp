@@ -19,7 +19,6 @@ SysDebugRender::SysDebugRender(ActiveScene &rScene) :
         m_renderDebugDraw(rScene.get_render_order(), "debug", "", "",
                           std::bind(&SysDebugRender::draw, this, _1))
 {
-
 }
 
 void SysDebugRender::draw(ACompCamera const& camera)
@@ -30,7 +29,7 @@ void SysDebugRender::draw(ACompCamera const& camera)
     Renderer::enable(Renderer::Feature::FaceCulling);
 
 
-    auto drawGroup = m_scene.get_registry().group<CompDrawableDebug>(
+    auto drawGroup = m_scene.get_registry().group<CompDrawableDebug, CompVisibleDebug>(
                             entt::get<ACompTransform>);
 
     Matrix4 entRelative;
@@ -38,6 +37,10 @@ void SysDebugRender::draw(ACompCamera const& camera)
     for(auto entity: drawGroup)
     {
         CompDrawableDebug& drawable = drawGroup.get<CompDrawableDebug>(entity);
+        CompVisibleDebug& visible = drawGroup.get<CompVisibleDebug>(entity);
+        
+        if (!visible.state) { continue; }
+        
         ACompTransform& transform = drawGroup.get<ACompTransform>(entity);
 
         entRelative = camera.m_inverse * transform.m_transformWorld;

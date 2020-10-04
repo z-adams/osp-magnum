@@ -20,6 +20,7 @@
 
 #include "Package.h"
 #include "AssetImporter.h"
+#include "adera/Plume.h"
 
 using Corrade::Containers::Optional;
 using Magnum::Trade::ImageData2D;
@@ -98,6 +99,23 @@ void osp::AssetImporter::load_part(TinyGltfImporter& gltfImporter,
     pkg.add<PrototypePart>(gltfImporter.object3DName(id), std::move(part));
 }
 
+void osp::AssetImporter::load_plume(TinyGltfImporter& gltfImporter, Package& pkg, unsigned id)
+{
+    using Corrade::Containers::Pointer;
+    using Magnum::Trade::ObjectData3D;
+
+    std::cout << "Plume! Node \"" << gltfImporter.object3DName(id) << "\"\n";
+
+    PlumeEffectData plumeData;
+
+    Pointer<ObjectData3D> rootNode = gltfImporter.object3D(id);
+    unsigned meshID = gltfImporter.object3D(rootNode->children()[0])->instance();
+    std::string meshName = gltfImporter.meshName(meshID);
+    plumeData.meshName = meshName;
+
+    pkg.add<PlumeEffectData>(gltfImporter.object3DName(id), std::move(plumeData));
+}
+
 void osp::AssetImporter::load_sturdy(TinyGltfImporter& gltfImporter, Package& pkg)
 {
     std::cout << "Found " << gltfImporter.object3DCount() << " nodes\n";
@@ -118,6 +136,10 @@ void osp::AssetImporter::load_sturdy(TinyGltfImporter& gltfImporter, Package& pk
         if (nodeName.compare(0, 5, "part_") == 0)
         {
             load_part(gltfImporter, pkg, childID);
+        }
+        else if (nodeName.compare(0, 6, "plume_") == 0)
+        {
+            load_plume(gltfImporter, pkg, childID);
         }
     }
 

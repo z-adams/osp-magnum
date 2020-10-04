@@ -5,7 +5,9 @@
 
 
 #include "Rocket.h"
+#include "osp/Resource/AssetImporter.h"
 #include "adera/SysExhaustPlume.h"
+#include <Magnum/Trade/MeshData.h>
 
 using namespace adera::active::machines;
 using namespace osp::active;
@@ -165,8 +167,13 @@ void SysMachineRocket::update_physics()
     }
 }
 
-Machine& SysMachineRocket::instantiate(ActiveEnt ent)
+void SysMachineRocket::attach_plume_effect(ActiveEnt ent)
 {
+    using Magnum::Shaders::Phong;
+    using Magnum::GL::Mesh;
+    using Magnum::GL::Texture2D;
+    using Magnum::Trade::ImageData2D;
+
     ActiveEnt plumeNode;
 
     auto findPlumeHandle = [&](ActiveEnt ent)
@@ -186,17 +193,55 @@ Machine& SysMachineRocket::instantiate(ActiveEnt ent)
     {
         std::cout << "ERROR: could not find plume anchor for MachineRocket "
             << static_cast<int>(ent) << "\n";
+        return;
     }
-    else
+
+    std::cout << "MachineRocket "
+        << static_cast<int>(ent) << "'s associated plume: "
+        << static_cast<int>(plumeNode) << "\n";
+
+    ACompExhaustPlume& plumeComp = m_scene.reg_emplace<ACompExhaustPlume>(plumeNode,
+        ent, Phong{Phong::Flag::DiffuseTexture});
+
+    // Get plume effect
+    Package& pkg = m_scene.get_application().debug_get_packges()[0];
+    std::string plumeAnchorName = m_scene.reg_get<ACompHierarchy>(plumeNode).m_name;
+    std::string effectName = plumeAnchorName.substr(3, plumeAnchorName.length() - 3);
+    DependRes<PlumeEffectData> plumeEffect = pkg.get<PlumeEffectData>(effectName);
+    if (plumeEffect.empty())
     {
-        std::cout << "Found MachineRocket "
-            << static_cast<int>(ent) << "'s associated plume: "
-            << static_cast<int>(plumeNode) << "\n";
-
-        m_scene.reg_emplace<ACompExhaustPlume>(plumeNode, ent);
+        std::cout << "ERROR: couldn't find plume effect " << effectName << "!\n";
+        return;
     }
 
-    return m_scene.reg_emplace<MachineRocket>(ent);//emplace(ent);
+    // Get plume mesh
+    DependRes<Mesh> plumeMesh = pkg.get<Mesh>(plumeEffect->meshName);
+    if (plumeMesh.empty())
+    {
+        using Magnum::Trade::MeshData;
+
+        DependRes<MeshData> meshData = pkg.get<MeshData>(plumeEffect->meshName);
+        if (meshData.empty())
+        {
+            std::cout << "ERROR: couldn't find mesh " << plumeEffect->meshName
+                << " for plume effect\n";
+        }
+
+        plumeMesh = AssetImporter::compile_mesh(meshData, pkg);
+    }
+
+    // Get plume tex (TEMPORARY)
+    DependRes<Texture2D> plumeTex = pkg.get<Texture2D>("OSPData/adera/noise1024.png");
+
+    m_scene.reg_emplace<CompDrawableDebug>(plumeNode, &(*plumeMesh),
+        std::vector<Texture2D*>{&(*plumeTex)}, &plumeComp.m_shader);
+    m_scene.reg_emplace<CompVisibleDebug>(plumeNode, false);
+}
+
+Machine& SysMachineRocket::instantiate(ActiveEnt ent)
+{
+    attach_plume_effect(ent);
+    return m_scene.reg_emplace<MachineRocket>(ent);
 }
 
 Machine& SysMachineRocket::get(ActiveEnt ent)

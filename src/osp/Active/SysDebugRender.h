@@ -18,6 +18,11 @@ struct CompDrawableDebug
     Magnum::Color4 m_color;
 };
 
+struct CompVisibleDebug
+{
+    bool state = true;
+};
+
 class SysDebugRender : public IDynamicSystem
 {
 public:

@@ -10,7 +10,7 @@ namespace osp::active
 struct ACompExhaustPlume
 {
     ActiveEnt m_parentMachineRocket{entt::null};
-    //Magnum::Shaders::Phong m_shader;
+    Magnum::Shaders::Phong m_shader;
     //DependRes<PlumeEffect> m_effect;
 };
 

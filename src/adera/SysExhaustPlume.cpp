@@ -20,6 +20,8 @@ osp::active::SysExhaustPlume::SysExhaustPlume(ActiveScene& scene)
 
 void osp::active::SysExhaustPlume::update_plumes()
 {
+    m_time += m_scene.get_time_delta_fixed();
+
     using adera::active::machines::MachineRocket;
     auto plumeView = m_scene.get_registry().view<ACompExhaustPlume, CompVisibleDebug>();
 
@@ -32,12 +34,16 @@ void osp::active::SysExhaustPlume::update_plumes()
         const auto& throttle = *machine.request_input(2)->connected_value();
         const auto throttlePos = std::get<wiretype::Percent>(throttle).m_value;
 
+        plume.m_shader.updateTime(m_time);
+
         if (throttlePos > 0.0f)
         {
+            plume.m_shader.setPower(1.0f);
             visibility.state = true;
         }
         else
         {
+            plume.m_shader.setPower(0.0f);
             visibility.state = false;
         }
     }

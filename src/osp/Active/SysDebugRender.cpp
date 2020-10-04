@@ -24,37 +24,81 @@ SysDebugRender::SysDebugRender(ActiveScene &rScene) :
 void SysDebugRender::draw(ACompCamera const& camera)
 {
     using Magnum::GL::Renderer;
+    using Magnum::Shaders::Phong;
 
     Renderer::enable(Renderer::Feature::DepthTest);
     Renderer::enable(Renderer::Feature::FaceCulling);
 
+    // Configure blend mode for opaque rendering
+    Renderer::disable(Renderer::Feature::Blending);
 
-    auto drawGroup = m_scene.get_registry().group<CompDrawableDebug, CompVisibleDebug>(
-                            entt::get<ACompTransform>);
+    // Get opaque objects
+    auto opaqueObjects = m_scene.get_registry()
+        .view<CompDrawableDebug, CompVisibleDebug,
+        ACompTransform>(entt::exclude<CompTransparentDebug>);
 
-    Matrix4 entRelative;
-
-    for(auto entity: drawGroup)
+    // TMP update opaque textures until objects own their own shaders
+    // This doesn't even work because they all reference the same instance
+    for (auto entity : opaqueObjects)
     {
-        CompDrawableDebug& drawable = drawGroup.get<CompDrawableDebug>(entity);
-        CompVisibleDebug& visible = drawGroup.get<CompVisibleDebug>(entity);
-        
-        if (!visible.state) { continue; }
-        
-        ACompTransform& transform = drawGroup.get<ACompTransform>(entity);
+        CompDrawableDebug& drawable = opaqueObjects.get<CompDrawableDebug>(entity);
+        Phong& shader = *std::get<Phong*>(drawable.m_shader);
+        shader
+            .bindDiffuseTexture(*drawable.m_textures[0])
+            .setAmbientColor(0x111111_rgbf)
+            .setLightPosition({10.0f, 15.0f, 5.0f});
+    }
 
-        entRelative = camera.m_inverse * transform.m_transformWorld;
+    // Draw opaque objects
+    draw_group(opaqueObjects, camera);
 
-        (*drawable.m_shader)
-                .bindDiffuseTexture(*drawable.m_textures[0])
-                .setAmbientColor(0x111111_rgbf)
-                .setSpecularColor(0x330000_rgbf)
-                .setLightPosition({10.0f, 15.0f, 5.0f})
+    // Configure blend mode for transparency
+    Renderer::enable(Renderer::Feature::Blending);
+    Renderer::setBlendFunction(
+        Renderer::BlendFunction::SourceAlpha,
+        Renderer::BlendFunction::OneMinusSourceAlpha);
+
+    // Get transparent objects
+    auto transparentObjects = m_scene.get_registry()
+        .view<CompDrawableDebug, CompVisibleDebug,
+        CompTransparentDebug, ACompTransform>();
+
+    // Draw backfaces first
+    Renderer::setFaceCullingMode(Renderer::PolygonFacing::Front);
+    draw_group(transparentObjects, camera);
+
+    // Then draw frontfaces
+    Renderer::setFaceCullingMode(Renderer::PolygonFacing::Back);
+    draw_group(transparentObjects, camera);
+}
+
+void SysDebugRender::draw_element(CompDrawableDebug& drawable, ACompCamera const& camera,
+    ACompTransform const& transform)
+{
+    using Magnum::Shaders::Phong;
+
+    Matrix4 entRelative = camera.m_inverse * transform.m_transformWorld;
+
+    if (std::holds_alternative<Phong*>(drawable.m_shader))
+    {
+        (*std::get<Phong*>(drawable.m_shader))
+            .bindDiffuseTexture(*drawable.m_textures[0]);
+    }
+    else if (std::holds_alternative<PlumeShader*>(drawable.m_shader))
+    {
+        (*std::get<PlumeShader*>(drawable.m_shader))
+            .bindNozzleNoiseTexture(*drawable.m_textures[0])
+            .bindCombustionNoiseTexture(*drawable.m_textures[1]);
+    }
+
+    std::visit(
+        [&](auto&& shader) -> void
+        {
+            (*shader)
                 .setTransformationMatrix(entRelative)
                 .setProjectionMatrix(camera.m_projection)
                 .setNormalMatrix(entRelative.normalMatrix())
                 .draw(*(drawable.m_mesh));
-
-        //std::cout << "render! \n";
-    }
+        },
+        drawable.m_shader);
 }

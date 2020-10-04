@@ -2,6 +2,7 @@
 #include "osp/Active/physics.h"
 #include <Magnum/Shaders/Phong.h>
 #include "adera/Plume.h"
+#include "adera/Shaders/PlumeShader.h"
 #include "osp/Resource/Resource.h"
 
 namespace osp::active
@@ -10,8 +11,8 @@ namespace osp::active
 struct ACompExhaustPlume
 {
     ActiveEnt m_parentMachineRocket{entt::null};
-    Magnum::Shaders::Phong m_shader;
-    //DependRes<PlumeEffect> m_effect;
+    PlumeShader m_shader;
+    DependRes<PlumeEffectData> m_effect;
 };
 
 class SysExhaustPlume : public IDynamicSystem

@@ -195,15 +195,11 @@ void SysMachineRocket::attach_plume_effect(ActiveEnt ent)
             << static_cast<int>(ent) << "\n";
         return;
     }
-
     std::cout << "MachineRocket "
         << static_cast<int>(ent) << "'s associated plume: "
         << static_cast<int>(plumeNode) << "\n";
 
-    ACompExhaustPlume& plumeComp = m_scene.reg_emplace<ACompExhaustPlume>(plumeNode,
-        ent, Phong{Phong::Flag::DiffuseTexture});
-
-    // Get plume effect
+    // Get plume effect data
     Package& pkg = m_scene.get_application().debug_get_packges()[0];
     std::string plumeAnchorName = m_scene.reg_get<ACompHierarchy>(plumeNode).m_name;
     std::string effectName = plumeAnchorName.substr(3, plumeAnchorName.length() - 3);
@@ -218,24 +214,21 @@ void SysMachineRocket::attach_plume_effect(ActiveEnt ent)
     DependRes<Mesh> plumeMesh = pkg.get<Mesh>(plumeEffect->meshName);
     if (plumeMesh.empty())
     {
-        using Magnum::Trade::MeshData;
-
-        DependRes<MeshData> meshData = pkg.get<MeshData>(plumeEffect->meshName);
-        if (meshData.empty())
-        {
-            std::cout << "ERROR: couldn't find mesh " << plumeEffect->meshName
-                << " for plume effect\n";
-        }
-
-        plumeMesh = AssetImporter::compile_mesh(meshData, pkg);
+        plumeMesh = AssetImporter::compile_mesh(plumeEffect->meshName, pkg);
     }
-
     // Get plume tex (TEMPORARY)
-    DependRes<Texture2D> plumeTex = pkg.get<Texture2D>("OSPData/adera/noise1024.png");
+    DependRes<Texture2D> n1024 = pkg.get<Texture2D>("OSPData/adera/noise1024.png");
+
+    PlumeShader shader(*plumeEffect);
+    std::vector<Texture2D*> textures{&(*n1024), &(*n1024)};
+
+    ACompExhaustPlume& plumeComp = m_scene.reg_emplace<ACompExhaustPlume>(plumeNode,
+        ent, std::move(shader));
 
     m_scene.reg_emplace<CompDrawableDebug>(plumeNode, &(*plumeMesh),
-        std::vector<Texture2D*>{&(*plumeTex)}, &plumeComp.m_shader);
+        textures, &plumeComp.m_shader);
     m_scene.reg_emplace<CompVisibleDebug>(plumeNode, false);
+    m_scene.reg_emplace<CompTransparentDebug>(plumeNode, true);
 }
 
 Machine& SysMachineRocket::instantiate(ActiveEnt ent)

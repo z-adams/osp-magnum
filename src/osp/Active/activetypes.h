@@ -17,6 +17,8 @@ class ActiveScene;
 
 struct ACompCamera;
 
+struct ACompTransform;
+
 constexpr unsigned gc_heir_physics_level = 1;
 
 using ActiveEnt = entt::entity;

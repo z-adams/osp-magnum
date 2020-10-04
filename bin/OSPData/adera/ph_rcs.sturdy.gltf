@@ -58,9 +58,6 @@
                 "manufacturer" : "ACME Placeholders",
                 "machines" : [
                     {
-                        "type" : "UserControl"
-                    },
-                    {
                         "type" : "Rocket"
                     },
                     {

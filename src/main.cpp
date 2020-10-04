@@ -337,6 +337,12 @@ void config_controls()
     // Set throttle min to X
     userInput.config_register_control("vehicle_thr_min", false,
             {{0, (int) Key::X, VarTrig::PRESSED, false, VarOp::OR}});
+    // Set throttle increase to LShift
+    userInput.config_register_control("vehicle_thr_more", true,
+        {{osp::sc_keyboard, (int)Key::LeftShift, VarTrig::PRESSED, false, VarOp::OR}});
+    // Set throttle decrease to LCtrl
+    userInput.config_register_control("vehicle_thr_less", true,
+        {{osp::sc_keyboard, (int)Key::LeftCtrl, VarTrig::PRESSED, false, VarOp::OR}});
     // Set self destruct to LeftCtrl+C or LeftShift+A
     userInput.config_register_control("vehicle_self_destruct", false,
             {{0, (int) Key::LeftCtrl, VarTrig::HOLD, false, VarOp::AND},

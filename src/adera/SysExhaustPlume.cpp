@@ -38,12 +38,11 @@ void osp::active::SysExhaustPlume::update_plumes()
 
         if (throttlePos > 0.0f)
         {
-            plume.m_shader.setPower(1.0f);
+            plume.m_shader.setPower(throttlePos);
             visibility.state = true;
         }
         else
         {
-            plume.m_shader.setPower(0.0f);
             visibility.state = false;
         }
     }

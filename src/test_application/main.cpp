@@ -206,8 +206,8 @@ void load_a_bunch_of_stuff()
     load_sturdy_file(datapath + "ph_fuselage.sturdy.gltf", lazyDebugPack);
     load_sturdy_file(datapath + "ph_engine.sturdy.gltf", lazyDebugPack);
     load_sturdy_file(datapath + "ph_plume.sturdy.gltf", lazyDebugPack);
-    load_sturdy_file(datapath + "ph_rcs.sturdy.gltf", lazyDebugPack);
-    load_sturdy_file(datapath + "ph_rcs_plume.sturdy.gltf", lazyDebugPack);
+    //load_sturdy_file(datapath + "ph_rcs.sturdy.gltf", lazyDebugPack);
+    //load_sturdy_file(datapath + "ph_rcs_plume.sturdy.gltf", lazyDebugPack);
 
     // Immediately load noise textures
     constexpr std::string noise256 = "noise256";

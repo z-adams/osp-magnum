@@ -56,12 +56,6 @@
                 "description" : "A placeholder fuel tank",
                 "machines" : [
                     {
-                        "type" : "UserControl"
-                    },
-                    {
-                        "type" : "Rocket"
-                    },
-                    {
                         "type" : "FreeEnergyGenerator"
                     }
                 ],

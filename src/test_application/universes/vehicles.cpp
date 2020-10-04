@@ -206,10 +206,10 @@ osp::universe::Satellite debug_add_part_vehicle(
     auto capsule = pkg.get<PrototypePart>("part_phCapsule");
     auto fuselage = pkg.get<PrototypePart>("part_phFuselage");
     auto engine = pkg.get<PrototypePart>("part_phEngine");
-    auto rcs = pkg.get<PrototypePart>("part_phLinRCS");
+    //auto rcs = pkg.get<PrototypePart>("part_phLinRCS");
 
-    Vector3 fcOset = part_offset(*fuselage, "attach_top_fuselage",
-            *capsule, "attach_bottom_capsule");
+    Vector3 cfOset = part_offset(*capsule, "attach_bottom_capsule",
+            *fuselage, "attach_top_fuselage");
     Vector3 feOset = part_offset(*fuselage, "attach_bottom_fuselage",
             *engine, "attach_top_eng");
     Vector3 rcsOsetTop = Vector3{1.0f, 0.0f, 2.0f};
@@ -223,37 +223,30 @@ osp::universe::Satellite debug_add_part_vehicle(
     Quaternion rotZ_180 = Quaternion::rotation(2*qtrTurn, Vector3{0, 0, 1});
     Quaternion rotZ_270 = Quaternion::rotation(3*qtrTurn, Vector3{0, 0, 1});
 
-    blueprint.add_part(fuselage, Vector3{0}, idRot, scl);
-    blueprint.add_part(capsule, fcOset, idRot, scl);
-    blueprint.add_part(engine, feOset, idRot, scl);
+    blueprint.add_part(capsule, Vector3{0}, idRot, scl);
+    blueprint.add_part(fuselage, cfOset, idRot, scl);
+    blueprint.add_part(engine, cfOset + feOset, idRot, scl);
 
     Quaternion yz090 = rotZ_090 * rotY_090;
     Quaternion yz180 = rotZ_180 * rotY_090;
     Quaternion yz270 = rotZ_270 * rotY_090;
 
     // Top RCS ring
-    blueprint.add_part(rcs, rcsOsetTop, rotY_090, scl);
+    /*blueprint.add_part(rcs, rcsOsetTop, rotY_090, scl);
     blueprint.add_part(rcs, rotZ_090.transformVector(rcsOsetTop), yz090, scl);
     blueprint.add_part(rcs, rotZ_180.transformVector(rcsOsetTop), yz180, scl);
-    blueprint.add_part(rcs, rotZ_270.transformVector(rcsOsetTop), yz270, scl);
+    blueprint.add_part(rcs, rotZ_270.transformVector(rcsOsetTop), yz270, scl);*/
 
     // Top RCS ring
-    blueprint.add_part(rcs, rcsOsetTop, rotY_090, scl);
+    /*blueprint.add_part(rcs, rcsOsetTop, rotY_090, scl);
     blueprint.add_part(rcs, rotZ_090.transformVector(rcsOsetTop), yz090, scl);
     blueprint.add_part(rcs, rotZ_180.transformVector(rcsOsetTop), yz180, scl);
-    blueprint.add_part(rcs, rotZ_270.transformVector(rcsOsetTop), yz270, scl);
-
-    enum Machine
-    {
-        USERCONTROL = 0,
-        ROCKET = 1,
-        FREEENERGYGENERATOR = 2
-    };
+    blueprint.add_part(rcs, rotZ_270.transformVector(rcsOsetTop), yz270, scl);*/
 
     enum Parts
     {
-        FUSELAGE = 0,
-        CAPSULE = 1,
+        CAPSULE = 0,
+        FUSELAGE = 1,
         ENGINE = 2,
         RCS1 = 3,
         RCS2 = 4,
@@ -271,15 +264,15 @@ osp::universe::Satellite debug_add_part_vehicle(
     // from (output): a MachineUserControl m_woThrottle
     // to    (input): a MachineRocket m_wiThrottle
     blueprint.add_wire(
-            Parts::FUSELAGE, Machine::USERCONTROL, 1,
-            Parts::ENGINE, Machine::ROCKET, 2);
+            Parts::CAPSULE, 0, 1,
+            Parts::ENGINE, 0, 2);
 
     // Wire attitude contrl to gimbal
     // from (output): a MachineUserControl m_woAttitude
     // to    (input): a MachineRocket m_wiGimbal
     blueprint.add_wire(
-            Parts::FUSELAGE, Machine::USERCONTROL, 0,
-            Parts::FUESLAGE, Machine::ROCKET, 0);
+            Parts::CAPSULE, 0, 0,
+            Parts::ENGINE, 0, 0);
 
     // Put blueprint in package
     auto depend = pkg.add<BlueprintVehicle>(name, std::move(blueprint));

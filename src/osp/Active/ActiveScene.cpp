@@ -20,7 +20,8 @@ ActiveScene::ActiveScene(UserInputHandler &userInput, OSPApplication &app) :
         m_userInput(userInput),
         m_render(*this),
         m_physics(*this),
-        m_wire(*this)
+        m_wire(*this),
+        m_exhaustPlume(*this)
 {
     m_registry.on_construct<ACompHierarchy>()
                     .connect<&ActiveScene::on_hierarchy_construct>(*this);

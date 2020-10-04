@@ -5,6 +5,7 @@
 
 
 #include "Rocket.h"
+#include "adera/SysExhaustPlume.h"
 
 using namespace adera::active::machines;
 using namespace osp::active;
@@ -166,6 +167,35 @@ void SysMachineRocket::update_physics()
 
 Machine& SysMachineRocket::instantiate(ActiveEnt ent)
 {
+    ActiveEnt plumeNode;
+
+    auto findPlumeHandle = [&](ActiveEnt ent)
+    {
+        ACompHierarchy& node = m_scene.reg_get<ACompHierarchy>(ent);
+        if (node.m_name.compare(0, 9, "fx_plume_") == 0)
+        {
+            plumeNode = ent;
+            return false;  // terminate search
+        }
+        return true;
+    };
+
+    m_scene.hierarchy_traverse(ent, findPlumeHandle);
+
+    if (plumeNode == entt::null)
+    {
+        std::cout << "ERROR: could not find plume anchor for MachineRocket "
+            << static_cast<int>(ent) << "\n";
+    }
+    else
+    {
+        std::cout << "Found MachineRocket "
+            << static_cast<int>(ent) << "'s associated plume: "
+            << static_cast<int>(plumeNode) << "\n";
+
+        m_scene.reg_emplace<ACompExhaustPlume>(plumeNode, ent);
+    }
+
     return m_scene.reg_emplace<MachineRocket>(ent);//emplace(ent);
 }
 

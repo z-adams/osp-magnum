@@ -15,6 +15,7 @@
 #include "SysMachine.h"
 //#include "SysVehicle.h"
 #include "SysWire.h"
+#include "adera/SysExhaustPlume.h"
 
 namespace osp::active
 {
@@ -111,6 +112,17 @@ public:
      * @param ent
      */
     void hier_cut(ActiveEnt ent);
+
+    /**
+     * Traverse the scene hierarchy
+     * 
+     * Calls the specified callable on each entity of the scene hierarchy
+     * @param root The entity whose sub-tree to traverse
+     * @param callable A function that accepts an ActiveEnt as an argument and
+     *                 returns false if traversal should stop, true otherwise
+     */
+    template <typename FUNC_T>
+    void hierarchy_traverse(ActiveEnt root, FUNC_T callable);
 
     /**
      * @return Internal entt::registry
@@ -248,6 +260,7 @@ private:
     SysDebugRender m_render;
     SysPhysics m_physics;
     SysWire m_wire;
+    SysExhaustPlume m_exhaustPlume;
     //SysVehicle m_vehicles;
 
     //SysDebugObject m_debugObj;
@@ -295,5 +308,48 @@ constexpr SysWire& ActiveScene::get_system<SysWire>()
 //{
 //    return m_debugObj;
 //}
+
+template<typename FUNC_T>
+void ActiveScene::hierarchy_traverse(ActiveEnt root, FUNC_T callable)
+{
+    using osp::active::ACompHierarchy;
+
+    std::vector<ActiveEnt> parentNextSibling;
+    ActiveEnt currentEnt = root;
+
+    parentNextSibling.reserve(16);
+    while (true)
+    {
+        ACompHierarchy &hier = reg_get<ACompHierarchy>(currentEnt);
+
+        if (!callable(currentEnt)) { return; }
+
+        if (hier.m_childCount)
+        {
+            // entity has some children
+            currentEnt = hier.m_childFirst;
+
+
+            // save next sibling for later if it exists
+            if (hier.m_siblingNext != entt::null)
+            {
+                parentNextSibling.push_back(hier.m_siblingNext);
+            }
+        } else if (hier.m_siblingNext != entt::null)
+        {
+            // no children, move to next sibling
+            currentEnt = hier.m_siblingNext;
+        } else if (parentNextSibling.size())
+        {
+            // last sibling, and not done yet
+            // is last sibling, move to parent's (or ancestor's) next sibling
+            currentEnt = parentNextSibling.back();
+            parentNextSibling.pop_back();
+        } else
+        {
+            break;
+        }
+    }
+}
 
 }

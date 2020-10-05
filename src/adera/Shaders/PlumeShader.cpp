@@ -4,10 +4,11 @@
 #include <Magnum/GL/Shader.h>
 #include <Corrade/Containers/Reference.h>
 #include <Magnum/GL/Texture.h>
+#include <utility>
 
 using namespace Magnum;
 
-void PlumeShader::init()
+PlumeShader::PlumeShader()
 {
     GL::Shader vert{GL::Version::GL430, GL::Shader::Type::Vertex};
     GL::Shader frag{GL::Version::GL430, GL::Shader::Type::Fragment};
@@ -25,20 +26,6 @@ void PlumeShader::init()
     setUniform(
         static_cast<Int>(UniformPos::CombustionNoiseTex),
         static_cast<Int>(TextureSlot::CombustionNoiseTexUnit));
-}
-
-PlumeShader::PlumeShader()
-{
-    init();
-}
-
-PlumeShader::PlumeShader(PlumeEffectData const& data)
-{
-    init();
-
-    setMeshZBounds(data.zMax, data.zMin);
-    setBaseColor(data.color);
-    setFlowVelocity(data.flowVelocity);
 }
 
 PlumeShader& PlumeShader::setProjectionMatrix(const Matrix4& matrix)
@@ -100,4 +87,58 @@ PlumeShader& PlumeShader::setPower(const float power)
 {
     setUniform(static_cast<Int>(UniformPos::Power), power);
     return *this;
+}
+
+PlumeShaderInstance& PlumeShaderInstance::set_mesh_Z_bounds(float topZ, float bottomZ)
+{
+    m_maxZ = topZ;
+    m_minZ = bottomZ;
+    return *this;
+}
+
+PlumeShaderInstance& PlumeShaderInstance::set_nozzle_noise_tex(Magnum::GL::Texture2D& tex)
+{
+    m_nozzleTex = &tex;
+    return *this;
+}
+
+PlumeShaderInstance& PlumeShaderInstance::set_combustion_noise_tex(Magnum::GL::Texture2D& tex)
+{
+    m_combustionTex = &tex;
+    return *this;
+}
+
+PlumeShaderInstance& PlumeShaderInstance::set_base_color(const Magnum::Color4 color)
+{
+    m_color = color;
+    return *this;
+}
+
+PlumeShaderInstance& PlumeShaderInstance::set_flow_velocity(const float vel)
+{
+    m_flowVelocity = vel;
+    return *this;
+}
+
+PlumeShaderInstance& PlumeShaderInstance::update_time(const float currentTime)
+{
+    m_currentTime = currentTime;
+    return *this;
+}
+
+PlumeShaderInstance& PlumeShaderInstance::set_power(const float power)
+{
+    m_powerLevel = power;
+    return *this;
+}
+
+void PlumeShaderInstance::update_uniforms()
+{
+    m_shader->setMeshZBounds(m_maxZ, m_minZ);
+    m_shader->bindNozzleNoiseTexture(*m_nozzleTex);
+    m_shader->bindCombustionNoiseTexture(*m_combustionTex);
+    m_shader->setBaseColor(m_color);
+    m_shader->setFlowVelocity(m_flowVelocity);
+    m_shader->updateTime(m_currentTime);
+    m_shader->setPower(m_powerLevel);
 }

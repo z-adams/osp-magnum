@@ -10,6 +10,8 @@
 #include <Magnum/Shaders/Generic.h>
 
 #include "adera/Plume.h"
+#include "osp/Active/activetypes.h"
+#include "osp/Resource/ShaderInstance.h"
 
 class PlumeShader : public Magnum::GL::AbstractShaderProgram
 {
@@ -26,7 +28,8 @@ public:
     };
 
     PlumeShader();
-    PlumeShader(PlumeEffectData const& data);
+    PlumeShader(PlumeShader const& other) = delete;
+    PlumeShader& operator=(PlumeShader const& rhs) = delete;
 
     PlumeShader& setProjectionMatrix(const Magnum::Matrix4& matrix);
     PlumeShader& setTransformationMatrix(const Magnum::Matrix4& matrix);
@@ -42,9 +45,6 @@ public:
 
 
 private:
-    // GL init
-    void init();
-
     // Uniforms
     enum class UniformPos : Magnum::Int
     {
@@ -71,4 +71,65 @@ private:
     // Hide irrelevant calls
     using Magnum::GL::AbstractShaderProgram::drawTransformFeedback;
     using Magnum::GL::AbstractShaderProgram::dispatchCompute;
+};
+
+class PlumeShaderInstance : public ShaderInstance<PlumeShaderInstance, PlumeShader>
+{
+private:
+    friend class ShaderInstance<PlumeShaderInstance, PlumeShader>;
+    using PSI = PlumeShaderInstance;
+    using Base = ShaderInstance<PlumeShaderInstance, PlumeShader>;
+public:
+    PlumeShaderInstance(osp::DependRes<PlumeShader> shader) : ShaderInstance(shader)
+    {
+        m_minZ = 0.0f;
+        m_maxZ = 0.0f;
+        m_nozzleTex = nullptr;
+        m_combustionTex = nullptr;
+        m_color = Magnum::Color4{1.0f};
+        m_flowVelocity = 0.0f;
+        m_currentTime = 0.0f;
+        m_powerLevel = 0.0f;
+    }
+
+    PlumeShaderInstance(PlumeEffectData const& data, osp::DependRes<PlumeShader> shader)
+        : ShaderInstance(shader)
+    {
+        m_minZ = data.zMin;
+        m_maxZ = data.zMax;
+        m_color = data.color;
+        m_flowVelocity = data.flowVelocity;
+
+        m_nozzleTex = nullptr;
+        m_combustionTex = nullptr;
+        m_currentTime = 0.0f;
+        m_powerLevel = 0.0f;
+    }
+
+    PlumeShaderInstance(PlumeShaderInstance&& other) noexcept = default;
+    PSI& operator=(PSI&& other) noexcept = default;
+
+    PlumeShaderInstance(PSI const& other) = delete;
+    PSI& operator=(PSI const& other) = delete;
+
+    PSI& set_mesh_Z_bounds(float topZ, float bottomZ);
+    PSI& set_nozzle_noise_tex(Magnum::GL::Texture2D& tex);
+    PSI& set_combustion_noise_tex(Magnum::GL::Texture2D& tex);
+    PSI& set_base_color(const Magnum::Color4 color);
+    PSI& set_flow_velocity(const float vel);
+    PSI& update_time(const float currentTime);
+    PSI& set_power(const float power);
+
+private:
+    void update_uniforms();
+
+    // Uniform values
+    float m_minZ;
+    float m_maxZ;
+    Magnum::GL::Texture2D* m_nozzleTex;
+    Magnum::GL::Texture2D* m_combustionTex;
+    Magnum::Color4 m_color;
+    float m_flowVelocity;
+    float m_currentTime;
+    float m_powerLevel;
 };

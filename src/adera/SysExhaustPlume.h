@@ -11,7 +11,6 @@ namespace osp::active
 struct ACompExhaustPlume
 {
     ActiveEnt m_parentMachineRocket{entt::null};
-    PlumeShader m_shader;
     DependRes<PlumeEffectData> m_effect;
 };
 

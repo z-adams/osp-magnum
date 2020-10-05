@@ -225,7 +225,7 @@ void magnum_application()
 
     // Create an ActiveScene
     active::ActiveScene& scene = g_ospMagnum->scene_add("Area 1");
-
+ 
     // Register dynamic systems for that scene
     auto &sysArea = scene.dynamic_system_add<active::SysAreaAssociate>(
                 "AreaAssociate", uni);
@@ -292,8 +292,10 @@ void magnum_application()
 
     // workaround: wipe mesh resources because they're specific to the
     // opengl context
-    g_osp.debug_get_packges()[0].clear<Magnum::GL::Mesh>();
-    g_osp.debug_get_packges()[0].clear<Magnum::GL::Texture2D>();
+    osp::Package& pkg = g_osp.debug_get_packges()[0];
+    pkg.clear<Magnum::GL::Mesh>();
+    pkg.clear<Magnum::GL::Texture2D>();
+    pkg.clear<PlumeShader>();
 
     // destruct the application, this closes the window
     g_ospMagnum.reset();
@@ -398,6 +400,8 @@ void load_a_bunch_of_stuff()
     osp::AssetImporter::load_image(n1024path, lazyDebugPack);
     osp::AssetImporter::compile_tex(n256path, lazyDebugPack);
     osp::AssetImporter::compile_tex(n1024path, lazyDebugPack);
+
+    lazyDebugPack.add<PlumeShader>("plume_shader");
 
     // Add package to the univere
     g_osp.debug_get_packges().push_back(std::move(lazyDebugPack));
@@ -642,8 +646,8 @@ osp::universe::Satellite debug_add_part_vehicle(std::string const& name)
                                 *fuselage, "attach_top_fuselage");
     Vector3 feOset = part_offset(*fuselage, "attach_bottom_fuselage",
         *engine, "attach_top_eng");
-    Vector3 rcsOsetTop = Vector3{1.0f, 0.0f, 2.0f};
-    Vector3 rcsOsetBtm = Vector3{1.0f, 0.0f, -2.0f};
+    Vector3 rcsOsetTop = Vector3{1.0f, 0.0f, 2.0f} + cfOset;
+    Vector3 rcsOsetBtm = Vector3{1.0f, 0.0f, -2.0f} + cfOset;
 
     Quaternion idRot;
     Vector3 scl{1};

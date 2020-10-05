@@ -16,7 +16,7 @@ struct CompDrawableDebug
 {
     Magnum::GL::Mesh* m_mesh;
     std::vector<Magnum::GL::Texture2D*> m_textures;
-    std::variant<Magnum::Shaders::Phong*, PlumeShader*> m_shader;
+    std::variant<Magnum::Shaders::Phong*, PlumeShaderInstance> m_shader;
     Magnum::Color4 m_color;
 };
 

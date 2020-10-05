@@ -219,14 +219,20 @@ void SysMachineRocket::attach_plume_effect(ActiveEnt ent)
     // Get plume tex (TEMPORARY)
     DependRes<Texture2D> n1024 = pkg.get<Texture2D>("OSPData/adera/noise1024.png");
 
-    PlumeShader shader(*plumeEffect);
+    // Get plume shader (TEMPORARY)
+    DependRes<PlumeShader> ps = pkg.get<PlumeShader>("plume_shader");
+
+    PlumeShaderInstance shader(*plumeEffect, ps);
+    shader.set_combustion_noise_tex(*n1024);
+    shader.set_nozzle_noise_tex(*n1024);
+
     std::vector<Texture2D*> textures{&(*n1024), &(*n1024)};
 
     ACompExhaustPlume& plumeComp = m_scene.reg_emplace<ACompExhaustPlume>(plumeNode,
-        ent, std::move(shader));
+        ent);
 
     m_scene.reg_emplace<CompDrawableDebug>(plumeNode, &(*plumeMesh),
-        textures, &plumeComp.m_shader);
+        textures, std::move(shader));
     m_scene.reg_emplace<CompVisibleDebug>(plumeNode, false);
     m_scene.reg_emplace<CompTransparentDebug>(plumeNode, true);
 }

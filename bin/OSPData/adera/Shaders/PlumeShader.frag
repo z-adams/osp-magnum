@@ -38,9 +38,9 @@ layout(location = 9) uniform float time;
 layout(location = 10) uniform float power;
 
 const float PI = 3.14159265358;
-const float height = topZ - bottomZ;
+float height = topZ - bottomZ;
 // The plume is defined to leave the nozzle at the mesh origin
-const float NOZZLE_THRESHOLD = abs(topZ / height);
+float NOZZLE_THRESHOLD = abs(topZ / height);
 
 
 /* Converts rectilinear plume coordinates to polar

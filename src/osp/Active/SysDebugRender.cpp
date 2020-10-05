@@ -83,22 +83,14 @@ void SysDebugRender::draw_element(CompDrawableDebug& drawable, ACompCamera const
     {
         (*std::get<Phong*>(drawable.m_shader))
             .bindDiffuseTexture(*drawable.m_textures[0]);
+        (*std::get<Phong*>(drawable.m_shader))
+            .setTransformationMatrix(entRelative)
+            .setProjectionMatrix(camera.m_projection)
+            .setNormalMatrix(entRelative.normalMatrix())
+            .draw(*(drawable.m_mesh));
     }
-    else if (std::holds_alternative<PlumeShader*>(drawable.m_shader))
+    else if (std::holds_alternative<PlumeShaderInstance>(drawable.m_shader))
     {
-        (*std::get<PlumeShader*>(drawable.m_shader))
-            .bindNozzleNoiseTexture(*drawable.m_textures[0])
-            .bindCombustionNoiseTexture(*drawable.m_textures[1]);
+        std::get<PlumeShaderInstance>(drawable.m_shader).draw(*drawable.m_mesh, camera, transform);
     }
-
-    std::visit(
-        [&](auto&& shader) -> void
-        {
-            (*shader)
-                .setTransformationMatrix(entRelative)
-                .setProjectionMatrix(camera.m_projection)
-                .setNormalMatrix(entRelative.normalMatrix())
-                .draw(*(drawable.m_mesh));
-        },
-        drawable.m_shader);
 }

@@ -28,6 +28,7 @@
 
 #include "adera/Machines/UserControl.h"
 #include "adera/Machines/Rocket.h"
+#include "adera/Machines/RCSController.h"
 
 #include "planet-a/Satellites/SatPlanet.h"
 #include "planet-a/Active/SysPlanetA.h"
@@ -240,6 +241,7 @@ void magnum_application()
     scene.system_machine_add<machines::SysMachineUserControl>("UserControl",
             g_ospMagnum->get_input_handler());
     scene.system_machine_add<machines::SysMachineRocket>("Rocket");
+    scene.system_machine_add<machines::SysMachineRCSController>("RCSController");
 
     // Make active areas load vehicles and planets
     sysArea.activator_add(satAA, sysVehicle);
@@ -387,8 +389,8 @@ void load_a_bunch_of_stuff()
     osp::AssetImporter::load_sturdy_file(datapath + "ph_fuselage.sturdy.gltf", lazyDebugPack);
     osp::AssetImporter::load_sturdy_file(datapath + "ph_engine.sturdy.gltf", lazyDebugPack);
     osp::AssetImporter::load_sturdy_file(datapath + "ph_plume.sturdy.gltf", lazyDebugPack);
-    //osp::AssetImporter::load_sturdy_file(datapath + "ph_rcs.sturdy.gltf", lazyDebugPack);
-    //osp::AssetImporter::load_sturdy_file(datapath + "ph_rcs_plume.sturdy.gltf", lazyDebugPack);
+    osp::AssetImporter::load_sturdy_file(datapath + "ph_rcs.sturdy.gltf", lazyDebugPack);
+    osp::AssetImporter::load_sturdy_file(datapath + "ph_rcs_plume.sturdy.gltf", lazyDebugPack);
 
     // Immediately load noise textures
     std::string const noise256 = "noise256";
@@ -640,7 +642,7 @@ osp::universe::Satellite debug_add_part_vehicle(std::string const& name)
     DependRes<PrototypePart> capsule = pkg.get<PrototypePart>("part_phCapsule");
     DependRes<PrototypePart> fuselage = pkg.get<PrototypePart>("part_phFuselage");
     DependRes<PrototypePart> engine = pkg.get<PrototypePart>("part_phEngine");
-    //DependRes<PrototypePart> rcs = pkg.get<PrototypePart>("part_phLinRCS");
+    DependRes<PrototypePart> rcs = pkg.get<PrototypePart>("part_phLinRCS");
 
     Vector3 cfOset = part_offset(*capsule, "attach_bottom_capsule",
                                 *fuselage, "attach_top_fuselage");
@@ -662,16 +664,16 @@ osp::universe::Satellite debug_add_part_vehicle(std::string const& name)
     blueprint.add_part(engine, cfOset + feOset, idRot, scl);
 
     // Top RCS ring
-    /*blueprint.add_part(rcs, rcsOsetTop, rotY_090, Vector3{1});
+    blueprint.add_part(rcs, rcsOsetTop, rotY_090, Vector3{1});
     blueprint.add_part(rcs, rotZ_090.transformVector(rcsOsetTop), rotZ_090 * rotY_090, scl);
     blueprint.add_part(rcs, rotZ_180.transformVector(rcsOsetTop), rotZ_180 * rotY_090, scl);
-    blueprint.add_part(rcs, rotZ_270.transformVector(rcsOsetTop), rotZ_270 * rotY_090, scl);*/
+    blueprint.add_part(rcs, rotZ_270.transformVector(rcsOsetTop), rotZ_270 * rotY_090, scl);
 
     // Bottom RCS ring
-    /*blueprint.add_part(rcs, rcsOsetBtm, rotY_090, Vector3{1});
+    blueprint.add_part(rcs, rcsOsetBtm, rotY_090, Vector3{1});
     blueprint.add_part(rcs, rotZ_090.transformVector(rcsOsetBtm), rotZ_090 * rotY_090, scl);
     blueprint.add_part(rcs, rotZ_180.transformVector(rcsOsetBtm), rotZ_180 * rotY_090, scl);
-    blueprint.add_part(rcs, rotZ_270.transformVector(rcsOsetBtm), rotZ_270 * rotY_090, scl);*/
+    blueprint.add_part(rcs, rotZ_270.transformVector(rcsOsetBtm), rotZ_270 * rotY_090, scl);
 
     enum Parts
     {
@@ -703,6 +705,14 @@ osp::universe::Satellite debug_add_part_vehicle(std::string const& name)
     blueprint.add_wire(Parts::CAPSULE, 0, 0,
         Parts::ENGINE, 0, 0);
 
+    // Wire attitude control to RCS control, and RCS control to RCS rocket
+    for (auto port : rcsPorts)
+    {
+        blueprint.add_wire(Parts::CAPSULE, 0, 0,
+            port, 0, 0);
+        blueprint.add_wire(port, 0, 0,
+            port, 1, 2);
+    }
 
     // put blueprint in package
     DependRes<BlueprintVehicle> depend = pkg.add<BlueprintVehicle>(name, std::move(blueprint));

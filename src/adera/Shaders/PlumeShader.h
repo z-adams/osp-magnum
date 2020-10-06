@@ -28,8 +28,6 @@ public:
     };
 
     PlumeShader();
-    PlumeShader(PlumeShader const& other) = delete;
-    PlumeShader& operator=(PlumeShader const& rhs) = delete;
 
     PlumeShader& setProjectionMatrix(const Magnum::Matrix4& matrix);
     PlumeShader& setTransformationMatrix(const Magnum::Matrix4& matrix);

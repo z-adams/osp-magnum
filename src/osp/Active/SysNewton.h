@@ -6,6 +6,7 @@
 
 #include "../types.h"
 #include "activetypes.h"
+#include <Magnum/Math/Vector4.h>
 
 class NewtonBody;
 class NewtonCollision;
@@ -88,7 +89,6 @@ struct ACompCollisionShape
     ECollisionShape m_shape{ECollisionShape::NONE};
 };
 
-
 class SysNewton
 {
 
@@ -109,13 +109,25 @@ public:
     void update_world();
 
     /**
-     *
+     * @param transform [out] A matrix to store the relative orienation of ent
+                              with respect to the ancestor
      * @return Pair of {level-1 entity, pointer to body found}. If hierarchy
      *         error, then {entt:null, nullptr}. If no ACompRigidBody found,
      *         then {level-1 entity, nullptr}
      */
     std::pair<ActiveEnt, ACompRigidBody*> find_rigidbody_ancestor(
-            ActiveEnt ent);
+            ActiveEnt ent, Matrix4* transform = nullptr);
+
+    /**
+     * Helper function for a SysMachine to fill a rigid body member
+     * 
+     * If parentRigidBody has a rigid body, returns a pointer to it; if
+     * rigidBody is null, attempts to find the ancestor of childEntity
+     */
+    std::pair<ACompRigidBody*, ACompTransform*> try_get_or_find_rigidbody_parent(
+            ActiveEnt childEntity, ActiveEnt& parentRigidBody);
+
+    Vector3 get_rigidbody_CoM(ACompRigidBody &body);
 
     constexpr ActiveScene& get_scene() { return m_scene; }
 
@@ -125,8 +137,8 @@ public:
     void body_apply_accel(ACompRigidBody &body, Vector3 accel);
     void body_apply_accel_local(ACompRigidBody &body, Vector3 accel);
 
-    void body_apply_torque(ACompRigidBody &body, Vector3 force);
-    void body_apply_torque_local(ACompRigidBody &body, Vector3 force);
+    void body_apply_torque(ACompRigidBody &body, Vector3 torque);
+    void body_apply_torque_local(ACompRigidBody &body, Vector3 torque);
 
     void shape_create_box(ACompCollisionShape &shape, Vector3 size);
     void shape_create_sphere(ACompCollisionShape &shape, float radius);
@@ -147,6 +159,12 @@ private:
     void find_and_add_colliders(ActiveEnt ent,
                                 NewtonCollision *compound,
                                 Matrix4 const &currentTransform);
+
+    /**
+     * Compute the center of mass of a rigid body
+     * @return A 4-vector containing xyz=CoM, w=mass
+     */
+    Magnum::Vector4 compute_body_CoM(ActiveEnt root, Matrix4 currentTransform);
 
     void on_body_construct(entt::registry& reg, ActiveEnt ent);
     void on_body_destruct(entt::registry& reg, ActiveEnt ent);

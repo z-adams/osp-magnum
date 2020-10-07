@@ -142,6 +142,15 @@ void DebugCameraController::update_physics_post()
     Matrix4 &xform = m_scene.reg_get<active::ACompTransform>(m_ent).m_transform;
     Matrix4 const& xformTgt = m_scene.reg_get<active::ACompTransform>(m_orbiting).m_transform;
 
+    // Compute Center of Mass of target, if it's a rigid body
+    osp::active::SysPhysics& phys = m_scene.get_system<osp::active::SysPhysics>();
+    auto rigidTarget = phys.find_rigidbody_ancestor(m_orbiting);
+    Vector3 comOset{0.0f};
+    if (rigidTarget.second)
+    {
+        comOset = xformTgt.transformVector(phys.get_rigidbody_CoM(*rigidTarget.second));
+    }
+
     float keyRotYaw = static_cast<float>(m_rt.trigger_hold() - m_lf.trigger_hold());
     float keyRotPitch = static_cast<float>(m_dn.trigger_hold() - m_up.trigger_hold());
 
@@ -159,7 +168,7 @@ void DebugCameraController::update_physics_post()
             pitch += static_cast<float>(-m_mouseMotion.dySmooth());
         }
 
-        // 100 degrees per step
+        // 1 degree per step
         constexpr auto rotRate = 1.0_degf;
 
         // rotate it
@@ -183,7 +192,8 @@ void DebugCameraController::update_physics_post()
     xform.translation() = xformTgt.translation() + m_orbitPos;
 
     // look at target
-    xform = Matrix4::lookAt(xform.translation(), xformTgt.translation(), xform[1].xyz());
+    xform = Matrix4::lookAt(xform.translation() + comOset,
+        xformTgt.translation() + comOset, xform[1].xyz());
 }
 
 void DebugCameraController::view_orbit(active::ActiveEnt ent)

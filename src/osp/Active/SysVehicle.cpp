@@ -309,6 +309,8 @@ ActiveEnt SysVehicle::part_instantiate(PrototypePart& part,
     //CompNewtonBody& nwtBody
     //        = m_scene->get_registry().emplace<CompNewtonBody>(newEntities[0]);
 
+    // Create mass
+    m_scene.reg_emplace<ACompMass>(newEntities[0], part.get_mass());
 
     // return root object
     return newEntities[0];

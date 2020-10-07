@@ -11,14 +11,15 @@ using Magnum::Vector3;
 MachineRCSController::MachineRCSController()
     : Machine(true),
     m_wiCommandOrient(this, "Orient"),
-    m_woThrottle(this, "Throttle")
+    m_woThrottle(this, "Throttle"),
+    m_originOffset(0.0f)
 {
     using wiretype::Percent;
     m_woThrottle.value() = Percent{0.0f};
 }
 
 MachineRCSController::MachineRCSController(MachineRCSController&& move)
-    : osp::active::Machine(std::move(move)), m_wiCommandOrient(std::move(move.m_wiCommandOrient)), m_woThrottle(std::move(move.m_woThrottle))
+    : osp::active::Machine(std::move(move)), m_wiCommandOrient(std::move(move.m_wiCommandOrient)), m_woThrottle(std::move(move.m_woThrottle)), m_originOffset(std::move(move.m_originOffset))
 {
 
 }
@@ -56,6 +57,7 @@ std::vector<WireOutput*> MachineRCSController::existing_outputs()
 
 SysMachineRCSController::SysMachineRCSController(ActiveScene& scene)
     :SysMachine<SysMachineRCSController, MachineRCSController>(scene),
+    m_physics(scene.get_system<SysPhysics>()),
     m_updateControls(scene.get_update_order(), "mach_rcs", "wire", "controls",
         std::bind(&SysMachineRCSController::update_controls, this))
 {
@@ -90,6 +92,7 @@ float SysMachineRCSController::thruster_influence(Vector3 posOset, Vector3 direc
     {
         // Ignore small contributions from imprecision
         // Real thrusters can't throttle this deep anyways
+        // Eventually it would be cool to have PWM for non-throttling thrusters
         return 0.0f;
     }
     return clamp(rotInfluence + translInfluence, 0.0f, 1.0f);
@@ -107,13 +110,20 @@ void SysMachineRCSController::update_controls()
         using wiretype::AttitudeControl;
         using Magnum::Vector3;
 
+        auto physComps = m_physics.try_get_or_find_rigidbody_parent(ent, machine.m_rigidBody);
+        if (!physComps.first || !physComps.second) { continue; }
+
+        ACompRigidBody *compRb = physComps.first;
+        ACompTransform *compTf = physComps.second;
+
+        machine.m_originOffset = m_physics.get_rigidbody_CoM(*compRb);
+
         if (WireData *gimbal = machine.m_wiCommandOrient.connected_value())
         {
             AttitudeControl *attCtrl = std::get_if<AttitudeControl>(gimbal);
 
             Vector3 commandRot = attCtrl->m_attitude;
-            Vector3 tmpOset{0.0f, 0.0f, -3.12f};
-            Vector3 thrusterPos = transform.m_transform.translation() - tmpOset;
+            Vector3 thrusterPos = transform.m_transform.translation() - machine.m_originOffset;
             Vector3 thrusterDir = transform.m_transform.rotation() * Vector3{0.0f, 0.0f, 1.0f};
 
             float influence = 0.0f;

@@ -50,6 +50,12 @@ struct ACompHierarchy
 
 };
 
+// Temporary place to store the mass of entities
+struct ACompMass
+{
+    float m_mass;
+};
+
 /**
  * Component that represents a camera
  */

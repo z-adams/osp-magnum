@@ -2,6 +2,7 @@
 
 #include <osp/Active/SysMachine.h>
 #include <Magnum/Math/Vector3.h>
+#include "osp/Active/physics.h"
 
 namespace adera::active::machines
 {
@@ -25,6 +26,7 @@ private:
     float thruster_influence(Magnum::Vector3 posOset, Magnum::Vector3 direction,
         Magnum::Vector3 cmdTransl, Magnum::Vector3 cmdRot);
 
+    osp::active::SysPhysics &m_physics;
     osp::active::UpdateOrderHandle m_updateControls;
 };
 
@@ -38,6 +40,7 @@ public:
     MachineRCSController& operator=(MachineRCSController&& move);
     ~MachineRCSController() = default;
 
+    void set_CoM_offset(Magnum::Vector3 oset) { m_originOffset = oset; }
     void propagate_output(osp::active::WireOutput *output) override;
     
     osp::active::WireInput* request_input(osp::WireInPort port) override;
@@ -49,6 +52,9 @@ public:
 private:
     osp::active::WireInput m_wiCommandOrient;
     osp::active::WireOutput m_woThrottle;
+
+    osp::active::ActiveEnt m_rigidBody;
+    Magnum::Vector3 m_originOffset;
 };
 
 }

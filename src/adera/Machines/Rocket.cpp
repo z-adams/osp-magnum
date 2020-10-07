@@ -80,7 +80,7 @@ SysMachineRocket::SysMachineRocket(ActiveScene &scene) :
 
 void SysMachineRocket::update_physics()
 {
-    auto view = m_scene.get_registry().view<MachineRocket>();
+    auto view = m_scene.get_registry().view<MachineRocket, ACompTransform>();
 
     for (ActiveEnt ent : view)
     {
@@ -93,38 +93,11 @@ void SysMachineRocket::update_physics()
 
         //std::cout << "updating a rocket\n";
 
-        ACompRigidBody *compRb;
-        ACompTransform *compTf;
+        auto physComps = m_physics.try_get_or_find_rigidbody_parent(ent, machine.m_rigidBody);
+        if (!physComps.first || !physComps.second) { continue; }
 
-        if (m_scene.get_registry().valid(machine.m_rigidBody))
-        {
-            // Try to get the ACompRigidBody if valid
-            compRb = m_scene.get_registry()
-                            .try_get<ACompRigidBody>(machine.m_rigidBody);
-            compTf = m_scene.get_registry()
-                            .try_get<ACompTransform>(machine.m_rigidBody);
-            if (!compRb || !compTf)
-            {
-                machine.m_rigidBody = entt::null;
-                continue;
-            }
-        }
-        else
-        {
-            // rocket's rigid body not set yet
-            auto body = m_physics.find_rigidbody_ancestor(ent);
-
-            if (body.second == nullptr)
-            {
-                std::cout << "no rigid body!\n";
-                continue;
-            }
-
-            machine.m_rigidBody = body.first;
-            compRb = body.second;
-            compTf = m_scene.get_registry()
-                    .try_get<ACompTransform>(body.first);
-        }
+        ACompRigidBody *compRb = physComps.first;
+        ACompTransform *compTf = physComps.second;
 
         if (WireData *ignition = machine.m_wiIgnition.connected_value())
         {
@@ -137,33 +110,23 @@ void SysMachineRocket::update_physics()
         {
             Percent *percent = std::get_if<Percent>(throttle);
 
-            float thrust = 10.0f; // temporary
+            float thrustMag = 10.0f; // temporary
 
             //std::cout << percent->m_value << "\n";
+            Matrix4 relTransform{};
+            m_physics.find_rigidbody_ancestor(ent, &relTransform);
 
-            m_physics.body_apply_force(*compRb, compTf->m_transform.backward()
-                    * (percent->m_value * thrust));
+            Vector3 thrustDir = relTransform.transformVector(Vector3{0.0f, 0.0f, 1.0f});
+            Vector3 thrust = thrustMag*percent->m_value * thrustDir;
+            Vector3 location = relTransform.translation();
+
+            Vector3 worldThrust = compTf->m_transform.transformVector(thrust);
+            m_physics.body_apply_force(*compRb, worldThrust);
+
+            Vector3 torque = Magnum::Math::cross(location, thrust);
+            Vector3 worldTorque = compTf->m_transform.transformVector(torque);
+            m_physics.body_apply_torque(*compRb, worldTorque);
         }
-
-
-
-        // this is suppose to be gimbal, but for now it applies torque
-
-        using wiretype::AttitudeControl;
-
-        if (WireData *gimbal = machine.m_wiGimbal.connected_value())
-        {
-            AttitudeControl *attCtrl = std::get_if<AttitudeControl>(gimbal);
-
-            Vector3 localTorque = compTf->m_transform
-                    .transformVector(attCtrl->m_attitude);
-
-            localTorque *= 3.0f; // arbitrary
-
-            m_physics.body_apply_torque(*compRb, localTorque);
-        }
-
-
     }
 }
 

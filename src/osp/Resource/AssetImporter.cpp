@@ -64,6 +64,9 @@ void osp::AssetImporter::load_part(TinyGltfImporter& gltfImporter,
         gltfImporter.object3D(id)->importerState());
 
     tinygltf::Value const& extras = node.extras;
+
+    part.get_mass() = extras.Get("massdry").Get<double>();
+
     if (!extras.Has("machines"))
     {
         std::cout << "Error: no machines found in "

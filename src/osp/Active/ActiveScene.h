@@ -128,7 +128,7 @@ public:
      *                 returns false if traversal should stop, true otherwise
      */
     template <typename FUNC_T>
-    void hierarchy_traverse(ActiveEnt root, FUNC_T callable);
+    void hierarchy_traverse(ActiveEnt root, FUNC_T callable, bool includeSibs=true);
 
     /**
      * @return Internal entt::registry
@@ -142,6 +142,14 @@ public:
      */
     template<class T>
     constexpr T& reg_get(ActiveEnt ent) { return m_registry.get<T>(ent); };
+
+    /**
+     * Shorthand for get_registry().try_get<T>()
+     * @tparam T Component to get
+     * @return Pointer to component
+     */
+    template<class T>
+    constexpr T* reg_try_get(ActiveEnt ent) { return m_registry.try_get<T>(ent); };
 
     /**
      * Shorthand for get_registry().emplace<T>()
@@ -316,7 +324,7 @@ constexpr SysWire& ActiveScene::get_system<SysWire>()
 //}
 
 template<typename FUNC_T>
-void ActiveScene::hierarchy_traverse(ActiveEnt root, FUNC_T callable)
+void ActiveScene::hierarchy_traverse(ActiveEnt root, FUNC_T callable, bool includeSibs)
 {
     using osp::active::ACompHierarchy;
 
@@ -337,7 +345,7 @@ void ActiveScene::hierarchy_traverse(ActiveEnt root, FUNC_T callable)
 
 
             // save next sibling for later if it exists
-            if (hier.m_siblingNext != entt::null)
+            if (hier.m_siblingNext != entt::null && includeSibs)
             {
                 parentNextSibling.push_back(hier.m_siblingNext);
             }

@@ -120,8 +120,8 @@ StatusActivated SysVehicle::activate_sat(ActiveScene &scene,
                 continue;
             }
 
-            // TODO: pass the blueprint configs into this function
-            Machine& machine = sysMachine->second->instantiate(partEntity);
+            BlueprintMachine blueMach;  // TODO unused so far
+            Machine& machine = sysMachine->second->instantiate(partEntity, protoMachine, blueMach);
 
             // Add the machine to the part
             partMachines.m_machines.emplace_back(partEntity, sysMachine);
@@ -295,7 +295,7 @@ ActiveEnt SysVehicle::part_instantiate(PrototypePart& part,
         }
         else if (currentPrototype.m_type == ObjectType::COLLIDER)
         {
-            ACompCollisionShape collision = m_scene.reg_emplace<ACompCollisionShape>(currentEnt);
+            ACompCollisionShape& collision = m_scene.reg_emplace<ACompCollisionShape>(currentEnt);
             const ColliderData& cd = std::get<ColliderData>(currentPrototype.m_objectData);
             collision.m_shape = cd.m_type;
 

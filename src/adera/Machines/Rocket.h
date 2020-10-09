@@ -1,6 +1,7 @@
 #pragma once
 
 #include <osp/Active/SysMachine.h>
+#include <osp/Resource/blueprints.h>
 
 namespace adera::active::machines
 {
@@ -34,7 +35,8 @@ public:
      * @param ent The entity that owns the MachineRocket
      * @return The new MachineRocket instance
      */
-    osp::active::Machine& instantiate(osp::active::ActiveEnt ent) override;
+    osp::active::Machine& instantiate(osp::active::ActiveEnt ent,
+        osp::PrototypeMachine config, osp::BlueprintMachine settings) override;
 
     osp::active::Machine& get(osp::active::ActiveEnt ent) override;
 
@@ -52,7 +54,7 @@ class MachineRocket : public osp::active::Machine
     friend SysMachineRocket;
 
 public:
-    MachineRocket();
+    MachineRocket(float thrust);
     MachineRocket(MachineRocket &&move);
 
     MachineRocket& operator=(MachineRocket&& move);
@@ -74,6 +76,7 @@ private:
     osp::active::WireInput m_wiThrottle;
 
     osp::active::ActiveEnt m_rigidBody;
+    float m_thrust;
 };
 
 

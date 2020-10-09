@@ -3,6 +3,7 @@
 #include <osp/Active/SysMachine.h>
 #include <Magnum/Math/Vector3.h>
 #include "osp/Active/physics.h"
+#include "osp/Resource/blueprints.h"
 
 namespace adera::active::machines
 {
@@ -18,7 +19,8 @@ public:
 
     void update_controls();
 
-    osp::active::Machine& instantiate(osp::active::ActiveEnt ent) override;
+    osp::active::Machine& instantiate(osp::active::ActiveEnt ent,
+        osp::PrototypeMachine config, osp::BlueprintMachine settings) override;
 
     osp::active::Machine& get(osp::active::ActiveEnt ent) override;
 

@@ -166,6 +166,65 @@ private:
      */
     Magnum::Vector4 compute_body_CoM(ActiveEnt root, Matrix4 currentTransform);
 
+    /**
+     * Transform an inertia tensor
+     *
+     * Transforms an inertia tensor using the parallel axis theorem.
+     * See "Tensor generalization" section on 
+     * https://en.wikipedia.org/wiki/Parallel_axis_theorem for more information.
+     * @param I [in] The original inertia tensor
+     * @param mass [in] The total mass of the object
+     * @param translation [in] The translation part of the transformation
+     * @param rotation [in] The rotation part of the transformation
+     * @return The transformed inertia tensor
+     */
+    Matrix3 transform_inertia_tensor(Matrix3 I, float mass, Vector3 translation,
+        Matrix3 rotation);
+
+    /**
+     * Compute the volume of a part
+     *
+     * Traverses the immediate children of the specified entity and sums the
+     * volumes of any detected collision volumes. Cannot account for overlapping
+     * collider volumes.
+     * @param part [in] The part
+     * @return The part's collider volume
+     */
+    float compute_part_volume(ActiveEnt part);
+
+    /**
+     * Compute the moment of inertia of a part
+     *
+     * Searches the immediate children of the specified entity and computes
+     * its moment of inertia. Assumes mass is evenly distributed over collision
+     * volume and that the part's center of mass lies at its root origin.
+     * @param part [in] The part
+     * @return The inertia tensor of the part about its origin
+     */
+    Matrix3 compute_part_inertia(ActiveEnt part);
+
+    /**
+     * Compute the moment of inertia of a rigid body
+     *
+     * Searches the child nodes of the root and computes the total moment of
+     * inertia of the body. Does not perform recursion, as vehicles do not yet
+     * have nested hierarchies.
+     * @param root [in] The root entity of the rigid body
+     * @param centerOfMass [in] The center of mass of the rigid body
+     * @return The inertia tensor of the rigid body about its center of mass
+     */
+    Matrix3 compute_body_inertia(ActiveEnt root, Vector3 centerOfMass,
+        Matrix4 currentTransform);
+
+    /**
+     * Compute the inertia tensor for a cylinder
+     *
+     * Computes the moment of inertia about the principal axes of a cylinder
+     * whose axis of symmetry lies along the z-axis
+     * @return The moment of inertia about the 3 principal axes (x, y, z)
+     */
+    Vector3 cylinder_inertia_tensor(float radius, float height, float mass);
+
     void on_body_construct(entt::registry& reg, ActiveEnt ent);
     void on_body_destruct(entt::registry& reg, ActiveEnt ent);
 

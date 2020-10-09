@@ -94,7 +94,8 @@ public:
     //virtual void update_physics(float delta) = 0;
 
     // TODO: make some config an argument
-    virtual Machine& instantiate(ActiveEnt ent) = 0;
+    virtual Machine& instantiate(ActiveEnt ent,
+        PrototypeMachine config, BlueprintMachine settings) = 0;
 
     virtual Machine& get(ActiveEnt ent) = 0;
 };
@@ -110,7 +111,9 @@ public:
     SysMachine(ActiveScene &scene) : m_scene(scene) {}
     ~SysMachine() = default;
 
-    virtual Machine& instantiate(ActiveEnt ent) = 0;
+    virtual Machine& instantiate(ActiveEnt ent, 
+        PrototypeMachine config,
+        BlueprintMachine settings) = 0;
 
     /**
      * Create a new Machine component

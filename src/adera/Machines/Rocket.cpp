@@ -6,6 +6,7 @@
 
 #include "Rocket.h"
 #include "osp/Resource/AssetImporter.h"
+#include "osp/Resource/blueprints.h"
 #include "adera/SysExhaustPlume.h"
 #include <Magnum/Trade/MeshData.h>
 
@@ -13,12 +14,13 @@ using namespace adera::active::machines;
 using namespace osp::active;
 using namespace osp;
 
-MachineRocket::MachineRocket() :
+MachineRocket::MachineRocket(float thrust) :
         Machine(true),
         m_wiGimbal(this, "Gimbal"),
         m_wiIgnition(this, "Ignition"),
         m_wiThrottle(this, "Throttle"),
-        m_rigidBody(entt::null)
+        m_rigidBody(entt::null),
+        m_thrust(thrust)
 {
     //m_enable = true;
 }
@@ -27,7 +29,8 @@ MachineRocket::MachineRocket(MachineRocket&& move) :
         Machine(std::move(move)),
         m_wiGimbal(this, std::move(move.m_wiGimbal)),
         m_wiIgnition(this, std::move(move.m_wiIgnition)),
-        m_wiThrottle(this, std::move(move.m_wiThrottle))
+        m_wiThrottle(this, std::move(move.m_wiThrottle)),
+        m_thrust(std::move(move.m_thrust))
 {
     //m_enable = true;
 }
@@ -110,9 +113,8 @@ void SysMachineRocket::update_physics()
         {
             Percent *percent = std::get_if<Percent>(throttle);
 
-            float thrustMag = 10.0f; // temporary
+            float thrustMag = machine.m_thrust;
 
-            //std::cout << percent->m_value << "\n";
             Matrix4 relTransform{};
             m_physics.find_rigidbody_ancestor(ent, &relTransform);
 
@@ -200,10 +202,14 @@ void SysMachineRocket::attach_plume_effect(ActiveEnt ent)
     m_scene.reg_emplace<CompTransparentDebug>(plumeNode, true);
 }
 
-Machine& SysMachineRocket::instantiate(ActiveEnt ent)
+Machine& SysMachineRocket::instantiate(ActiveEnt ent, PrototypeMachine config,
+    BlueprintMachine settings)
 {
+    // Read engine config
+    float thrust = std::get<double>(config.m_config["thrust"]);
+    
     attach_plume_effect(ent);
-    return m_scene.reg_emplace<MachineRocket>(ent);
+    return m_scene.reg_emplace<MachineRocket>(ent, thrust);
 }
 
 Machine& SysMachineRocket::get(ActiveEnt ent)

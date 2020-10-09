@@ -31,6 +31,8 @@ enum class ECollisionShape : uint8_t
     TERRAIN
 };
 
+float col_shape_volume(ECollisionShape shape, Vector3 scale);
+
 //const uint32_t gc_OBJ_MESH      = 1 << 2;
 //const uint32_t gc_OBJ_COLLIDER  = 1 << 3;
 
@@ -76,12 +78,12 @@ struct PrototypeObject
     // Put more OSP-specific data in here
 };
 
+using config_node_t = std::variant<double, int, std::string>;
 
 struct PrototypeMachine
 {
     std::string m_type;
-
-    // TODO: some sort of data
+    std::map<std::string, config_node_t> m_config;
 };
 
 /**

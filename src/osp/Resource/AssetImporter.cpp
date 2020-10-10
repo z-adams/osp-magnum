@@ -49,28 +49,12 @@ void osp::AssetImporter::load_sturdy_file(std::string const& filepath, Package& 
     gltfImporter.close();
 }
 
-void osp::AssetImporter::load_part(TinyGltfImporter& gltfImporter,
-    Package& pkg, unsigned id)
+void AssetImporter::load_machines(tinygltf::Value const& extras,
+    std::vector<PrototypeMachine>& machineArray)
 {
-    // It's a part
-    std::cout << "PART!\n";
-
-    // Recursively add child nodes to part
-    PrototypePart part;
-    proto_add_obj_recurse(gltfImporter, pkg, part, 0, id);
-
-    // Parse extra properties
-    tinygltf::Node const& node = *static_cast<tinygltf::Node const*>(
-        gltfImporter.object3D(id)->importerState());
-
-    tinygltf::Value const& extras = node.extras;
-
-    part.get_mass() = extras.Get("massdry").Get<double>();
-
     if (!extras.Has("machines"))
     {
-        std::cout << "Error: no machines found in "
-            << gltfImporter.object3DName(id) << "!\n";
+        std::cout << "Error: no machines found!\n";
         return;
     }
     tinygltf::Value const& machines = extras.Get("machines");
@@ -130,8 +114,27 @@ void osp::AssetImporter::load_part(TinyGltfImporter& gltfImporter,
             }
         }
 
-        part.get_machines().emplace_back(std::move(machine));
+        machineArray.emplace_back(std::move(machine));
     }
+}
+
+void osp::AssetImporter::load_part(TinyGltfImporter& gltfImporter,
+    Package& pkg, unsigned id)
+{
+    // It's a part
+    std::cout << "PART!\n";
+
+    // Recursively add child nodes to part
+    PrototypePart part;
+    proto_add_obj_recurse(gltfImporter, pkg, part, 0, id);
+
+    // Parse extra properties
+    tinygltf::Node const& node = *static_cast<tinygltf::Node const*>(
+        gltfImporter.object3D(id)->importerState());
+
+    tinygltf::Value const& extras = node.extras;
+
+    part.get_mass() = extras.Get("massdry").Get<double>();
 
     pkg.add<PrototypePart>(gltfImporter.object3DName(id), std::move(part));
 }
@@ -412,7 +415,7 @@ void AssetImporter::proto_add_obj_recurse(TinyGltfImporter& gltfImporter,
             const auto& pbr = mat->as<PbrMetallicRoughnessMaterialData>();
 
             auto imgID = gltfImporter.texture(pbr.baseColorTexture())->image();
-            std::string const& imgName =gltfImporter.image2DName(imgID);
+            std::string const& imgName = gltfImporter.image2DName(imgID);
             std::cout << "Base Tex: " << imgName << "\n";
             std::get<DrawableData>(obj.m_objectData).m_textures.push_back(
                 static_cast<unsigned>(part.get_strings().size()));
@@ -432,6 +435,14 @@ void AssetImporter::proto_add_obj_recurse(TinyGltfImporter& gltfImporter,
         {
             std::cout << "Error: unsupported material type\n";
         }
+    }
+
+    // Check for and read machines
+    tinygltf::Node const& node =
+        *static_cast<tinygltf::Node const*>(childData->importerState());
+    if (node.extras.Has("machines"))
+    {
+        load_machines(node.extras, obj.m_machines);
     }
 
     int objIndex = protoObjects.size();

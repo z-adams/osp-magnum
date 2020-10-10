@@ -1,5 +1,6 @@
 #include "ShipResources.h"
 #include "osp/Active/ActiveScene.h"
+#include "osp/Resource/PrototypePart.h"
 
 using namespace osp;
 using namespace osp::active;
@@ -26,6 +27,7 @@ MachineContainer& MachineContainer::operator=(MachineContainer&& move)
     m_enable = move.m_enable;
     m_capacity = move.m_capacity;
     m_contents = std::move(move.m_contents);
+    return *this;
 }
 
 void MachineContainer::propagate_output(WireOutput* output)
@@ -94,10 +96,10 @@ uint64_t SysMachineContainer::resource_capacity(ShipResourceType type, float vol
     return static_cast<uint64_t>(units * quantaPerUnit);
 }
 
-Machine & SysMachineContainer::instantiate(ActiveEnt ent,
+Machine& SysMachineContainer::instantiate(ActiveEnt ent,
     PrototypeMachine config, BlueprintMachine settings)
 {
-    float capacity = std::get<float>(config.m_config["capacity"]);
+    float capacity = std::get<double>(config.m_config["capacity"]);
     
     std::string resName = std::get<std::string>(settings.m_config["resourcename"]);
     Package& pkg = m_scene.get_application().debug_get_packges()[0];

@@ -53,6 +53,14 @@ struct ColliderData
     unsigned m_meshData;
 };
 
+using config_node_t = std::variant<double, int, std::string>;
+
+struct PrototypeMachine
+{
+    std::string m_type;
+    std::map<std::string, config_node_t> m_config;
+};
+
 struct PrototypeObject
 {
     unsigned m_parentIndex;
@@ -76,14 +84,8 @@ struct PrototypeObject
     std::variant<DrawableData, ColliderData> m_objectData;
 
     // Put more OSP-specific data in here
-};
+    std::vector<PrototypeMachine> m_machines;
 
-using config_node_t = std::variant<double, int, std::string>;
-
-struct PrototypeMachine
-{
-    std::string m_type;
-    std::map<std::string, config_node_t> m_config;
 };
 
 /**
@@ -101,12 +103,6 @@ public:
     constexpr std::vector<PrototypeObject> const& get_objects() const
     { return m_objects; }
 
-
-    constexpr std::vector<PrototypeMachine>& get_machines()
-    { return m_machines; }
-    constexpr std::vector<PrototypeMachine> const& get_machines() const
-    { return m_machines; }
-
     constexpr float& get_mass()
     { return m_mass; }
     constexpr float get_mass() const
@@ -120,8 +116,6 @@ private:
     //std::string name; use path
 
     std::vector<PrototypeObject> m_objects;
-
-    std::vector<PrototypeMachine> m_machines;
 
     //std::vector<DependRes<MeshData3D> > m_meshDataUsed;
 

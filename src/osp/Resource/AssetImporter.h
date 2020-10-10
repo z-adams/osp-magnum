@@ -67,6 +67,16 @@ public:
     static DependRes<Magnum::GL::Texture2D> compile_tex(
         const std::string& imageDataName, Package& package);
 private:
+
+    /**
+     * Load machines from node extras
+     *
+     * @param extras [in] An extras node from a glTF file
+     * @param machineArray [out] A machine array from a Prototype Part or Object
+     */
+    static void load_machines(tinygltf::Value const& extras,
+        std::vector<PrototypeMachine>& machineArray);
+
     /**
      * Load only associated config files, and add resource paths to the package
      * But for now, this function just loads everything.

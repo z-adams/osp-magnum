@@ -11,6 +11,17 @@ namespace osp
 using WireInPort = uint16_t;
 using WireOutPort = uint16_t;
 
+struct BlueprintMachine
+{
+    // TODO specific settings for a machine
+    std::map<std::string, config_node_t> m_config;
+};
+
+struct BlueprintObject
+{
+    std::vector<BlueprintMachine> m_machines;
+};
+
 /**
  * Specific information on a part in a vehicle:
  * * Which kind of part
@@ -27,7 +38,7 @@ struct BlueprintPart
     Vector3 m_scale;
 
     // put some sort of config here
-
+    std::vector<BlueprintObject> m_objects;
 };
 
 /**
@@ -54,11 +65,6 @@ struct BlueprintWire
     unsigned m_toPart;
     unsigned m_toMachine;
     WireInPort m_toPort;
-};
-
-struct BlueprintMachine
-{
-    // TODO specific settings for a machine
 };
 
 /**
@@ -98,9 +104,9 @@ public:
      * @param toPort
      */
     void add_wire(unsigned fromPart, unsigned fromMachine, WireOutPort fromPort,
-                  unsigned toPart, unsigned toMachine, WireOutPort toPort);
+                  unsigned toPart, unsigned toMachine, WireInPort toPort);
 
-    constexpr std::vector<DependRes<PrototypePart> >& get_prototypes()
+    constexpr std::vector<DependRes<PrototypePart>>& get_prototypes()
     { return m_prototypes; }
 
     constexpr std::vector<BlueprintPart>& get_blueprints()
@@ -111,7 +117,7 @@ public:
 
 private:
     // Unique part Resources used
-    std::vector<DependRes<PrototypePart> > m_prototypes;
+    std::vector<DependRes<PrototypePart>> m_prototypes;
 
     // Arrangement of Individual Parts
     std::vector<BlueprintPart> m_blueprints;

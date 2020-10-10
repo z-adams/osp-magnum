@@ -32,9 +32,18 @@ void BlueprintVehicle::add_part(
 
     // now we have a part index.
 
-    // just create a new part blueprint will all the data
+    // Create and default initialize object blueprint machines
+    size_t numObjects = prototype->get_objects().size();
+    std::vector<BlueprintObject> bpObjs;
+    bpObjs.reserve(numObjects);
 
-    BlueprintPart blueprint{partIndex, translation, rotation, scale};
+    for (PrototypeObject const& obj : prototype->get_objects())
+    {
+        std::vector<BlueprintMachine> objMachines(obj.m_machines.size());
+        bpObjs.push_back({std::move(objMachines)});
+    }
+
+    BlueprintPart blueprint{partIndex, translation, rotation, scale, std::move(bpObjs)};
 
     m_blueprints.push_back(std::move(blueprint));
 

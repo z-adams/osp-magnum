@@ -86,12 +86,47 @@ public:
             ActiveEnt tgtEnt);
 
     /**
+     * Add machines to the specified entity
+     *
+     * Accepts a list of prototype machines and their associated blueprint
+     * machines, and adds them to the specified entity
+     * @param entity [in] The target entity
+     * @param protoMachines [in] The prototype machines to add to the entity
+     * @param blueprintMachines [in] The associated configs for the machines
+     */
+    void create_machines(ActiveScene& scene, ActiveEnt entity,
+        std::vector<PrototypeMachine> const& protoMachines,
+        std::vector<BlueprintMachine> const& blueprintMachines);
+
+    // Stores all the information necessary to instantiate a machine
+    using machine_def_t = std::tuple<
+        ActiveEnt,
+        std::vector<PrototypeMachine> const&,
+        std::vector<BlueprintMachine> const&>;
+
+    /**
+     * Adds all machines to a part at once
+     *
+     * Machine instantiation requires the part's hierarchy to already exist
+     * in case a sub-object needs information about its peers. Since this means
+     * machines can't be instantiated alongside their associated object, the
+     * information about each machine is captured in a machine_def_t, then used
+     * to call this function after all part children exist to instance all the
+     * machines at once.
+     * @param definitions [in] List of machine configs and their associated ents
+     */
+    void add_machines_deferred(std::vector<machine_def_t> definitions);
+
+    /**
      * Create a Physical Part from a PrototypePart and put it in the world
-     * @param part the part to instantiate
-     * @param rootParent Entity to put part into
+     * @param part [in] The part prototype to instantiate
+     * @param blueprint [in] Unique part configuration data
+     * @param rootParent [in] Entity to put part into
+     * @param machineDefinitions [out] List of part machines for later creation
      * @return Pointer to object created
      */
-    ActiveEnt part_instantiate(PrototypePart& part, ActiveEnt rootParent);
+    ActiveEnt part_instantiate(PrototypePart& part, BlueprintPart& blueprint,
+        ActiveEnt rootParent, std::vector<machine_def_t>& machineDefinitions);
 
     // Handle deleted parts and separations
     void update_vehicle_modification();

@@ -29,6 +29,7 @@
 #include "adera/Machines/UserControl.h"
 #include "adera/Machines/Rocket.h"
 #include "adera/Machines/RCSController.h"
+#include "adera/ShipResources.h"
 
 #include "planet-a/Satellites/SatPlanet.h"
 #include "planet-a/Active/SysPlanetA.h"
@@ -391,6 +392,18 @@ void load_a_bunch_of_stuff()
     osp::AssetImporter::load_sturdy_file(datapath + "ph_plume.sturdy.gltf", lazyDebugPack);
     osp::AssetImporter::load_sturdy_file(datapath + "ph_rcs.sturdy.gltf", lazyDebugPack);
     osp::AssetImporter::load_sturdy_file(datapath + "ph_rcs_plume.sturdy.gltf", lazyDebugPack);
+
+    // Load placeholder fuel type
+    using adera::active::machines::ShipResourceType;
+    ShipResourceType fuel;
+    fuel.m_identifier = "fuel";
+    fuel.m_displayName = "Rocket fuel";
+    fuel.m_quanta = 16;
+    fuel.m_mass = 1.0f;
+    fuel.m_volume = 0.001f;
+    fuel.m_density = fuel.m_mass / fuel.m_volume;
+
+    lazyDebugPack.add<ShipResourceType>("fuel", std::move(fuel));
 
     // Immediately load noise textures
     std::string const noise256 = "noise256";

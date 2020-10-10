@@ -97,7 +97,11 @@ StatusActivated SysVehicle::activate_sat(ActiveScene &scene,
 
         PrototypePart &proto = *partDepends;
 
-        ActiveEnt partEntity = this->part_instantiate(proto, vehicleEnt);
+        std::vector<machine_def_t> machineDefinitions;
+
+        ActiveEnt partEntity = this->part_instantiate(proto, partBp,
+            vehicleEnt, machineDefinitions);
+
         vehicleComp.m_parts.push_back(partEntity);
 
         auto& partPart = scene.reg_emplace<ACompPart>(partEntity);
@@ -105,28 +109,8 @@ StatusActivated SysVehicle::activate_sat(ActiveScene &scene,
 
         // Part now exists
 
-        // TODO: Deal with blueprint machines instead of prototypes directly
-
-        auto &partMachines = scene.reg_emplace<ACompMachines>(partEntity);
-
-        for (PrototypeMachine& protoMachine : proto.get_machines())
-        {
-            MapSysMachine::iterator sysMachine
-                    = scene.system_machine_find(protoMachine.m_type);
-
-            if (!(scene.system_machine_it_valid(sysMachine)))
-            {
-                std::cout << "Machine: " << protoMachine.m_type << " Not found\n";
-                continue;
-            }
-
-            BlueprintMachine blueMach;  // TODO unused so far
-            Machine& machine = sysMachine->second->instantiate(partEntity, protoMachine, blueMach);
-
-            // Add the machine to the part
-            partMachines.m_machines.emplace_back(partEntity, sysMachine);
-
-        }
+        // Deferred machine creation
+        add_machines_deferred(machineDefinitions);
 
         //std::cout << "empty? " << partMachines.m_machines.isEmpty() << "\n";
 
@@ -200,11 +184,49 @@ int SysVehicle::deactivate_sat(ActiveScene &scene, SysAreaAssociate &area,
     return 0;
 }
 
-
-ActiveEnt SysVehicle::part_instantiate(PrototypePart& part,
-                                       ActiveEnt rootParent)
+void osp::active::SysVehicle::create_machines(ActiveScene& scene, ActiveEnt entity,
+    std::vector<PrototypeMachine> const& protoMachines,
+    std::vector<BlueprintMachine> const& blueprintMachines)
 {
+    if (blueprintMachines.empty()) { return; }
+    auto &compMachines = scene.reg_emplace<ACompMachines>(entity);
 
+    for (unsigned i = 0; i < blueprintMachines.size(); i++)
+    {
+        BlueprintMachine const& bpMachine = blueprintMachines[i];
+        PrototypeMachine const& protoMachine = protoMachines[i];
+
+        MapSysMachine::iterator sysMachine
+            = scene.system_machine_find(protoMachine.m_type);
+
+        if (!(scene.system_machine_it_valid(sysMachine)))
+        {
+            std::cout << "Machine: " << protoMachine.m_type << " Not found\n";
+            continue;
+        }
+
+        Machine& machine = sysMachine->second->instantiate(entity, protoMachine, bpMachine);
+
+        // Add the machine to the part
+        compMachines.m_machines.emplace_back(entity, sysMachine);
+    }
+}
+
+void SysVehicle::add_machines_deferred(std::vector<machine_def_t> definitions)
+{
+    for (auto const& def : definitions)
+    {
+        create_machines(m_scene,
+            std::get<ActiveEnt>(def),
+            std::get<std::vector<PrototypeMachine> const&>(def),
+            std::get<std::vector<BlueprintMachine> const&>(def));
+    }
+}
+
+
+ActiveEnt SysVehicle::part_instantiate(PrototypePart& part, BlueprintPart& blueprint,
+    ActiveEnt rootParent, std::vector<machine_def_t>& machineDefinitions)
+{
     std::vector<PrototypeObject> const& prototypes = part.get_objects();
     std::vector<ActiveEnt> newEntities(prototypes.size());
 
@@ -212,7 +234,7 @@ ActiveEnt SysVehicle::part_instantiate(PrototypePart& part,
 
     for (unsigned i = 0; i < prototypes.size(); i ++)
     {
-        const PrototypeObject& currentPrototype = prototypes[i];
+        PrototypeObject const& currentPrototype = prototypes[i];
         ActiveEnt currentEnt, parentEnt;
 
         // Get parent
@@ -300,8 +322,16 @@ ActiveEnt SysVehicle::part_instantiate(PrototypePart& part,
             collision.m_shape = cd.m_type;
 
         }
-    }
 
+        std::vector<BlueprintObject> const& blueprints = blueprint.m_objects;
+        BlueprintObject const& currentBlueprint = blueprints[i];
+
+        machineDefinitions.emplace_back(currentEnt,
+            currentPrototype.m_machines, currentBlueprint.m_machines);
+
+        /*create_machines(m_scene, currentEnt,
+            currentPrototype.m_machines, currentBlueprint.m_machines);*/
+    }
 
     // first element is 100% going to be the root object
 

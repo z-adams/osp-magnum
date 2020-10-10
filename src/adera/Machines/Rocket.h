@@ -1,7 +1,8 @@
 #pragma once
-
+#include <utility>
 #include <osp/Active/SysMachine.h>
 #include <osp/Resource/blueprints.h>
+#include "adera/ShipResources.h"
 
 namespace adera::active::machines
 {
@@ -46,6 +47,8 @@ private:
     osp::active::UpdateOrderHandle m_updatePhysics;
 };
 
+using fuel_list_t = std::vector<std::pair<osp::DependRes<ShipResourceType>, float>>;
+
 /**
  *
  */
@@ -54,7 +57,7 @@ class MachineRocket : public osp::active::Machine
     friend SysMachineRocket;
 
 public:
-    MachineRocket(float thrust);
+    MachineRocket(float thrust, fuel_list_t consumptionRatios);
     MachineRocket(MachineRocket &&move);
 
     MachineRocket& operator=(MachineRocket&& move);
@@ -75,8 +78,16 @@ private:
     osp::active::WireInput m_wiIgnition;
     osp::active::WireInput m_wiThrottle;
 
+    struct ResourceInput
+    {
+        osp::DependRes<ShipResourceType> m_type;
+        float m_massRateFraction;
+        osp::active::WireInput m_lineIn;
+    };
+
     osp::active::ActiveEnt m_rigidBody;
     float m_thrust;
+    std::vector<ResourceInput> m_resourceLines;
 };
 
 

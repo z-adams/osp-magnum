@@ -75,7 +75,8 @@ private:
      * @param machineArray [out] A machine array from a Prototype Part or Object
      */
     static void load_machines(tinygltf::Value const& extras,
-        std::vector<PrototypeMachine>& machineArray);
+        std::vector<PrototypeMachine>& machineArray,
+        std::vector<unsigned>& machineIndexArray);
 
     /**
      * Load only associated config files, and add resource paths to the package

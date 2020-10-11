@@ -86,38 +86,49 @@ public:
             universe::Satellite areaSat, universe::Satellite tgtSat,
             ActiveEnt tgtEnt);
 
-    // Stores all the information necessary to instantiate a machine
+    // Stores the association between a PrototypeObj entity and the indices of
+    // its owned machines in the PrototypePart array
     struct MachineDef
     {
         ActiveEnt m_machineOwner;
-        std::vector<PrototypeMachine> const& m_prototypeMachines;
-        std::vector<BlueprintMachine> const& m_blueprintMachines;
+        std::vector<unsigned> const& m_machineIndices;
     };
 
     /**
      * Add machines to the specified entity
      *
-     * Accepts a list of prototype machines and their associated blueprint
-     * machines, and adds them to the specified entity
-     * @param entity [in] The target entity
-     * @param protoMachines [in] The prototype machines to add to the entity
-     * @param blueprintMachines [in] The associated configs for the machines
+     * Receives the master arrays of prototype and blueprint machines from the
+     * prototype/blueprint part, as well as an array of indices that describe
+     * which of the machines from the master list are to be instantiated for
+     * the specified entity.
+     * @param partEnt [in] The part entity which owns the ACompMachines component
+     * @param entity [in] The target entity to receive the machines
+     * @param protoMachines [in] The master array of prototype machines
+     * @param blueprintMachines [in] The master array of machine configs
+     * @param machineIndices [in] The indices of the machines to add to entity
      */
-    void create_machines(ActiveEnt partEnt, MachineDef machines);
+    void create_machines(ActiveEnt partEnt, ActiveEnt entity,
+        std::vector<PrototypeMachine> const& protoMachines,
+        std::vector<BlueprintMachine> const& blueprintMachines,
+        std::vector<unsigned> const& machineIndices);
 
     /**
-     * Adds all machines to a part at once
+     * Instantiate all part machines
      *
      * Machine instantiation requires the part's hierarchy to already exist
      * in case a sub-object needs information about its peers. Since this means
      * machines can't be instantiated alongside their associated object, the
-     * information about each machine is captured in a machine_def_t, then used
+     * association between entities and prototype machines is captured, then used
      * to call this function after all part children exist to instance all the
      * machines at once.
      * @param partEnt [in] The root entity of the part
-     * @param definitions [in] List of machine configs and their associated ents
+     * @param machineMapping [in] The mapping from objects to their machines
+     * @param part [in] The prototype part being created
+     * @param partBP [in] The blueprint configs of the part being created
      */
-    void add_machines_deferred(ActiveEnt partEnt, std::vector<MachineDef> definitions);
+    void machine_instantiate(ActiveEnt partEnt,
+        std::vector<MachineDef> machineMapping,
+        PrototypePart& part, BlueprintPart& partBP);
 
     /**
      * Create a Physical Part from a PrototypePart and put it in the world

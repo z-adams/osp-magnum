@@ -50,7 +50,8 @@ void osp::AssetImporter::load_sturdy_file(std::string const& filepath, Package& 
 }
 
 void AssetImporter::load_machines(tinygltf::Value const& extras,
-    std::vector<PrototypeMachine>& machineArray)
+    std::vector<PrototypeMachine>& machineArray,
+    std::vector<unsigned>& machineIndexArray)
 {
     if (!extras.Has("machines"))
     {
@@ -114,6 +115,7 @@ void AssetImporter::load_machines(tinygltf::Value const& extras,
             }
         }
 
+        machineIndexArray.push_back(machineArray.size());
         machineArray.emplace_back(std::move(machine));
     }
 }
@@ -442,7 +444,7 @@ void AssetImporter::proto_add_obj_recurse(TinyGltfImporter& gltfImporter,
         *static_cast<tinygltf::Node const*>(childData->importerState());
     if (node.extras.Has("machines"))
     {
-        load_machines(node.extras, obj.m_machines);
+        load_machines(node.extras, part.get_machines(), obj.m_machineIndices);
     }
 
     int objIndex = protoObjects.size();

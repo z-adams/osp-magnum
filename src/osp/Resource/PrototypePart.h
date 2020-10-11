@@ -84,8 +84,7 @@ struct PrototypeObject
     std::variant<DrawableData, ColliderData> m_objectData;
 
     // Put more OSP-specific data in here
-    std::vector<PrototypeMachine> m_machines;
-
+    std::vector<unsigned> m_machineIndices;
 };
 
 /**
@@ -103,6 +102,11 @@ public:
     constexpr std::vector<PrototypeObject> const& get_objects() const
     { return m_objects; }
 
+    constexpr std::vector<PrototypeMachine>& get_machines()
+    { return m_machines; }
+    constexpr std::vector<PrototypeMachine> const& get_machines() const
+    { return m_machines; }
+
     constexpr float& get_mass()
     { return m_mass; }
     constexpr float get_mass() const
@@ -114,6 +118,8 @@ public:
 
 private:
     //std::string name; use path
+
+    std::vector<PrototypeMachine> m_machines;
 
     std::vector<PrototypeObject> m_objects;
 

@@ -17,11 +17,6 @@ struct BlueprintMachine
     std::map<std::string, config_node_t> m_config;
 };
 
-struct BlueprintObject
-{
-    std::vector<BlueprintMachine> m_machines;
-};
-
 /**
  * Specific information on a part in a vehicle:
  * * Which kind of part
@@ -38,7 +33,9 @@ struct BlueprintPart
     Vector3 m_scale;
 
     // put some sort of config here
-    std::vector<BlueprintObject> m_objects;
+
+    // Configuration of individual machines
+    std::vector<BlueprintMachine> m_machines;
 };
 
 /**

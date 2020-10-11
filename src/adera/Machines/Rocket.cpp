@@ -21,7 +21,8 @@ MachineRocket::MachineRocket(Parameters params, fuel_list_t& resources) :
         m_wiThrottle(this, "Throttle"),
         m_rigidBody(entt::null),
         m_params(params),
-        m_resourceLines(std::move(resources))
+        m_resourceLines(std::move(resources)),
+        m_lastPowerOutput(0.0f)
 {
 }
 
@@ -31,7 +32,8 @@ MachineRocket::MachineRocket(MachineRocket&& move) :
         m_wiIgnition(this, std::move(move.m_wiIgnition)),
         m_wiThrottle(this, std::move(move.m_wiThrottle)),
         m_params(std::move(move.m_params)),
-        m_resourceLines(std::move(move.m_resourceLines))
+        m_resourceLines(std::move(move.m_resourceLines)),
+        m_lastPowerOutput(std::move(move.m_lastPowerOutput))
 {
     //m_enable = true;
 }
@@ -99,15 +101,17 @@ void SysMachineRocket::update_physics()
     {
         auto &machine = view.get<MachineRocket>(ent);
 
+        machine.m_lastPowerOutput = 0.0f;  // Will be set later if engine is on
+
         // Check for nonzero throttle, continue otherwise
 
         WireData *throttle = machine.m_wiThrottle.connected_value();
-        wiretype::Percent* percent = nullptr;
+        wiretype::Percent* throtPercent = nullptr;
         if (throttle)
         {
             using wiretype::Percent;
-            percent = std::get_if<Percent>(throttle);
-            if (!(percent->m_value > 0.0f))
+            throtPercent = std::get_if<Percent>(throttle);
+            if (!(throtPercent->m_value > 0.0f))
             {
                 continue;
             }
@@ -151,7 +155,7 @@ void SysMachineRocket::update_physics()
 
         }
 
-        float thrustMag = machine.m_params.m_maxThrust * percent->m_value;
+        float thrustMag = machine.m_params.m_maxThrust * throtPercent->m_value;
 
         Matrix4 relTransform{};
         m_physics.find_rigidbody_ancestor(ent, &relTransform);
@@ -167,7 +171,10 @@ void SysMachineRocket::update_physics()
         Vector3 worldTorque = compTf->m_transform.transformVector(torque);
         m_physics.body_apply_torque(*compRb, worldTorque);
 
+        compRb->m_rigidbodyDirty = true;
+
         // Perform resource consumption calculation
+
         float massFlowRateTot = thrustMag / (9.81f * machine.m_params.m_specImpulse);
         for (auto const& resource : machine.m_resourceLines)
         {
@@ -179,6 +186,10 @@ void SysMachineRocket::update_physics()
             std::cout << "consumed " << consumed << " units of fuel, "
                 << src->check_contents().m_quantity << " remaining\n";
         }
+
+        // Set output power level (for plume effect)
+        // TODO: later, take into account low fuel pressure, bad mixture, etc.
+        machine.m_lastPowerOutput = throtPercent->m_value;
     }
 }
 

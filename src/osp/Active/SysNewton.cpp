@@ -157,7 +157,7 @@ void SysNewton::find_and_add_colliders(ActiveEnt ent, NewtonCollision *compound,
     }
 }
 
-Vector4 SysNewton::compute_body_CoM(ActiveEnt root, Matrix4 currentTransform)
+Vector4 SysNewton::compute_rigidbody_CoM(ActiveEnt root, Matrix4 currentTransform)
 {
     ActiveEnt nextChild = root;
     Vector3 localCoM{0.0f};
@@ -181,7 +181,7 @@ Vector4 SysNewton::compute_body_CoM(ActiveEnt root, Matrix4 currentTransform)
             localMass += childMass;
         }
 
-        Vector4 subCoM = compute_body_CoM(childHeir.m_childFirst, childMatrix);
+        Vector4 subCoM = compute_rigidbody_CoM(childHeir.m_childFirst, childMatrix);
         localCoM += subCoM.w() * subCoM.xyz();
         localMass += subCoM.w();
 
@@ -228,7 +228,57 @@ float SysNewton::compute_part_volume(ActiveEnt part)
     return volume;
 }
 
-Matrix3 SysNewton::compute_part_inertia(ActiveEnt part)
+// TODO: this iteration scheme is begging for generalization
+Vector3 SysNewton::compute_part_CoM(ActiveEnt part)
+{
+    ActiveEnt nextChild = part;
+    Vector3 centerOfMass{0.0f};
+    float totalMass = 0.0f;
+
+    while (nextChild != entt::null)
+    {
+        ACompHierarchy const &childHeir = m_scene.reg_get<ACompHierarchy>(nextChild);
+        ACompTransform const &childTransform = m_scene.reg_get<ACompTransform>(nextChild);
+
+        Matrix4 childMatrix = childTransform.m_transform;
+        ACompMass* massComp = m_scene.get_registry().try_get<ACompMass>(nextChild);
+
+        if (massComp)
+        {
+            float childMass = m_scene.reg_get<ACompMass>(nextChild).m_mass;
+
+            Vector3 offset = childMatrix.translation();
+
+            centerOfMass += childMass * offset;
+            totalMass += childMass;
+        }
+
+        nextChild = childHeir.m_siblingNext;
+    }
+    if (totalMass > 0.0f)
+    {
+        return {centerOfMass / totalMass};
+    }
+    return Vector3{0.0f};
+}
+
+Vector3 SysNewton::compute_col_shape_inertia(ECollisionShape shape, Vector3 scale, float mass)
+{
+    switch (shape)
+    {
+    case ECollisionShape::CYLINDER:
+    {
+        // Default cylinder: radius 1, height 2
+        float height = 2.0f * scale.z();
+        // if sclY != sclX I will be mad
+        float radius = scale.x();
+        return cylinder_inertia_tensor(radius, height, mass);
+    }
+    }
+    return Vector3{0.0f};
+}
+
+Matrix3 SysNewton::compute_part_inertia(ActiveEnt part, Vector3 centerOfMass)
 {
     ACompMass const* partMass = m_scene.reg_try_get<ACompMass>(part);
     if (!partMass)
@@ -254,24 +304,28 @@ Matrix3 SysNewton::compute_part_inertia(ActiveEnt part)
 
         Matrix4 childMatrix = childTransform.m_transform;
         ACompCollisionShape* childCollide = m_scene.reg_try_get<ACompCollisionShape>(nextChild);
+        ACompContainerShape* childContainer = m_scene.reg_try_get<ACompContainerShape>(nextChild);
 
-        if (childCollide)
+        if (childCollide || childContainer)
         {
-            float volume = col_shape_volume(childCollide->m_shape, childMatrix.scaling());
-            float mass = volume * partDensity;
+            float mass = 0.0f;
+            Vector3 principalAxes{0.0f};
 
-            Vector3 principalAxes;
-            switch (childCollide->m_shape)
+            if (childCollide)
             {
-            case ECollisionShape::CYLINDER:
-            {
-                // Default cylinder: radius 1, height 2
-                float height = 2.0f * childMatrix.scaling().z();
-                // if sclY != sclX I will be mad
-                float radius = childMatrix.scaling().x();
-                principalAxes = cylinder_inertia_tensor(radius, height, mass);
-                break;
+                float volume = col_shape_volume(childCollide->m_shape, childMatrix.scaling());
+                mass = volume * partDensity;
+
+                principalAxes = compute_col_shape_inertia(
+                    childCollide->m_shape, childMatrix.scaling(), mass);
             }
+            else if (childContainer)
+            {
+                ACompMass contMass = m_scene.reg_get<ACompMass>(nextChild);
+                mass = contMass.m_mass;
+                
+                principalAxes = compute_col_shape_inertia(
+                    childContainer->m_shape, childMatrix.scaling(), mass);
             }
 
             Matrix3 inertiaTensor{};
@@ -279,14 +333,8 @@ Matrix3 SysNewton::compute_part_inertia(ActiveEnt part)
             inertiaTensor[1][1] = principalAxes.y();
             inertiaTensor[2][2] = principalAxes.z();
 
-            /* CAUTION: this computation is done with respect to the part's origin.
-                        If the part CoM does not coincide with the origin, accuracy
-                        will suffer. Either add a loop to compute the part's local
-                        center of mass above, or require parts to set their origin
-                        to be the CoM.
-            */
             Matrix3 rotation = childMatrix.rotation();
-            Vector3 offset = childMatrix.translation();
+            Vector3 offset = childMatrix.translation() - centerOfMass;
             I += transform_inertia_tensor(inertiaTensor, mass, offset, rotation);
         }
 
@@ -309,10 +357,10 @@ Matrix3 SysNewton::compute_part_inertia(ActiveEnt part)
        only one level deep. If that changes, this function will need to be 
        updated accordingly.
 */
-Matrix3 SysNewton::compute_body_inertia(ActiveEnt root, Vector3 centerOfMass,
+Matrix3 SysNewton::compute_rigidbody_inertia(ActiveEnt rbRoot, Vector3 centerOfMass,
     Matrix4 currentTransform)
 {
-    ActiveEnt nextChild = root;
+    ActiveEnt nextChild = rbRoot;
     Matrix3 localI{0.0f};
     float localMass = 0.0f;
 
@@ -323,17 +371,18 @@ Matrix3 SysNewton::compute_body_inertia(ActiveEnt root, Vector3 centerOfMass,
 
         Matrix4 childMatrix = currentTransform * childTransform.m_transform;
 
+        /* At present, all first-level children of a vehicle are parts, so
+           as long as an ACompMass is present, we know nextChild is a part
+           and should calculate its inertia
+         */
         ACompMass* massComp = m_scene.reg_try_get<ACompMass>(nextChild);
         if (massComp)
         {
-            Vector3 offset = childMatrix.translation() - centerOfMass;
+            Vector3 childCoM = compute_part_CoM(nextChild);
+            Vector3 offset = (childMatrix.translation() + childCoM) - centerOfMass;
             Matrix3 rotation = childMatrix.rotation();
 
-            /* At present, only the root node of a part may have a mass, so if
-               a mass component is present, we know nextChild is a part, so we
-               calculate its inertia
-            */
-            Matrix3 partI = compute_part_inertia(nextChild);
+            Matrix3 partI = compute_part_inertia(nextChild, childCoM);
             float partMass = m_scene.reg_get<ACompMass>(nextChild).m_mass;
             localI += transform_inertia_tensor(partI, partMass, offset, rotation);
         }
@@ -351,6 +400,22 @@ Vector3 SysNewton::cylinder_inertia_tensor(float radius, float height, float mas
     float zz = r*r / 2.0f;
 
     return mass * Vector3{xx, yy, zz};
+}
+
+void SysNewton::update_rigidbody_inertia(ActiveEnt entity)
+{
+    ACompHierarchy& hier = m_scene.reg_get<ACompHierarchy>(entity);
+    ACompNwtBody& body = m_scene.reg_get<ACompNwtBody>(entity);
+
+    Vector4 centerOfMass = compute_rigidbody_CoM(hier.m_childFirst, Matrix4());
+    Matrix3 inertia = compute_rigidbody_inertia(hier.m_childFirst, centerOfMass.xyz(),
+        Matrix4());
+    float Ixx = inertia[0][0];
+    float Iyy = inertia[1][1];
+    float Izz = inertia[2][2];
+    body.m_bodyData.m_mass = centerOfMass.w();
+    NewtonBodySetMassMatrix(body.m_body, body.m_bodyData.m_mass, Ixx, Iyy, Izz);
+    NewtonBodySetCentreOfMass(body.m_body, centerOfMass.xyz().data());
 }
 
 void SysNewton::create_body(ActiveEnt entity)
@@ -382,9 +447,6 @@ void SysNewton::create_body(ActiveEnt entity)
         NewtonCompoundCollisionBeginAddRemove(compound);
         find_and_add_colliders(entHier.m_childFirst, compound, Matrix4());
         NewtonCompoundCollisionEndAddRemove(compound);
-        Vector4 centerOfMass = compute_body_CoM(entHier.m_childFirst, Matrix4());
-        Matrix3 inertia = compute_body_inertia(entHier.m_childFirst, centerOfMass.xyz(),
-            Matrix4());
 
         if (entBody.m_body)
         {
@@ -397,14 +459,7 @@ void SysNewton::create_body(ActiveEnt entity)
         }
 
         NewtonDestroyCollision(compound);
-
-        // Set inertia and mass
-        float Ixx = inertia[0][0];
-        float Iyy = inertia[1][1];
-        float Izz = inertia[2][2];        
-        entBody.m_bodyData.m_mass = centerOfMass.w();
-        NewtonBodySetMassMatrix(entBody.m_body, entBody.m_bodyData.m_mass, Ixx, Iyy, Izz);
-        NewtonBodySetCentreOfMass(entBody.m_body, centerOfMass.xyz().data());
+        update_rigidbody_inertia(entity);
         break;
     }
     case ECollisionShape::TERRAIN:
@@ -458,6 +513,18 @@ void SysNewton::create_body(ActiveEnt entity)
 
 void SysNewton::update_world()
 {
+    auto view = m_scene.get_registry().view<ACompNwtBody>();
+    for (ActiveEnt ent : view)
+    {
+        ACompNwtBody& body = view.get<ACompNwtBody>(ent);
+        if (body.m_rigidbodyDirty)
+        {
+            update_rigidbody_inertia(ent);
+            body.m_rigidbodyDirty = false;
+            std::cout << "Updating RB: new CoM Z: " << get_rigidbody_CoM(body).z() << "\n";
+        }
+    }
+
     m_scene.floating_origin_translate_begin();
 
     NewtonUpdate(m_nwtWorld, m_scene.get_time_delta_fixed());

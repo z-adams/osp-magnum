@@ -50,10 +50,16 @@ struct ACompHierarchy
 
 };
 
-// Temporary place to store the mass of entities
+// Represents the mass of an entity
 struct ACompMass
 {
     float m_mass;
+};
+
+// Represents the shape of a ship resource container
+struct ACompContainerShape
+{
+    ECollisionShape m_shape{ECollisionShape::NONE};
 };
 
 /**

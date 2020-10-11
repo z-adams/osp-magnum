@@ -84,6 +84,19 @@ public:
     std::vector<osp::active::WireInput*> existing_inputs() override;
     std::vector<osp::active::WireOutput*> existing_outputs() override;
 
+    /**
+     * Return normalized power output level of the rocket this frame
+     *
+     * Returns a value [0,1] corresponding to the current output power of the
+     * engine. This value is equal to the throttle input level, unless the
+     * engine has run out of fuel, has a nonlinear throttle response, or some
+     * similar reason. Used primarily by SysExhaustPlume to determine what the
+     * exhaust plume effect should look like.
+     * @return normalized float [0,1] representing engine power output
+     */
+    float current_output_power() const
+    { return m_lastPowerOutput; }
+
 private:
     osp::active::WireInput m_wiGimbal;
     osp::active::WireInput m_wiIgnition;
@@ -91,8 +104,8 @@ private:
 
     osp::active::ActiveEnt m_rigidBody;
     fuel_list_t m_resourceLines;
-
     Parameters m_params;
+    float m_lastPowerOutput;
 };
 
 

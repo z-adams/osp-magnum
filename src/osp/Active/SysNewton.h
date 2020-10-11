@@ -39,9 +39,8 @@ struct ACompNwtBody
     //ActiveScene &m_scene;
 
     DataPhyRigidBody m_bodyData;
+    bool m_rigidbodyDirty{false};
 };
-
-
 
 using ACompRigidBody = ACompNwtBody;
 
@@ -129,6 +128,16 @@ public:
 
     Vector3 get_rigidbody_CoM(ACompRigidBody &body);
 
+    /**
+     * Update the inertia properties of a rigid body
+     *
+     * Given an existing rigid body, computes and updates the mass matrix and
+     * center of mass. Entirely self contained, calls the other inertia
+     * functions in this class.
+     * @param entity [in] The rigid body to update
+     */
+    void update_rigidbody_inertia(ActiveEnt entity);
+
     constexpr ActiveScene& get_scene() { return m_scene; }
 
     void body_apply_force(ACompRigidBody &body, Vector3 force);
@@ -161,10 +170,10 @@ private:
                                 Matrix4 const &currentTransform);
 
     /**
-     * Compute the center of mass of a rigid body
+     * Recursively compute the center of mass of a rigid body
      * @return A 4-vector containing xyz=CoM, w=mass
      */
-    Magnum::Vector4 compute_body_CoM(ActiveEnt root, Matrix4 currentTransform);
+    Magnum::Vector4 compute_rigidbody_CoM(ActiveEnt root, Matrix4 currentTransform);
 
     /**
      * Transform an inertia tensor
@@ -193,15 +202,38 @@ private:
     float compute_part_volume(ActiveEnt part);
 
     /**
+     * Compute the center of mass of a single part (non-recursive)
+     *
+     * Scans the first level of the specified part's children and computes the
+     * part's overall CoM from their ACompMass components
+     * @param part [in] The part whose center of mass to compute
+     * @return The part center of mass (3-vector)
+     */
+    Vector3 compute_part_CoM(ActiveEnt part);
+
+    /**
+     * Compute the inertia of a shape
+     *
+     * Given a mass and shape, returns the principal moments of inertia of a
+     * volume by calling the appropriate inertia tensor calculation.
+     * @param shape [in] The shape of the volume
+     * @param scale [in] The size of the volume (blender scaling)
+     * @param mass [in] The mass of the volume
+     * @return The principal moments of inertia, {Ixx, Iyy, Izz}
+     */
+    Vector3 compute_col_shape_inertia(ECollisionShape shape, Vector3 scale, float mass);
+
+    /**
      * Compute the moment of inertia of a part
      *
      * Searches the immediate children of the specified entity and computes
      * its moment of inertia. Assumes mass is evenly distributed over collision
-     * volume and that the part's center of mass lies at its root origin.
+     * volume. The part center of mass is precomputed and passed as a parameter
+     * to maximize physical accuracy of the calculation.
      * @param part [in] The part
      * @return The inertia tensor of the part about its origin
      */
-    Matrix3 compute_part_inertia(ActiveEnt part);
+    Matrix3 compute_part_inertia(ActiveEnt part, Vector3 centerOfMass);
 
     /**
      * Compute the moment of inertia of a rigid body
@@ -213,7 +245,7 @@ private:
      * @param centerOfMass [in] The center of mass of the rigid body
      * @return The inertia tensor of the rigid body about its center of mass
      */
-    Matrix3 compute_body_inertia(ActiveEnt root, Vector3 centerOfMass,
+    Matrix3 compute_rigidbody_inertia(ActiveEnt rbRoot, Vector3 centerOfMass,
         Matrix4 currentTransform);
 
     /**

@@ -96,6 +96,12 @@ uint64_t MachineContainer::request_contents(uint64_t quantity)
     return quantity;
 }
 
+float MachineContainer::current_mass() const
+{
+    if (m_contents.m_type.empty()) { return 0.0f; }
+    return m_contents.m_type->resource_mass(m_contents.m_quantity);
+}
+
 /* SysMachineContainer */
 
 SysMachineContainer::SysMachineContainer(ActiveScene& scene) :
@@ -107,13 +113,14 @@ SysMachineContainer::SysMachineContainer(ActiveScene& scene) :
 
 void SysMachineContainer::update_containers()
 {
-    auto view = m_scene.get_registry().view<MachineContainer>();
+    auto view = m_scene.get_registry().view<MachineContainer, ACompMass>();
 
     for (ActiveEnt ent : view)
     {
         auto& container = view.get<MachineContainer>(ent);
+        auto& mass = view.get<ACompMass>(ent);
 
-        // Do something useful here... or not
+        mass.m_mass = container.current_mass();
     }
 }
 
@@ -131,6 +138,9 @@ Machine& SysMachineContainer::instantiate(ActiveEnt ent,
         resource.m_type = pkg.get<ShipResourceType>(resName);
         resource.m_quantity = resource.m_type->resource_capacity(capacity);
     }
+
+    m_scene.reg_emplace<ACompMass>(ent, 0.0f);
+    m_scene.reg_emplace<ACompContainerShape>(ent, ECollisionShape::CYLINDER);
 
     return m_scene.reg_emplace<MachineContainer>(ent, capacity, resource);
 }

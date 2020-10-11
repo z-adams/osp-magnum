@@ -80,7 +80,6 @@ public:
     osp::active::Machine& get(osp::active::ActiveEnt ent) override;
 
 private:
-    
     osp::active::UpdateOrderHandle m_updateContainers;
 };
 
@@ -117,6 +116,12 @@ public:
      * @return The amount of resource that was received
      */
     uint64_t request_contents(uint64_t quantity);
+
+    /**
+     * Compute the current mass of the container contents
+     * @return The current mass, in kg
+     */
+    float current_mass() const;
 private:
     std::vector<osp::active::WireInput*> m_inputs;
     std::vector<osp::active::WireOutput*> m_outputs;

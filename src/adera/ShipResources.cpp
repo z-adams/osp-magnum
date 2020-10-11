@@ -101,12 +101,15 @@ Machine& SysMachineContainer::instantiate(ActiveEnt ent,
 {
     float capacity = std::get<double>(config.m_config["capacity"]);
     
-    std::string resName = std::get<std::string>(settings.m_config["resourcename"]);
-    Package& pkg = m_scene.get_application().debug_get_packges()[0];
+    ShipResource resource{};
+    if (settings.m_config.find("resourcename") != settings.m_config.end())
+    {
+        std::string resName = std::get<std::string>(settings.m_config["resourcename"]);
+        Package& pkg = m_scene.get_application().debug_get_packges()[0];
 
-    ShipResource resource;
-    resource.m_type = pkg.get<ShipResourceType>(resName);
-    resource.m_quantity = resource_capacity(*resource.m_type, capacity);
+        resource.m_type = pkg.get<ShipResourceType>(resName);
+        resource.m_quantity = resource_capacity(*resource.m_type, capacity);
+    }
 
     return m_scene.reg_emplace<MachineContainer>(ent, capacity, resource);
 }

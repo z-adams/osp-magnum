@@ -97,7 +97,7 @@ StatusActivated SysVehicle::activate_sat(ActiveScene &scene,
 
         PrototypePart &proto = *partDepends;
 
-        std::vector<machine_def_t> machineDefinitions;
+        std::vector<MachineDef> machineDefinitions;
 
         ActiveEnt partEntity = this->part_instantiate(proto, partBp,
             vehicleEnt, machineDefinitions);
@@ -110,7 +110,7 @@ StatusActivated SysVehicle::activate_sat(ActiveScene &scene,
         // Part now exists
 
         // Deferred machine creation
-        add_machines_deferred(machineDefinitions);
+        add_machines_deferred(partEntity, machineDefinitions);
 
         //std::cout << "empty? " << partMachines.m_machines.isEmpty() << "\n";
 
@@ -184,48 +184,45 @@ int SysVehicle::deactivate_sat(ActiveScene &scene, SysAreaAssociate &area,
     return 0;
 }
 
-void osp::active::SysVehicle::create_machines(ActiveScene& scene, ActiveEnt entity,
-    std::vector<PrototypeMachine> const& protoMachines,
-    std::vector<BlueprintMachine> const& blueprintMachines)
+void SysVehicle::create_machines(ActiveEnt partEnt, MachineDef machines)
 {
-    if (blueprintMachines.empty()) { return; }
-    auto &compMachines = scene.reg_emplace<ACompMachines>(entity);
+    if (machines.m_blueprintMachines.empty()) { return; }
+    auto &compMachines = m_scene.get_registry().get_or_emplace<ACompMachines>(partEnt);
 
-    for (unsigned i = 0; i < blueprintMachines.size(); i++)
+    for (unsigned i = 0; i < machines.m_blueprintMachines.size(); i++)
     {
-        BlueprintMachine const& bpMachine = blueprintMachines[i];
-        PrototypeMachine const& protoMachine = protoMachines[i];
+        BlueprintMachine const& bpMachine = machines.m_blueprintMachines[i];
+        PrototypeMachine const& protoMachine = machines.m_prototypeMachines[i];
 
         MapSysMachine::iterator sysMachine
-            = scene.system_machine_find(protoMachine.m_type);
+            = m_scene.system_machine_find(protoMachine.m_type);
 
-        if (!(scene.system_machine_it_valid(sysMachine)))
+        if (!(m_scene.system_machine_it_valid(sysMachine)))
         {
             std::cout << "Machine: " << protoMachine.m_type << " Not found\n";
             continue;
         }
 
-        Machine& machine = sysMachine->second->instantiate(entity, protoMachine, bpMachine);
+        Machine& machine = sysMachine->second->instantiate(machines.m_machineOwner,
+            protoMachine, bpMachine);
 
-        // Add the machine to the part
-        compMachines.m_machines.emplace_back(entity, sysMachine);
+        // Add the machine to the root part
+        compMachines.m_machines.emplace_back(machines.m_machineOwner, sysMachine);
     }
 }
 
-void SysVehicle::add_machines_deferred(std::vector<machine_def_t> definitions)
+void SysVehicle::add_machines_deferred(ActiveEnt partEnt,
+    std::vector<MachineDef> definitions)
 {
     for (auto const& def : definitions)
     {
-        create_machines(m_scene,
-            std::get<ActiveEnt>(def),
-            std::get<std::vector<PrototypeMachine> const&>(def),
-            std::get<std::vector<BlueprintMachine> const&>(def));
+        create_machines(partEnt, def);
     }
 }
 
 
 ActiveEnt SysVehicle::part_instantiate(PrototypePart& part, BlueprintPart& blueprint,
-    ActiveEnt rootParent, std::vector<machine_def_t>& machineDefinitions)
+    ActiveEnt rootParent, std::vector<MachineDef>& machineDefinitions)
 {
     std::vector<PrototypeObject> const& prototypes = part.get_objects();
     std::vector<ActiveEnt> newEntities(prototypes.size());
@@ -326,11 +323,13 @@ ActiveEnt SysVehicle::part_instantiate(PrototypePart& part, BlueprintPart& bluep
         std::vector<BlueprintObject> const& blueprints = blueprint.m_objects;
         BlueprintObject const& currentBlueprint = blueprints[i];
 
-        machineDefinitions.emplace_back(currentEnt,
-            currentPrototype.m_machines, currentBlueprint.m_machines);
-
-        /*create_machines(m_scene, currentEnt,
-            currentPrototype.m_machines, currentBlueprint.m_machines);*/
+        MachineDef machineDef
+        {
+            currentEnt,
+            currentPrototype.m_machines,
+            currentBlueprint.m_machines
+        };
+        machineDefinitions.push_back(std::move(machineDef));
     }
 
     // first element is 100% going to be the root object

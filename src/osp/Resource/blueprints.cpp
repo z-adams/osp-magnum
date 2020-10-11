@@ -3,7 +3,7 @@
 
 using namespace osp;
 
-void BlueprintVehicle::add_part(
+BlueprintPart& BlueprintVehicle::add_part(
         DependRes<PrototypePart>& prototype,
         const Vector3& translation,
         const Quaternion& rotation,
@@ -47,6 +47,7 @@ void BlueprintVehicle::add_part(
 
     m_blueprints.push_back(std::move(blueprint));
 
+    return m_blueprints.back();
 }
 
 void BlueprintVehicle::add_wire(

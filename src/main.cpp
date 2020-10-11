@@ -112,6 +112,7 @@ void debug_print_help();
 void debug_print_sats();
 void debug_print_hier();
 void debug_print_update_order();
+void debug_print_machines();
 
 // Deals with the underlying OSP universe, with the satellites and stuff. A
 // Magnum application or OpenGL context is not required for the universe to
@@ -161,6 +162,10 @@ int debug_cli_loop()
         if (command == "list_ent")
         {
             debug_print_hier();
+        }
+        if (command == "list_mach")
+        {
+            debug_print_machines();
         }
         if (command == "list_upd")
         {
@@ -243,6 +248,7 @@ void magnum_application()
             g_ospMagnum->get_input_handler());
     scene.system_machine_add<machines::SysMachineRocket>("Rocket");
     scene.system_machine_add<machines::SysMachineRCSController>("RCSController");
+    scene.system_machine_add<machines::SysMachineContainer>("Container");
 
     // Make active areas load vehicles and planets
     sysArea.activator_add(satAA, sysVehicle);
@@ -673,8 +679,8 @@ osp::universe::Satellite debug_add_part_vehicle(std::string const& name)
     Quaternion rotZ_270 = Quaternion::rotation(3 * qtrTurn, Vector3{0, 0, 1});
 
     blueprint.add_part(capsule, Vector3{0}, idRot, scl);
-    blueprint.add_part(fuselage, cfOset, idRot, scl);
-    blueprint.add_part(engine, cfOset + feOset, idRot, scl);
+    auto& fuselageBP = blueprint.add_part(fuselage, cfOset, idRot, scl);
+    auto& engBP = blueprint.add_part(engine, cfOset + feOset, idRot, scl);
 
     // Top RCS ring
     blueprint.add_part(rcs, rcsOsetTop, rotY_090, Vector3{1});
@@ -763,6 +769,7 @@ void debug_print_help()
         << "* start     - Create an ActiveArea and start Magnum\n"
         << "* list_uni  - List Satellites in the universe\n"
         << "* list_ent  - List Entities in active scene\n"
+        << "* list_mach - List Machines in active scene\n"
         << "* list_upd  - List Update order from active scene\n"
         << "* help      - Show this again\n"
         << "* exit      - Deallocate everything and return memory to OS\n";
@@ -783,6 +790,32 @@ void debug_print_update_order()
     for (auto call : order.get_call_list())
     {
         std::cout << "* " << call.m_name << "\n";
+    }
+}
+
+void debug_print_machines()
+{
+    if (!g_ospMagnum)
+    {
+        std::cout << "Can't do that yet, start the magnum application first!\n";
+        return;
+    }
+
+    active::ActiveScene &scene = g_ospMagnum->get_scenes().begin()->second;
+    auto view = scene.get_registry().view<osp::active::ACompMachines>();
+
+    for (active::ActiveEnt ent : view)
+    {
+        active::ACompHierarchy& hier = scene.reg_get<active::ACompHierarchy>(ent);
+        std::cout << "[" << int(ent) << "]: " << hier.m_name << "\n";
+
+        auto& machines = scene.reg_get<active::ACompMachines>(ent);
+        for (auto mach : machines.m_machines)
+        {
+            active::ActiveEnt machEnt = mach.m_partEnt;
+            std::string sysName = mach.m_system->first;
+            std::cout << "  ->[" << int(machEnt) << "]: " << sysName << "\n";
+        }
     }
 }
 

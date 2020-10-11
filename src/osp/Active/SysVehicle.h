@@ -7,6 +7,7 @@
 #include "../Universe.h"
 #include "../Resource/Package.h"
 #include "../Resource/blueprints.h"
+#include "osp/Active/SysMachine.h"
 
 #include <Magnum/Shaders/Phong.h>
 
@@ -85,6 +86,14 @@ public:
             universe::Satellite areaSat, universe::Satellite tgtSat,
             ActiveEnt tgtEnt);
 
+    // Stores all the information necessary to instantiate a machine
+    struct MachineDef
+    {
+        ActiveEnt m_machineOwner;
+        std::vector<PrototypeMachine> const& m_prototypeMachines;
+        std::vector<BlueprintMachine> const& m_blueprintMachines;
+    };
+
     /**
      * Add machines to the specified entity
      *
@@ -94,15 +103,7 @@ public:
      * @param protoMachines [in] The prototype machines to add to the entity
      * @param blueprintMachines [in] The associated configs for the machines
      */
-    void create_machines(ActiveScene& scene, ActiveEnt entity,
-        std::vector<PrototypeMachine> const& protoMachines,
-        std::vector<BlueprintMachine> const& blueprintMachines);
-
-    // Stores all the information necessary to instantiate a machine
-    using machine_def_t = std::tuple<
-        ActiveEnt,
-        std::vector<PrototypeMachine> const&,
-        std::vector<BlueprintMachine> const&>;
+    void create_machines(ActiveEnt partEnt, MachineDef machines);
 
     /**
      * Adds all machines to a part at once
@@ -113,9 +114,10 @@ public:
      * information about each machine is captured in a machine_def_t, then used
      * to call this function after all part children exist to instance all the
      * machines at once.
+     * @param partEnt [in] The root entity of the part
      * @param definitions [in] List of machine configs and their associated ents
      */
-    void add_machines_deferred(std::vector<machine_def_t> definitions);
+    void add_machines_deferred(ActiveEnt partEnt, std::vector<MachineDef> definitions);
 
     /**
      * Create a Physical Part from a PrototypePart and put it in the world
@@ -126,7 +128,7 @@ public:
      * @return Pointer to object created
      */
     ActiveEnt part_instantiate(PrototypePart& part, BlueprintPart& blueprint,
-        ActiveEnt rootParent, std::vector<machine_def_t>& machineDefinitions);
+        ActiveEnt rootParent, std::vector<MachineDef>& machineDefinitions);
 
     // Handle deleted parts and separations
     void update_vehicle_modification();

@@ -88,8 +88,9 @@ public:
      * @param translation
      * @param rotation
      * @param scale
+     * @return Resulting blueprint part
      */
-    void add_part(DependRes<PrototypePart>& part,
+    BlueprintPart& add_part(DependRes<PrototypePart>& part,
                   const Vector3& translation,
                   const Quaternion& rotation,
                   const Vector3& scale);

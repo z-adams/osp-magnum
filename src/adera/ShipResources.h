@@ -49,6 +49,11 @@ struct ShipResourceType
 
     // The density (kg/m^3, for now) of 2^quanta units of this resource
     float m_density;
+
+    float resource_volume(uint64_t quantity) const;
+    float resource_mass(uint64_t quantity) const;
+    uint64_t resource_capacity(float volume) const;
+    uint64_t resource_quantity(float mass) const;
 };
 
 struct ShipResource
@@ -66,10 +71,6 @@ public:
     SysMachineContainer(osp::active::ActiveScene& scene);
 
     void update_containers();
-
-    float resource_volume(ShipResourceType type, uint64_t quantity);
-    float resource_mass(ShipResourceType type, uint64_t quantity);
-    uint64_t resource_capacity(ShipResourceType type, float volume);
 
     osp::active::Machine& instantiate(
         osp::active::ActiveEnt ent,
@@ -102,6 +103,20 @@ public:
     std::vector<osp::active::WireInput*> existing_inputs() override;
     std::vector<osp::active::WireOutput*> existing_outputs() override;
 
+    constexpr const ShipResource& check_contents() const
+    { return m_contents; }
+    
+    /**
+     * Request a quantity of the contained resource
+     *
+     * Since the resources are stored as unsigned integers, avoiding wraparound
+     * is crucial. This function wraps the resource withdrawal process by
+     * internally checking the requested quantity of resource, bounds checking
+     * it, and only returning as much resources as are available.
+     * @param quantity [in] The requested quantity of resource
+     * @return The amount of resource that was received
+     */
+    uint64_t request_contents(uint64_t quantity);
 private:
     std::vector<osp::active::WireInput*> m_inputs;
     std::vector<osp::active::WireOutput*> m_outputs;

@@ -6,6 +6,34 @@ using namespace osp;
 using namespace osp::active;
 using namespace adera::active::machines;
 
+/* ShipResourceType */
+
+float ShipResourceType::resource_volume(uint64_t quantity) const
+{
+    uint64_t units = quantity / (1ull << m_quanta);
+    return static_cast<float>(units) * m_volume;
+}
+
+float ShipResourceType::resource_mass(uint64_t quantity) const
+{
+    uint64_t units = quantity / (1ull << m_quanta);
+    return static_cast<float>(units) * m_mass;
+}
+
+uint64_t ShipResourceType::resource_capacity(float volume) const
+{
+    double units = volume / m_volume;
+    double quantaPerUnit = static_cast<double>(1ull << m_quanta);
+    return static_cast<uint64_t>(units * quantaPerUnit);
+}
+
+uint64_t ShipResourceType::resource_quantity(float mass) const
+{
+    double units = mass / m_mass;
+    double quantaPerUnit = static_cast<double>(1ull << m_quanta);
+    return static_cast<uint64_t>(units * quantaPerUnit);
+}
+
 /* MachineContainer */
 
 MachineContainer::MachineContainer(float capacity, ShipResource resource) :
@@ -55,6 +83,19 @@ std::vector<WireOutput*> MachineContainer::existing_outputs()
     return m_outputs;
 }
 
+uint64_t MachineContainer::request_contents(uint64_t quantity)
+{
+    if (quantity > m_contents.m_quantity)
+    {
+        uint64_t remainder = m_contents.m_quantity;
+        m_contents.m_quantity = 0;
+        return remainder;
+    }
+
+    m_contents.m_quantity -= quantity;
+    return quantity;
+}
+
 /* SysMachineContainer */
 
 SysMachineContainer::SysMachineContainer(ActiveScene& scene) :
@@ -76,26 +117,6 @@ void SysMachineContainer::update_containers()
     }
 }
 
-
-float SysMachineContainer::resource_volume(ShipResourceType type, uint64_t quantity)
-{
-    uint64_t units = quantity / (1ull << type.m_quanta);
-    return static_cast<float>(units) * type.m_volume;
-}
-
-float SysMachineContainer::resource_mass(ShipResourceType type, uint64_t quantity)
-{
-    uint64_t units = quantity / (1ull << type.m_quanta);
-    return static_cast<float>(units) * type.m_mass;
-}
-
-uint64_t SysMachineContainer::resource_capacity(ShipResourceType type, float volume)
-{
-    double units = volume / type.m_volume;
-    double quantaPerUnit = static_cast<double>(1ull << type.m_quanta);
-    return static_cast<uint64_t>(units * quantaPerUnit);
-}
-
 Machine& SysMachineContainer::instantiate(ActiveEnt ent,
     PrototypeMachine config, BlueprintMachine settings)
 {
@@ -108,7 +129,7 @@ Machine& SysMachineContainer::instantiate(ActiveEnt ent,
         Package& pkg = m_scene.get_application().debug_get_packges()[0];
 
         resource.m_type = pkg.get<ShipResourceType>(resName);
-        resource.m_quantity = resource_capacity(*resource.m_type, capacity);
+        resource.m_quantity = resource.m_type->resource_capacity(capacity);
     }
 
     return m_scene.reg_emplace<MachineContainer>(ent, capacity, resource);

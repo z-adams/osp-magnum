@@ -34,7 +34,7 @@ BlueprintPart& BlueprintVehicle::add_part(
 
     // Create and default initialize object blueprint machines
     size_t numMachines = prototype->get_machines().size();
-    std::vector<BlueprintMachine> machineBPs(numMachines);
+    std::vector<BlueprintMachine> machineBPs(numMachines, BlueprintMachine{});
 
     BlueprintPart blueprint
     {

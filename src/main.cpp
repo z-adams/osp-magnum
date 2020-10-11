@@ -680,6 +680,8 @@ osp::universe::Satellite debug_add_part_vehicle(std::string const& name)
 
     blueprint.add_part(capsule, Vector3{0}, idRot, scl);
     auto& fuselageBP = blueprint.add_part(fuselage, cfOset, idRot, scl);
+    fuselageBP.m_machines[1].m_config.emplace("resourcename", "fuel");
+
     auto& engBP = blueprint.add_part(engine, cfOset + feOset, idRot, scl);
 
     // Top RCS ring

@@ -47,17 +47,28 @@ private:
     osp::active::UpdateOrderHandle m_updatePhysics;
 };
 
-using fuel_list_t = std::vector<std::pair<osp::DependRes<ShipResourceType>, float>>;
-
 /**
  *
  */
 class MachineRocket : public osp::active::Machine
 {
     friend SysMachineRocket;
+    struct ResourceInput
+    {
+        osp::DependRes<ShipResourceType> m_type;
+        float m_massRateFraction;
+        osp::active::ActiveEnt m_sourceEnt;
+    };
+    using fuel_list_t = std::vector<ResourceInput>;
+
+    struct Parameters
+    {
+        float m_maxThrust;
+        float m_specImpulse;
+    };
 
 public:
-    MachineRocket(float thrust, fuel_list_t consumptionRatios);
+    MachineRocket(Parameters params, fuel_list_t& resources);
     MachineRocket(MachineRocket &&move);
 
     MachineRocket& operator=(MachineRocket&& move);
@@ -78,16 +89,10 @@ private:
     osp::active::WireInput m_wiIgnition;
     osp::active::WireInput m_wiThrottle;
 
-    struct ResourceInput
-    {
-        osp::DependRes<ShipResourceType> m_type;
-        float m_massRateFraction;
-        osp::active::WireInput m_lineIn;
-    };
-
     osp::active::ActiveEnt m_rigidBody;
-    float m_thrust;
-    std::vector<ResourceInput> m_resourceLines;
+    fuel_list_t m_resourceLines;
+
+    Parameters m_params;
 };
 
 

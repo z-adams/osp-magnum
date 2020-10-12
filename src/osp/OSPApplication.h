@@ -19,6 +19,7 @@ public:
 
     universe::Universe& get_universe() { return m_universe; }
 
+    void shutdown();
 private:
     std::vector<Package> m_packages;
     universe::Universe m_universe;

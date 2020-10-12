@@ -28,6 +28,7 @@ public:
     explicit OSPMagnum(
             const Magnum::Platform::Application::Arguments& arguments,
             OSPApplication &ospApp);
+    void shutdown();
 
     void keyPressEvent(KeyEvent& event) override;
     void keyReleaseEvent(KeyEvent& event) override;

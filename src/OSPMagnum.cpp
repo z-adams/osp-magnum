@@ -23,6 +23,11 @@ OSPMagnum::OSPMagnum(const Magnum::Platform::Application::Arguments& arguments,
 
 }
 
+void OSPMagnum::shutdown()
+{
+    m_scenes.clear();
+}
+
 void OSPMagnum::drawEvent()
 {
 

@@ -299,13 +299,9 @@ void magnum_application()
     // Disconnect ActiveArea
     sysArea.disconnect();
 
-    // workaround: wipe mesh resources because they're specific to the
-    // opengl context
-    osp::Package& pkg = g_osp.debug_get_packges()[0];
-    pkg.clear<Magnum::GL::Mesh>();
-    pkg.clear<Magnum::GL::Texture2D>();
-    pkg.clear<PlumeShader>();
-
+    // Free application resources
+    g_ospMagnum->shutdown();
+    g_osp.shutdown();
     // destruct the application, this closes the window
     g_ospMagnum.reset();
 }

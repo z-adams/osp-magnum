@@ -34,7 +34,7 @@ public:
     Universe();
     Universe(Universe const &copy) = delete;
     Universe(Universe &&move) = delete;
-    ~Universe() = default;
+    void clear();
 
     /**
      * @return an null satellite

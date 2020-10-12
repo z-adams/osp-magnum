@@ -115,6 +115,8 @@ public:
 
     constexpr std::vector<std::string>& get_strings()
     { return m_strings; }
+    std::string& get_string(unsigned index)
+    { return m_strings[index]; }
 
 private:
     //std::string name; use path

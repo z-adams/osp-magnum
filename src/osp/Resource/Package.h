@@ -37,6 +37,19 @@ namespace osp
 
 // supported resources
 
+// Stores a split path as <prefix, rest of path>
+typedef struct Path { std::string prefix; std::string identifier; } path_t;
+
+/**
+ * Split a resource path into a prefix and identifier
+ *
+ * A path of the format "prefix:identifier" is divided into the prefix (any
+ * text preceeding the first instance of the ':' character), and the following
+ * identifier
+ * @param path [in] The path to split
+ * @return The path divided into a prefix and identifier
+ */
+path_t decompose_path(std::string const& path);
 
 class Package
 {
@@ -52,9 +65,6 @@ public:
     Package(std::string const& prefix, std::string const& packageName);
 
     //ResourceTable m_resources;
-
-    typedef uint32_t Prefix;
-    //typedef char Prefix[4];
 
     //virtual Magnum::GL::Mesh* request_mesh(const std::string& path);
 
@@ -94,6 +104,7 @@ public:
         std::map<std::string, Resource<TYPE_T>> m_resources;
     };
 
+    std::string get_prefix() const { return m_prefix; }
 
 private:
 
@@ -101,10 +112,9 @@ private:
 
     std::string m_packageName;
 
-    Prefix m_prefix;
+    std::string m_prefix;
 
     std::string m_displayName;
-
 };
 
 template<class TYPE_T, typename ... ARGS_T>

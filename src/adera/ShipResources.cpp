@@ -136,9 +136,10 @@ Machine& SysMachineContainer::instantiate(ActiveEnt ent,
     if (settings.m_config.find("resourcename") != settings.m_config.end())
     {
         std::string resName = std::get<std::string>(settings.m_config["resourcename"]);
-        Package& pkg = m_scene.get_application().debug_get_packges()[0];
+        path_t path = decompose_path(resName);
+        Package& pkg = m_scene.get_application().debug_get_package(path.prefix);
 
-        resource.m_type = pkg.get<ShipResourceType>(resName);
+        resource.m_type = pkg.get<ShipResourceType>(path.identifier);
         double fuelLevel = std::get<double>(settings.m_config["fuellevel"]);
         resource.m_quantity = resource.m_type->resource_capacity(fuelLevel*capacity);
     }

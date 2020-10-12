@@ -215,7 +215,7 @@ void magnum_application()
     config_controls(); // as the name implies
 
     // Load if not loaded yet. This only calls once during entire runtime
-    if (!g_osp.debug_get_packges().size())
+    if (!g_osp.debug_num_packages())
     {
         load_a_bunch_of_stuff();
         create_solar_system();
@@ -421,7 +421,7 @@ void load_a_bunch_of_stuff()
     lazyDebugPack.add<PlumeShader>("plume_shader");
 
     // Add package to the univere
-    g_osp.debug_get_packges().push_back(std::move(lazyDebugPack));
+    g_osp.debug_add_package(std::move(lazyDebugPack));
 
     // Add 50 vehicles so there's something to load
     //g_osp.get_universe().get_sats().reserve(64);
@@ -504,7 +504,7 @@ osp::universe::Satellite debug_add_random_vehicle(std::string const& name)
 
     // Part to add, very likely a spamcan
     DependRes<PrototypePart> victim =
-            g_osp.debug_get_packges()[0]
+            g_osp.debug_get_package("lzdb")
             .get<PrototypePart>("part_spamcan");
 
     // Add 12 parts
@@ -536,7 +536,7 @@ osp::universe::Satellite debug_add_random_vehicle(std::string const& name)
                        0, 1, 0);
 
     // put blueprint in package
-    DependRes<BlueprintVehicle> depend = g_osp.debug_get_packges()[0]
+    DependRes<BlueprintVehicle> depend = g_osp.debug_get_package("lzdb")
             .add<BlueprintVehicle>(name, std::move(blueprint));
 
     // Create the Satellite containing a SatVehicle
@@ -575,7 +575,7 @@ osp::universe::Satellite debug_add_deterministic_vehicle(std::string const & nam
 
     // Part to add
     DependRes<PrototypePart> rocket =
-        g_osp.debug_get_packges()[0].get<PrototypePart>("part_stomper");
+        g_osp.debug_get_package("lzdb").get<PrototypePart>("part_stomper");
     blueprint.add_part(rocket, Vector3(0.0f), Quaternion(), Vector3(1.0f));
 
     // Wire throttle control
@@ -591,7 +591,7 @@ osp::universe::Satellite debug_add_deterministic_vehicle(std::string const & nam
         0, 1, 0);
 
     // Save blueprint
-    DependRes<BlueprintVehicle> depend = g_osp.debug_get_packges()[0]
+    DependRes<BlueprintVehicle> depend = g_osp.debug_get_package("lzdb")
         .add<BlueprintVehicle>(name, std::move(blueprint));
 
 
@@ -651,7 +651,7 @@ osp::universe::Satellite debug_add_part_vehicle(std::string const& name)
     // Start making the blueprint
     BlueprintVehicle blueprint;
 
-    osp::Package& pkg = g_osp.debug_get_packges()[0];
+    osp::Package& pkg = g_osp.debug_get_package("lzdb");
 
     // Parts
     DependRes<PrototypePart> capsule = pkg.get<PrototypePart>("part_phCapsule");
@@ -676,7 +676,7 @@ osp::universe::Satellite debug_add_part_vehicle(std::string const& name)
 
     blueprint.add_part(capsule, Vector3{0}, idRot, scl);
     auto& fuselageBP = blueprint.add_part(fuselage, cfOset, idRot, scl);
-    fuselageBP.m_machines[1].m_config.emplace("resourcename", "fuel");
+    fuselageBP.m_machines[1].m_config.emplace("resourcename", "lzdb:fuel");
     fuselageBP.m_machines[1].m_config.emplace("fuellevel", 0.5);
 
     auto& engBP = blueprint.add_part(engine, cfOset + feOset, idRot, scl);

@@ -10,6 +10,16 @@ OSPApplication::OSPApplication()
 
 }
 
+void osp::OSPApplication::debug_add_package(Package&& p)
+{
+    m_packages.emplace(p.get_prefix(), std::move(p));
+}
+
+Package& osp::OSPApplication::debug_get_package(std::string prefix)
+{
+    return m_packages.at(prefix);
+}
+
 void osp::OSPApplication::shutdown()
 {
     m_universe.clear();
@@ -20,7 +30,7 @@ void osp::OSPApplication::shutdown()
        dereferencing of invalid pointers, the BlueprintVehicle group must be
        manually cleared before the packages are destroyed.
     */
-    Package& pkg = debug_get_packges()[0];
+    Package& pkg = debug_get_package("lzdb");
     pkg.clear<BlueprintVehicle>();
 
     m_packages.clear();

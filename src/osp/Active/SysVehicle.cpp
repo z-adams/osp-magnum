@@ -278,18 +278,17 @@ ActiveEnt SysVehicle::part_instantiate(PrototypePart& part, BlueprintPart& bluep
 
             // TODO: put package prefixes in resource path
             //       for now just get the first package
-            Package& package = m_scene.get_application().debug_get_packges()[0];
+            Package& package = m_scene.get_application().debug_get_package("lzdb");
             const DrawableData& drawable =
                 std::get<DrawableData>(currentPrototype.m_objectData);
 
             //Mesh* mesh = nullptr;
-            DependRes<Mesh> meshRes = package.get<Mesh>(
-                                            part.get_strings()[drawable.m_mesh]);
+            DependRes<Mesh> meshRes = package.get<Mesh>(part.get_string(drawable.m_mesh));
 
             if (meshRes.empty())
             {
                 // Mesh isn't compiled yet, now check if mesh data exists
-                std::string const& meshName = part.get_strings()[drawable.m_mesh];
+                std::string const& meshName = part.get_string(drawable.m_mesh);
                 DependRes<MeshData> meshData = package.get<MeshData>(meshName);
                 meshRes = AssetImporter::compile_mesh(meshData, package);
             }
@@ -298,7 +297,7 @@ ActiveEnt SysVehicle::part_instantiate(PrototypePart& part, BlueprintPart& bluep
             for (unsigned i = 0; i < drawable.m_textures.size(); i++)
             {
                 unsigned texID = drawable.m_textures[i];
-                std::string const& texName = part.get_strings()[texID];
+                std::string const& texName = part.get_string(texID);
                 DependRes<Texture2D> texRes = package.get<Texture2D>(texName);
 
                 if (texRes.empty())

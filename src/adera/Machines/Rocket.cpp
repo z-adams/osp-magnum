@@ -235,7 +235,7 @@ void SysMachineRocket::attach_plume_effect(ActiveEnt ent)
         << static_cast<int>(plumeNode) << "\n";
 
     // Get plume effect data
-    Package& pkg = m_scene.get_application().debug_get_packges()[0];
+    Package& pkg = m_scene.get_application().debug_get_package("lzdb");
     std::string plumeAnchorName = m_scene.reg_get<ACompHierarchy>(plumeNode).m_name;
     std::string effectName = plumeAnchorName.substr(3, plumeAnchorName.length() - 3);
     DependRes<PlumeEffectData> plumeEffect = pkg.get<PlumeEffectData>(effectName);
@@ -281,8 +281,9 @@ Machine& SysMachineRocket::instantiate(ActiveEnt ent, PrototypeMachine config,
     params.m_specImpulse = std::get<double>(config.m_config["Isp"]);
 
     std::string fuelIdent = std::get<std::string>(config.m_config["fueltype"]);
-    Package& pkg = m_scene.get_application().debug_get_packges()[0];
-    DependRes<ShipResourceType> fuel = pkg.get<ShipResourceType>(fuelIdent);
+    path_t path = decompose_path(fuelIdent);
+    Package& pkg = m_scene.get_application().debug_get_package(path.prefix);
+    DependRes<ShipResourceType> fuel = pkg.get<ShipResourceType>(path.identifier);
     std::vector<MachineRocket::input_t> inputs;
     if (fuel)
     {

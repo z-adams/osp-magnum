@@ -44,7 +44,9 @@ void osp::AssetImporter::load_sturdy_file(std::string const& filepath, Package& 
         std::cout << "Error: couldn't open file: " << filepath << "\n";
     }
 
-    load_sturdy(gltfImporter, pkg);
+    std::string dataResourceName = filepath.substr(0, filepath.find('.')) + ':';
+
+    load_sturdy(gltfImporter, dataResourceName, pkg);
 
     gltfImporter.close();
 }
@@ -121,14 +123,14 @@ void AssetImporter::load_machines(tinygltf::Value const& extras,
 }
 
 void osp::AssetImporter::load_part(TinyGltfImporter& gltfImporter,
-    Package& pkg, unsigned id)
+    Package& pkg, unsigned id, std::string const& resPrefix)
 {
     // It's a part
     std::cout << "PART!\n";
 
     // Recursively add child nodes to part
     PrototypePart part;
-    proto_add_obj_recurse(gltfImporter, pkg, part, 0, id);
+    proto_add_obj_recurse(gltfImporter, pkg, resPrefix, part, 0, id);
 
     // Parse extra properties
     tinygltf::Node const& node = *static_cast<tinygltf::Node const*>(
@@ -141,7 +143,8 @@ void osp::AssetImporter::load_part(TinyGltfImporter& gltfImporter,
     pkg.add<PrototypePart>(gltfImporter.object3DName(id), std::move(part));
 }
 
-void osp::AssetImporter::load_plume(TinyGltfImporter& gltfImporter, Package& pkg, unsigned id)
+void osp::AssetImporter::load_plume(TinyGltfImporter& gltfImporter,
+    Package& pkg, unsigned id, std::string const& resPrefix)
 {
     using Corrade::Containers::Pointer;
     using Magnum::Trade::ObjectData3D;
@@ -152,7 +155,7 @@ void osp::AssetImporter::load_plume(TinyGltfImporter& gltfImporter, Package& pkg
     // Get mesh data
     Pointer<ObjectData3D> rootNode = gltfImporter.object3D(id);
     unsigned meshID = gltfImporter.object3D(rootNode->children()[0])->instance();
-    std::string meshName = gltfImporter.meshName(meshID);
+    std::string meshName = resPrefix + gltfImporter.meshName(meshID);
 
     // Get shader params from extras
     Node const& node = *static_cast<Node const*>(
@@ -180,7 +183,25 @@ void osp::AssetImporter::load_plume(TinyGltfImporter& gltfImporter, Package& pkg
     pkg.add<PlumeEffectData>(gltfImporter.object3DName(id), std::move(plumeData));
 }
 
-void osp::AssetImporter::load_sturdy(TinyGltfImporter& gltfImporter, Package& pkg)
+
+/* Explanation of resPrefix:
+
+   When a mesh is created in blender, the object itself has a name (the one that
+   shows up in the scene hierarchy), but the underlying mesh data within that
+   object actually has a unique name, usually the name of the primitive that was
+   used initially, unless it was changed. These names will be something like
+   "Cylinder.004" and are numbered to prevent name collisions within a blend 
+   file. The issue is that multiple blend files can have a "Cylinder.004" and
+   unless the author renames the mesh object itself (which most people never
+   touch), when you export the scenes to glTF files and load them both here, you
+   end up with a resource key collision due to the repeated name. Passing
+   resPrefix around allows us to specify a unique prefix to prepend to the mesh
+   name (or any other resource that has the same problem) that is used
+   internally to avoid name conflicts.
+
+*/
+void AssetImporter::load_sturdy(TinyGltfImporter& gltfImporter,
+    std::string const& resPrefix, Package& pkg)
 {
     std::cout << "Found " << gltfImporter.object3DCount() << " nodes\n";
     Optional<SceneData> sceneData = gltfImporter.scene(gltfImporter.defaultScene());
@@ -199,11 +220,11 @@ void osp::AssetImporter::load_sturdy(TinyGltfImporter& gltfImporter, Package& pk
 
         if (nodeName.compare(0, 5, "part_") == 0)
         {
-            load_part(gltfImporter, pkg, childID);
+            load_part(gltfImporter, pkg, childID, resPrefix);
         }
         else if (nodeName.compare(0, 6, "plume_") == 0)
         {
-            load_plume(gltfImporter, pkg, childID);
+            load_plume(gltfImporter, pkg, childID, resPrefix);
         }
     }
 
@@ -213,7 +234,7 @@ void osp::AssetImporter::load_sturdy(TinyGltfImporter& gltfImporter, Package& pk
     {
         using Magnum::MeshPrimitive;
 
-        std::string const& meshName = gltfImporter.meshName(i);
+        std::string const& meshName = resPrefix + gltfImporter.meshName(i);
         std::cout << "Mesh: " << meshName << "\n";
 
         Optional<MeshData> meshData = gltfImporter.mesh(i);
@@ -335,6 +356,7 @@ DependRes<Magnum::GL::Texture2D> AssetImporter::compile_tex(
 //either an appendable package, or
 void AssetImporter::proto_add_obj_recurse(TinyGltfImporter& gltfImporter, 
                                            Package& package,
+                                           std::string const& resPrefix,
                                            PrototypePart& part,
                                            unsigned parentProtoIndex,
                                            unsigned childGltfIndex)
@@ -397,7 +419,7 @@ void AssetImporter::proto_add_obj_recurse(TinyGltfImporter& gltfImporter,
     else if (hasMesh)
     {
         // It's a drawable mesh
-        const std::string& meshName = gltfImporter.meshName(meshID);
+        const std::string& meshName = resPrefix + gltfImporter.meshName(meshID);
         std::cout << "obj: " << name << " uses mesh: " << meshName << "\n";
         obj.m_type = ObjectType::MESH;
 
@@ -452,7 +474,7 @@ void AssetImporter::proto_add_obj_recurse(TinyGltfImporter& gltfImporter,
 
     for (unsigned childId: childData->children())
     {
-        proto_add_obj_recurse(gltfImporter, package, part, objIndex, childId);
+        proto_add_obj_recurse(gltfImporter, package, resPrefix, part, objIndex, childId);
     }
 }
 

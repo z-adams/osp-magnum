@@ -88,7 +88,7 @@ class MachineContainer : public osp::active::Machine
     friend SysMachineContainer;
 
 public:
-    MachineContainer(float capacity, ShipResource resource);
+    MachineContainer(osp::active::ActiveEnt ownID, float capacity, ShipResource resource);
     MachineContainer(MachineContainer&& move);
     MachineContainer& operator=(MachineContainer&& move);
 
@@ -123,8 +123,8 @@ public:
      */
     float current_mass() const;
 private:
-    std::vector<osp::active::WireInput*> m_inputs;
-    std::vector<osp::active::WireOutput*> m_outputs;
+    //osp::active::WireInput m_inputs;
+    osp::active::WireOutput m_outputs;
 
     float m_capacity;
     ShipResource m_contents;

@@ -14,16 +14,23 @@ using namespace adera::active::machines;
 using namespace osp::active;
 using namespace osp;
 
-MachineRocket::MachineRocket(Parameters params, fuel_list_t& resources) :
+MachineRocket::MachineRocket(Parameters params, std::vector<input_t>& resources) :
         Machine(true),
         m_wiGimbal(this, "Gimbal"),
         m_wiIgnition(this, "Ignition"),
         m_wiThrottle(this, "Throttle"),
         m_rigidBody(entt::null),
         m_params(params),
-        m_resourceLines(std::move(resources)),
         m_lastPowerOutput(0.0f)
 {
+    for (input_t& input : resources)
+    {
+        std::string resName = input.first->m_identifier;
+        m_resourceLines.push_back({
+            std::move(input.first),
+            input.second,
+            WireInput{this, resName}});
+    }
 }
 
 MachineRocket::MachineRocket(MachineRocket&& move) :
@@ -63,16 +70,15 @@ WireOutput* MachineRocket::request_output(WireOutPort port)
 
 std::vector<WireInput*> MachineRocket::existing_inputs()
 {
-    /*std::vector<WireInput*> inputs;
+    std::vector<WireInput*> inputs;
     inputs.reserve(3 + m_resourceLines.size());
 
     inputs.insert(inputs.begin(), {&m_wiGimbal, &m_wiIgnition, &m_wiThrottle});
     for (auto& resource : m_resourceLines)
     {
-        inputs.push_back(&resource.m_lineIn);
+        inputs.push_back(&resource.m_source);
     }
-    return inputs;*/
-    return {&m_wiGimbal, &m_wiIgnition, &m_wiThrottle};
+    return inputs;
 }
 
 std::vector<WireOutput*> MachineRocket::existing_outputs()
@@ -127,7 +133,8 @@ void SysMachineRocket::update_physics()
         bool fail = false;
         for (auto& resource : machine.m_resourceLines)
         {
-            MachineContainer* src = m_scene.reg_try_get<MachineContainer>(resource.m_sourceEnt);
+            wiretype::Pipe* pipe = resource.m_source.get_if<wiretype::Pipe>();
+            MachineContainer* src = m_scene.reg_try_get<MachineContainer>(pipe->m_source);
             if (!src)
             {
                 std::cout << "Error: no source found\n";
@@ -178,10 +185,12 @@ void SysMachineRocket::update_physics()
         float massFlowRateTot = thrustMag / (9.81f * machine.m_params.m_specImpulse);
         for (auto const& resource : machine.m_resourceLines)
         {
+            const wiretype::Pipe* pipe = resource.m_source.get_if<wiretype::Pipe>();
+            MachineContainer* src = m_scene.reg_try_get<MachineContainer>(pipe->m_source);
+
             float massFlowRate = massFlowRateTot * resource.m_massRateFraction;
             float massFlow = massFlowRate * m_scene.get_time_delta_fixed();
             uint64_t required = resource.m_type->resource_quantity(massFlow);
-            MachineContainer* src = m_scene.reg_try_get<MachineContainer>(resource.m_sourceEnt);
             uint64_t consumed = src->request_contents(required);
             std::cout << "consumed " << consumed << " units of fuel, "
                 << src->check_contents().m_quantity << " remaining\n";
@@ -271,14 +280,13 @@ Machine& SysMachineRocket::instantiate(ActiveEnt ent, PrototypeMachine config,
     params.m_maxThrust = std::get<double>(config.m_config["thrust"]);
     params.m_specImpulse = std::get<double>(config.m_config["Isp"]);
 
-    MachineRocket::fuel_list_t inputs;
+    std::string fuelIdent = std::get<std::string>(config.m_config["fueltype"]);
     Package& pkg = m_scene.get_application().debug_get_packges()[0];
-    DependRes<ShipResourceType> fuel = pkg.get<ShipResourceType>("fuel");
+    DependRes<ShipResourceType> fuel = pkg.get<ShipResourceType>(fuelIdent);
+    std::vector<MachineRocket::input_t> inputs;
     if (fuel)
     {
-        ActiveEnt fuelSource = static_cast<ActiveEnt>(13);
-        MachineRocket::ResourceInput input = {std::move(fuel), 1.0f, fuelSource};
-        inputs.push_back(std::move(input));
+        inputs.push_back({std::move(fuel), 1.0f});
     }
 
     attach_plume_effect(ent);

@@ -36,17 +36,20 @@ uint64_t ShipResourceType::resource_quantity(float mass) const
 
 /* MachineContainer */
 
-MachineContainer::MachineContainer(float capacity, ShipResource resource) :
+MachineContainer::MachineContainer(ActiveEnt ownID, float capacity, ShipResource resource) :
     Machine(true),
     m_capacity(capacity),
-    m_contents(resource)
+    m_contents(resource),
+    m_outputs(this, "output")
 {
+    m_outputs.value() = wiretype::Pipe{ownID};
 }
 
 MachineContainer::MachineContainer(MachineContainer&& move) :
     Machine(std::move(move)),
     m_capacity(std::move(move.m_capacity)),
-    m_contents(std::move(move.m_contents))
+    m_contents(std::move(move.m_contents)),
+    m_outputs(this, std::move(move.m_outputs))
 {
 }
 
@@ -70,17 +73,17 @@ WireInput* MachineContainer::request_input(WireInPort port)
 
 WireOutput* MachineContainer::request_output(WireOutPort port)
 {
-    return nullptr;
+    return &m_outputs;
 }
 
 std::vector<WireInput*> MachineContainer::existing_inputs()
 {
-    return m_inputs;
+    return {};
 }
 
 std::vector<WireOutput*> MachineContainer::existing_outputs()
 {
-    return m_outputs;
+    return {&m_outputs};
 }
 
 uint64_t MachineContainer::request_contents(uint64_t quantity)
@@ -136,13 +139,14 @@ Machine& SysMachineContainer::instantiate(ActiveEnt ent,
         Package& pkg = m_scene.get_application().debug_get_packges()[0];
 
         resource.m_type = pkg.get<ShipResourceType>(resName);
-        resource.m_quantity = resource.m_type->resource_capacity(capacity);
+        double fuelLevel = std::get<double>(settings.m_config["fuellevel"]);
+        resource.m_quantity = resource.m_type->resource_capacity(fuelLevel*capacity);
     }
 
     m_scene.reg_emplace<ACompMass>(ent, 0.0f);
     m_scene.reg_emplace<ACompContainerShape>(ent, ECollisionShape::CYLINDER);
 
-    return m_scene.reg_emplace<MachineContainer>(ent, capacity, resource);
+    return m_scene.reg_emplace<MachineContainer>(ent, ent, capacity, resource);
 }
 
 Machine& SysMachineContainer::get(ActiveEnt ent)

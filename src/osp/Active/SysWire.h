@@ -82,11 +82,20 @@ namespace wiretype
         bool m_value;
     };
 
+    /**
+     * Pipe, generically exposes the output entity to the input one
+     */
+    struct Pipe
+    {
+        ActiveEnt m_source;
+    };
+
     // Supported data types
     using WireData = std::variant<Attitude,
                                   AttitudeControl,
                                   Percent,
-                                  Deploy>;
+                                  Deploy,
+                                  Pipe>;
 }
 
 using wiretype::WireData;
@@ -191,6 +200,12 @@ public:
     template<typename T>
     T* get_if();
 
+    /**
+     * Get const value from connected WireOutput
+     */
+    template<typename T>
+    const T* get_if() const;
+
 private:
     IWireElement* m_element;
     std::string m_name;
@@ -251,6 +266,7 @@ public:
     }
 
     WireData& value() { return m_value; }
+    const WireData& value() const { return m_value; }
 
 private:
     //unsigned m_port;
@@ -306,6 +322,21 @@ T* WireInput::get_if()
     {
         // Attempt to get value of variant
         return std::get_if<T> (&(list()->value()));
+    }
+}
+
+template<typename T>
+const T* WireInput::get_if() const
+{
+    if (list() == nullptr)
+    {
+        // Not connected to any WireOutput!
+        return nullptr;
+    }
+    else
+    {
+        // Attempt to get value of variant
+        return std::get_if<T>(&(list()->value()));
     }
 }
 

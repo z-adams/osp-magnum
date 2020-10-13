@@ -34,6 +34,8 @@ protected:
     ShaderInstance(ShaderInstance const& other) = delete;
     ShaderInstance& operator=(ShaderInstance const& other) = delete;
 
+    virtual void update_uniforms() = 0;
+
     osp::DependRes<SHADER_T> m_shader;
 };
 
@@ -43,14 +45,14 @@ void ShaderInstance<IMPL_T, SHADER_T>::draw(
     osp::active::ACompCamera const& camera,
     osp::active::ACompTransform const& transform)
 {
-    static_cast<IMPL_T*>(this)->update_uniforms();
+    update_uniforms();
 
     Magnum::Matrix4 entRelative = camera.m_inverse * transform.m_transformWorld;
 
     (*m_shader)
         .setTransformationMatrix(entRelative)
         .setProjectionMatrix(camera.m_projection)
-        .setNormalMatrix(entRelative.normalMatrix())
+        .setNormalMatrix(transform.m_transformWorld.normalMatrix())
         .draw(mesh);
 }
 

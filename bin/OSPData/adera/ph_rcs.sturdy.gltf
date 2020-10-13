@@ -74,8 +74,10 @@
                     "index" : 0,
                     "texCoord" : 0
                 },
-                "metallicFactor" : 0,
-                "roughnessFactor" : 0.4000000059604645
+                "metallicRoughnessTexture" : {
+                    "index" : 1,
+                    "texCoord" : 0
+                }
             }
         }
     ],
@@ -98,6 +100,9 @@
     "textures" : [
         {
             "source" : 0
+        },
+        {
+            "source" : 1
         }
     ],
     "images" : [
@@ -105,6 +110,11 @@
             "mimeType" : "image/png",
             "name" : "ph_base",
             "uri" : "ph_base.png"
+        },
+        {
+            "mimeType" : "image/png",
+            "name" : "ph_metal-ph_rough",
+            "uri" : "ph_metal-ph_rough.png"
         }
     ],
     "accessors" : [

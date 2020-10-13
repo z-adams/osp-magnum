@@ -119,7 +119,7 @@ public:
     PSI& set_power(const float power);
 
 private:
-    void update_uniforms();
+    void update_uniforms() override;
 
     // Uniform values
     float m_minZ;

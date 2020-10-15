@@ -24,6 +24,7 @@ private:
     void create_graphics_data(osp::universe::Satellite ent,
         Magnum::Color3 color = Magnum::Color3{0.25f});
     void set_orbit_circle(osp::universe::Satellite ent, float radius);
+    void set_sun_sphere(osp::universe::Satellite ent, float radius);
     static Vector3 universe_to_render_space(Vector3s v3s);
 
     universe::Universe& m_universe;

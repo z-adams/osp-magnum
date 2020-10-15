@@ -27,7 +27,7 @@ osp::active::SysMap::SysMap(ActiveScene &scene, Universe& universe) :
 
     // Create sun radius visualizer
     create_graphics_data(static_cast<Satellite>(1), 0xFFC800_rgbf);
-    set_orbit_circle(static_cast<Satellite>(1), 6.9634e8 / 1e6);
+    set_sun_sphere(static_cast<Satellite>(1), 6.9634e8 / 1e6);
 }
 
 void SysMap::update_map()
@@ -97,6 +97,46 @@ void SysMap::set_orbit_circle(Satellite ent, float radius)
     for (int i = 0; i < m_orbitSamples; i++)
     {
         points[i] = {radius*cos(i*dA), radius*sin(i*dA), 0.0f};
+    }
+    auto& pair = m_mapping[ent];
+    pair.second.m_bufData.setData(points);
+}
+
+void SysMap::set_sun_sphere(Satellite ent, float radius)
+{
+    std::vector<Vector3> points(m_orbitSamples);
+    int index = 0;
+    // Account for overlapping indices
+    constexpr int samples = m_orbitSamples - 2;
+    constexpr double PI = 3.14159265359;
+    constexpr float PI_2 = PI / 2.0;
+    constexpr float dA = 3.0 * (2.0 * PI) / samples;
+    // Draw XY ring
+    constexpr int steps1 = samples / 3 + 1;
+    for (int i = 0; i < steps1; i++, index++)
+    {
+        points[index] = {radius * cos(i * dA), radius * sin(i * dA), 0.0f};
+    }
+
+    // Draw first 1/4 of XZ ring
+    constexpr int steps2 = (samples / 3) / 4;
+    for (int i = 0; i <= steps2; i++, index++)
+    {
+        points[index] = {radius * cos(i * dA), 0.0f, radius * sin(i * dA)};
+    }
+    // Now we're at (0, 0, 1)
+    // Draw YZ ring
+    constexpr int steps3 = steps1;
+    for (int i = 0; i < steps3; i++, index++)
+    {
+        points[index] = {0.0f, radius * sin(i * dA), radius * cos(i * dA)};
+    }
+    // Back at (0, 0, 1)
+    // Draw remaining 3/4 of XZ ring
+    constexpr int steps4 = steps2 * 3;
+    for (int i = 0; i <= steps4; i++, index++)
+    {
+        points[index] = {radius * sin(-i * dA), 0.0f, radius * cos(i * dA)};
     }
     auto& pair = m_mapping[ent];
     pair.second.m_bufData.setData(points);

@@ -172,11 +172,6 @@ int debug_cli_loop()
     return 0;
 }
 
-osp::SpaceInt meter_to_spaceint(double meters)
-{
-    return static_cast<osp::SpaceInt>(meters) * 1024ll;
-}
-
 void magnum_application_map()
 {
     using namespace osp::active;
@@ -208,10 +203,10 @@ void magnum_application_map()
     auto& cameraTransform = scene.reg_emplace<ACompTransform>(camera);
     auto& cameraComp = scene.get_registry().emplace<ACompCamera>(camera);
 
-    cameraTransform.m_transform = Matrix4::translation(Vector3(0, 0, 10));
+    cameraTransform.m_transform = Matrix4::translation(Vector3(0, 0, 2000.0f));
     cameraComp.m_viewport = Vector2(Magnum::GL::defaultFramebuffer.viewport().size());
-    cameraComp.m_far = 5e6f;
-    cameraComp.m_near = 100.0f;
+    cameraComp.m_far = 1e8f;
+    cameraComp.m_near = 1000.0f;
     cameraComp.m_fov = 45.0_degf;
     cameraComp.calculate_projection();
 
@@ -243,6 +238,19 @@ void config_controls_map()
         {{osp::sc_mouse, (int)Mouse::Right, VarTrig::PRESSED, false, VarOp::AND}});
 }
 
+osp::SpaceInt meter_to_spaceint(double meters)
+{
+    return static_cast<osp::SpaceInt>(meters) * 1024ll;
+}
+
+osp::Vector3s polar_km_to_v3s(double radiusKM, double angle)
+{
+    return {
+        meter_to_spaceint(1000.0 * radiusKM * cos(angle)),
+        meter_to_spaceint(1000.0 * radiusKM * sin(angle)),
+        0ll};
+}
+
 void create_solar_system_map()
 {
     using osp::universe::Universe;
@@ -252,6 +260,7 @@ void create_solar_system_map()
     using planeta::universe::SatPlanet;
     using planeta::universe::UCompPlanet;
     using osp::universe::UCompType;
+    using namespace Magnum::Math::Literals;
 
     Universe& uni = g_osp.get_universe();
 
@@ -273,26 +282,29 @@ void create_solar_system_map()
 
     stat.add(sun);
 
-    // Create test bodies
-    Satellite body = uni.sat_create();
-    UCompPlanet& bodyPlanet = typePlanet.add_get_ucomp(body);
-    UCompTransformTraj& bodyTT = uni.get_reg().get<UCompTransformTraj>(body);
+    // Create mercury
+    Satellite mercury = uni.sat_create();
+    UCompPlanet& mercuryPlanet = typePlanet.add_get_ucomp(mercury);
+    UCompTransformTraj& mercuryTT = uni.get_reg().get<UCompTransformTraj>(mercury);
 
-    bodyPlanet.m_radius = 1e3;
-    bodyTT.m_position = {1000000ll * 1024ll, 0ll, 0ll};
-    bodyTT.m_name = "Suspiciously close body";
+    mercuryPlanet.m_radius = 1e3;
+    mercuryTT.m_position = polar_km_to_v3s(58e6, 0.0);
+    mercuryTT.m_name = "Mercury";
+    mercuryTT.m_color = 0xCCA91f_rgbf;
 
-    stat.add(body);
+    stat.add(mercury);
 
-    Satellite body2 = uni.sat_create();
-    UCompPlanet& body2Planet = typePlanet.add_get_ucomp(body2);
-    UCompTransformTraj& body2TT = uni.get_reg().get<UCompTransformTraj>(body2);
+    // Create venus
+    Satellite venus = uni.sat_create();
+    UCompPlanet& venusPlanet = typePlanet.add_get_ucomp(venus);
+    UCompTransformTraj& venusTT = uni.get_reg().get<UCompTransformTraj>(venus);
 
-    body2Planet.m_radius = 1e3;
-    body2TT.m_position = {1000000ll * 1024ll, 1000000ll * 1024ll, 0ll};
-    body2TT.m_name = "Suspiciously close body 2";
+    venusPlanet.m_radius = 1e3;
+    venusTT.m_position = polar_km_to_v3s(108e6, 0.0);
+    venusTT.m_name = "Venus";
+    venusTT.m_color = 0xFFDF80_rgbf;
 
-    stat.add(body2);
+    stat.add(venus);
 
     // Create the earth
     Satellite earth = uni.sat_create();
@@ -300,10 +312,71 @@ void create_solar_system_map()
     UCompTransformTraj& earthTT = uni.get_reg().get<UCompTransformTraj>(earth);
 
     earthPlanet.m_radius = 6.371e6;
-    earthTT.m_position = {meter_to_spaceint(1.496e11), 0ll, 0ll};
-    earthTT.m_name = "The earth";
+    earthTT.m_position = polar_km_to_v3s(149.6e6, 0.0);
+    earthTT.m_name = "Earth";
+    earthTT.m_color = 0x24A36E_rgbf;
 
     stat.add(earth);
+
+    // Create mars
+    Satellite mars = uni.sat_create();
+    UCompPlanet& marsPlanet = typePlanet.add_get_ucomp(mars);
+    UCompTransformTraj& marsTT = uni.get_reg().get<UCompTransformTraj>(mars);
+
+    marsPlanet.m_radius = 1e3;
+    marsTT.m_position = polar_km_to_v3s(228e6, 0.0);
+    marsTT.m_name = "Mars";
+    marsTT.m_color = 0xBF6728_rgbf;
+
+    stat.add(mars);
+
+    // Jupiter
+    Satellite jupiter = uni.sat_create();
+    UCompPlanet& jupiterPlanet = typePlanet.add_get_ucomp(jupiter);
+    UCompTransformTraj& jupiterTT = uni.get_reg().get<UCompTransformTraj>(jupiter);
+
+    jupiterPlanet.m_radius = 1e3;
+    jupiterTT.m_position = polar_km_to_v3s(778e6, 0.0);
+    jupiterTT.m_name = "Jupiter";
+    jupiterTT.m_color = 0xA68444_rgbf;
+
+    stat.add(jupiter);
+
+    // Saturn
+    Satellite saturn = uni.sat_create();
+    UCompPlanet& saturnPlanet = typePlanet.add_get_ucomp(saturn);
+    UCompTransformTraj& saturnTT = uni.get_reg().get<UCompTransformTraj>(saturn);
+
+    saturnPlanet.m_radius = 1e3;
+    saturnTT.m_position = polar_km_to_v3s(1400e6, 0.0);
+    saturnTT.m_name = "Saturn";
+    saturnTT.m_color = 0xCFB78A_rgbf;
+
+    stat.add(saturn);
+
+    // Uranus
+    Satellite uranus = uni.sat_create();
+    UCompPlanet& uranusPlanet = typePlanet.add_get_ucomp(uranus);
+    UCompTransformTraj& uranusTT = uni.get_reg().get<UCompTransformTraj>(uranus);
+
+    uranusPlanet.m_radius = 1e3;
+    uranusTT.m_position = polar_km_to_v3s(3000e6, 0.0);
+    uranusTT.m_name = "Uranus";
+    uranusTT.m_color = 0x91C7EB_rgbf;
+
+    stat.add(uranus);
+
+    // Neptune
+    Satellite neptune = uni.sat_create();
+    UCompPlanet& neptunePlanet = typePlanet.add_get_ucomp(neptune);
+    UCompTransformTraj& neptuneTT = uni.get_reg().get<UCompTransformTraj>(neptune);
+
+    neptunePlanet.m_radius = 1e3;
+    neptuneTT.m_position = polar_km_to_v3s(4488e6, 0.0);;
+    neptuneTT.m_name = "Neptune";
+    neptuneTT.m_color = 0x0785D9_rgbf;
+
+    stat.add(neptune);
 }
 
 void debug_print_help()

@@ -170,7 +170,7 @@ void DebugCameraController::update_physics_post()
     Vector3 posRelative = xform.translation() - xformTgt.translation();
 
     // set camera orbit distance
-    constexpr float distSensitivity = 5000.0f;
+    constexpr float distSensitivity = 5e4f;
     m_orbitDistance += distSensitivity * static_cast<float>(-m_scrollInput.dy());
     
     // Clamp orbit distance to avoid producing a degenerate m_orbitPos vector

@@ -48,7 +48,7 @@ void SysMap::update_map()
 
         if (m_mapping.find(sat) == m_mapping.end())
         {
-            create_graphics_data(sat);
+            create_graphics_data(sat, posTraj.m_color);
 
             float radius = universe_to_render_space(pos).length();
             set_orbit_circle(sat, radius);

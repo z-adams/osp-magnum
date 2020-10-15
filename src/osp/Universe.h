@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <cstdint>
+#include <Magnum/Math/Color.h>
 
 namespace osp::universe
 {
@@ -181,6 +182,9 @@ struct UCompTransformTraj
 
     // move this somewhere else eventually
     std::string m_name;
+
+    // Temporary, for orbit colors
+    Magnum::Color3 m_color;
 };
 
 //struct ACompActivated

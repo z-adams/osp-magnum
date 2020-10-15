@@ -16,6 +16,7 @@
 #include "osp/types.h"
 #include "osp/Universe.h"
 #include "osp/Trajectories/Stationary.h"
+#include "osp/Trajectories/NBody.h"
 #include "osp/Satellites/SatActiveArea.h"
 #include "osp/Satellites/SatVehicle.h"
 #include "osp/Resource/AssetImporter.h"
@@ -52,6 +53,7 @@ namespace machines
 
 using osp::Vector2;
 using osp::Vector3;
+using Magnum::Vector3d;
 using osp::Matrix4;
 using osp::Quaternion;
 
@@ -234,6 +236,16 @@ void config_controls_map()
     using VarTrig = ButtonVarConfig::VarTrigger;
     UserInputHandler& userInput = g_ospMagnum->get_input_handler();
 
+    // Switch to next vehicle
+    userInput.config_register_control("game_switch_back", false,
+        {{0, (int)Key::V, VarTrig::PRESSED, false, VarOp::OR}});
+    // Switch to prev vehicle
+    userInput.config_register_control("game_switch", false,
+        {{0, (int)Key::LeftShift, VarTrig::HOLD, false, VarOp::AND},
+         {0, (int)Key::V, VarTrig::PRESSED, false, VarOp::OR}});
+
+
+    // RMB drag
     userInput.config_register_control("ui_rmb", true,
         {{osp::sc_mouse, (int)Mouse::Right, VarTrig::PRESSED, false, VarOp::AND}});
 }
@@ -251,11 +263,29 @@ osp::Vector3s polar_km_to_v3s(double radiusKM, double angle)
         0ll};
 }
 
+Vector3d orbit_vel(double radiusKM, double sunMass, double ownMass)
+{
+    constexpr double G = 6.67e-11;
+    return {0.0, 1024.0 * sqrt(G * (sunMass + ownMass) / (1000.0 * radiusKM)), 0.0};
+}
+
+struct PlanetBody
+{
+    double m_radius;
+    double m_mass;
+    double m_orbitDist;
+    std::string m_name;
+    Magnum::Color3 m_color;
+};
+
 void create_solar_system_map()
 {
     using osp::universe::Universe;
     using osp::universe::Satellite;
     using osp::universe::TrajStationary;
+    using osp::universe::TrajNBody;
+    using osp::universe::TCompMassG;
+    using osp::universe::TCompVel;
     using osp::universe::UCompTransformTraj;
     using planeta::universe::SatPlanet;
     using planeta::universe::UCompPlanet;
@@ -269,12 +299,16 @@ void create_solar_system_map()
     SatPlanet &typePlanet = uni.type_register<SatPlanet>(uni);
     uni.type_register<universe::SatActiveArea>(uni);
 
-    TrajStationary &stat = uni.trajectory_create<TrajStationary>(uni, uni.sat_root());
+    //TrajStationary &stat = uni.trajectory_create<TrajStationary>(uni, uni.sat_root());
+    TrajNBody& stat = uni.trajectory_create<TrajNBody>(uni, uni.sat_root());
 
+    auto& reg = uni.get_reg();
     // Create the sun
     Satellite sun = uni.sat_create();
     UCompPlanet& sunPlanet = typePlanet.add_get_ucomp(sun);
-    UCompTransformTraj& sunTT = uni.get_reg().get<UCompTransformTraj>(sun);
+    UCompTransformTraj& sunTT = reg.get<UCompTransformTraj>(sun);
+    constexpr double sunMass = 1.988e30;
+    TCompMassG& sunM = reg.emplace<TCompMassG>(sun, sunMass);
 
     sunPlanet.m_radius = 6.9634e8;
     sunTT.m_position = {0ll, 0ll, 0ll};
@@ -282,101 +316,96 @@ void create_solar_system_map()
 
     stat.add(sun);
 
+    std::vector<PlanetBody> planets;
+
     // Create mercury
-    Satellite mercury = uni.sat_create();
-    UCompPlanet& mercuryPlanet = typePlanet.add_get_ucomp(mercury);
-    UCompTransformTraj& mercuryTT = uni.get_reg().get<UCompTransformTraj>(mercury);
-
-    mercuryPlanet.m_radius = 1e3;
-    mercuryTT.m_position = polar_km_to_v3s(58e6, 0.0);
-    mercuryTT.m_name = "Mercury";
-    mercuryTT.m_color = 0xCCA91f_rgbf;
-
-    stat.add(mercury);
+    PlanetBody mercury;
+    mercury.m_mass = 3.30e23;
+    mercury.m_radius = 1e3;
+    mercury.m_orbitDist = 58e6;
+    mercury.m_name = "Mercury";
+    mercury.m_color = 0xCCA91f_rgbf;
+    planets.push_back(std::move(mercury));
 
     // Create venus
-    Satellite venus = uni.sat_create();
-    UCompPlanet& venusPlanet = typePlanet.add_get_ucomp(venus);
-    UCompTransformTraj& venusTT = uni.get_reg().get<UCompTransformTraj>(venus);
-
-    venusPlanet.m_radius = 1e3;
-    venusTT.m_position = polar_km_to_v3s(108e6, 0.0);
-    venusTT.m_name = "Venus";
-    venusTT.m_color = 0xFFDF80_rgbf;
-
-    stat.add(venus);
+    PlanetBody venus;    
+    venus.m_mass = 4.867e24;
+    venus.m_radius = 1e3;
+    venus.m_orbitDist = 108e6;
+    venus.m_name = "Venus";
+    venus.m_color = 0xFFDF80_rgbf;
+    planets.push_back(std::move(venus));
 
     // Create the earth
-    Satellite earth = uni.sat_create();
-    UCompPlanet& earthPlanet = typePlanet.add_get_ucomp(earth);
-    UCompTransformTraj& earthTT = uni.get_reg().get<UCompTransformTraj>(earth);
-
-    earthPlanet.m_radius = 6.371e6;
-    earthTT.m_position = polar_km_to_v3s(149.6e6, 0.0);
-    earthTT.m_name = "Earth";
-    earthTT.m_color = 0x24A36E_rgbf;
-
-    stat.add(earth);
+    PlanetBody earth;
+    earth.m_mass = 5.97e24;
+    earth.m_radius = 6.371e6;
+    earth.m_orbitDist = 149.6e6;
+    earth.m_name = "Earth";
+    earth.m_color = 0x24A36E_rgbf;
+    planets.push_back(std::move(earth));
 
     // Create mars
-    Satellite mars = uni.sat_create();
-    UCompPlanet& marsPlanet = typePlanet.add_get_ucomp(mars);
-    UCompTransformTraj& marsTT = uni.get_reg().get<UCompTransformTraj>(mars);
-
-    marsPlanet.m_radius = 1e3;
-    marsTT.m_position = polar_km_to_v3s(228e6, 0.0);
-    marsTT.m_name = "Mars";
-    marsTT.m_color = 0xBF6728_rgbf;
-
-    stat.add(mars);
+    PlanetBody mars;
+    mars.m_mass = 6.42e23;
+    mars.m_radius = 1e3;
+    mars.m_orbitDist = 228e6;
+    mars.m_name = "Mars";
+    mars.m_color = 0xBF6728_rgbf;
+    planets.push_back(std::move(mars));
 
     // Jupiter
-    Satellite jupiter = uni.sat_create();
-    UCompPlanet& jupiterPlanet = typePlanet.add_get_ucomp(jupiter);
-    UCompTransformTraj& jupiterTT = uni.get_reg().get<UCompTransformTraj>(jupiter);
-
-    jupiterPlanet.m_radius = 1e3;
-    jupiterTT.m_position = polar_km_to_v3s(778e6, 0.0);
-    jupiterTT.m_name = "Jupiter";
-    jupiterTT.m_color = 0xA68444_rgbf;
-
-    stat.add(jupiter);
+    PlanetBody jupiter;
+    jupiter.m_mass = 1.898e27;
+    jupiter.m_radius = 1e3;
+    jupiter.m_orbitDist = 778e6;
+    jupiter.m_name = "Jupiter";
+    jupiter.m_color = 0xA68444_rgbf;
+    planets.push_back(std::move(jupiter));
 
     // Saturn
-    Satellite saturn = uni.sat_create();
-    UCompPlanet& saturnPlanet = typePlanet.add_get_ucomp(saturn);
-    UCompTransformTraj& saturnTT = uni.get_reg().get<UCompTransformTraj>(saturn);
-
-    saturnPlanet.m_radius = 1e3;
-    saturnTT.m_position = polar_km_to_v3s(1400e6, 0.0);
-    saturnTT.m_name = "Saturn";
-    saturnTT.m_color = 0xCFB78A_rgbf;
-
-    stat.add(saturn);
+    PlanetBody saturn;
+    saturn.m_mass = 5.68e26;
+    saturn.m_radius = 1e3;
+    saturn.m_orbitDist = 1400e6;
+    saturn.m_name = "Saturn";
+    saturn.m_color = 0xCFB78A_rgbf;
+    planets.push_back(std::move(saturn));
 
     // Uranus
-    Satellite uranus = uni.sat_create();
-    UCompPlanet& uranusPlanet = typePlanet.add_get_ucomp(uranus);
-    UCompTransformTraj& uranusTT = uni.get_reg().get<UCompTransformTraj>(uranus);
-
-    uranusPlanet.m_radius = 1e3;
-    uranusTT.m_position = polar_km_to_v3s(3000e6, 0.0);
-    uranusTT.m_name = "Uranus";
-    uranusTT.m_color = 0x91C7EB_rgbf;
-
-    stat.add(uranus);
+    PlanetBody uranus;
+    uranus.m_mass = 8.68e4;
+    uranus.m_radius = 1e3;
+    uranus.m_orbitDist = 3000e6;
+    uranus.m_name = "Uranus";
+    uranus.m_color = 0x91C7EB_rgbf;
+    planets.push_back(std::move(uranus));
 
     // Neptune
-    Satellite neptune = uni.sat_create();
-    UCompPlanet& neptunePlanet = typePlanet.add_get_ucomp(neptune);
-    UCompTransformTraj& neptuneTT = uni.get_reg().get<UCompTransformTraj>(neptune);
+    PlanetBody neptune;
+    neptune.m_mass = 1.02e26;
+    neptune.m_radius = 1e3;
+    neptune.m_orbitDist = 4488e6;
+    neptune.m_name = "Neptune";
+    neptune.m_color = 0x0785D9_rgbf;
+    planets.push_back(std::move(neptune));
 
-    neptunePlanet.m_radius = 1e3;
-    neptuneTT.m_position = polar_km_to_v3s(4488e6, 0.0);;
-    neptuneTT.m_name = "Neptune";
-    neptuneTT.m_color = 0x0785D9_rgbf;
+    for (PlanetBody const& body : planets)
+    {
+        Satellite sat = uni.sat_create();
+        UCompPlanet& satPlanet = typePlanet.add_get_ucomp(sat);
+        UCompTransformTraj& satTT = reg.get<UCompTransformTraj>(sat);
+        TCompMassG& satM = reg.emplace<TCompMassG>(sat, body.m_mass);
+        TCompVel& satV = reg.emplace<TCompVel>(sat, orbit_vel(body.m_orbitDist, sunMass, body.m_mass));
 
-    stat.add(neptune);
+        satPlanet.m_radius = body.m_radius;
+        satTT.m_name = body.m_name;
+        satTT.m_color = body.m_color;
+        satTT.m_position = polar_km_to_v3s(body.m_orbitDist, 0.0);
+
+        stat.add(sat);
+    }
+
 }
 
 void debug_print_help()
@@ -419,54 +448,22 @@ void debug_print_hier()
         return;
     }
 
-    std::cout << "ActiveScene Entity Hierarchy:\n";
-
     std::vector<active::ActiveEnt> parentNextSibling;
     active::ActiveScene &scene = g_ospMagnum->get_scenes().begin()->second;
-    active::ActiveEnt currentEnt = scene.hier_get_root();
+    auto planetView = scene.get_registry().view<osp::active::CompDrawableDebug>(entt::exclude<osp::active::CompPass1Debug>);
+    auto ringView = scene.get_registry().view<osp::active::CompDrawableDebug, osp::active::CompPass1Debug>();
 
-    parentNextSibling.reserve(16);
-
-    while (true)
+    std::cout << "Planets:\n";
+    for (auto ent : planetView)
     {
-        // print some info about the entity
-        active::ACompHierarchy &hier = scene.reg_get<active::ACompHierarchy>(currentEnt);
-        for (unsigned i = 0; i < hier.m_level; i ++)
-        {
-            // print arrows to indicate level
-            std::cout << "  ->";
-        }
-        std::cout << "[" << int(currentEnt) << "]: " << hier.m_name << "\n";
-
-        if (hier.m_childCount)
-        {
-            // entity has some children
-            currentEnt = hier.m_childFirst;
-
-
-            // save next sibling for later if it exists
-            if (hier.m_siblingNext != entt::null)
-            {
-                parentNextSibling.push_back(hier.m_siblingNext);
-            }
-        }
-        else if (hier.m_siblingNext != entt::null)
-        {
-            // no children, move to next sibling
-            currentEnt = hier.m_siblingNext;
-        }
-        else if (parentNextSibling.size())
-        {
-            // last sibling, and not done yet
-            // is last sibling, move to parent's (or ancestor's) next sibling
-            currentEnt = parentNextSibling.back();
-            parentNextSibling.pop_back();
-        }
-        else
-        {
-            break;
-        }
+        std::cout << static_cast<int>(ent) << " ";
     }
+    std::cout << "\nRings:\n";
+    for (auto ent : ringView)
+    {
+        std::cout << static_cast<int>(ent) << " ";
+    }
+    std::cout << "\n";
 }
 
 void debug_print_sats()

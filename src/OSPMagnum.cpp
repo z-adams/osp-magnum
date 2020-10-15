@@ -51,6 +51,8 @@ void OSPMagnum::drawEvent()
 
     m_userInput.update_controls();
 
+    m_ospApp.get_universe().update();
+
     for (auto &[name, scene] : m_scenes)
     {
         scene.update();

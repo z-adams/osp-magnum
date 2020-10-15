@@ -55,6 +55,11 @@ public:
     ~Universe() = default;
 
     /**
+     * Update all trajectories
+     */
+    void update();
+
+    /**
      * @return an null satellite
      */
     static constexpr Satellite sat_null() { return entt::null; };
@@ -349,7 +354,7 @@ public:
     constexpr Universe& get_universe() const { return m_universe; }
     constexpr std::vector<Satellite>& get_satellites() { return m_satellites; }
 
-private:
+protected:
 
     Universe& m_universe;
     Satellite m_center;

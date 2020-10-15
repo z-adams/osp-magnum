@@ -5,10 +5,12 @@
 #include <osp/Active/physics.h>
 
 #include <adera/Machines/UserControl.h>
+#include <osp/Active/SysDebugRender2.h>
 
 using adera::active::machines::MachineUserControl;
 
 using namespace osp;
+using namespace osp::active;
 
 using namespace Magnum::Math::Literals;
 
@@ -38,13 +40,9 @@ DebugCameraController::DebugCameraController(active::ActiveScene &scene,
         m_userInput(scene.get_user_input()),
         m_mouseMotion(m_userInput.mouse_get()),
         m_scrollInput(m_userInput.scroll_get()),
-        /*m_up(m_userInput.config_get("ui_up")),
-        m_dn(m_userInput.config_get("ui_dn")),
-        m_lf(m_userInput.config_get("ui_lf")),
-        m_rt(m_userInput.config_get("ui_rt")),
-        m_switch(m_userInput.config_get("game_switch")),*/
+        m_switch(m_userInput.config_get("game_switch")),
+        m_switch_back(m_userInput.config_get("game_switch_back")),
         m_rmb(m_userInput.config_get("ui_rmb"))
-        //m_selfDestruct(m_userInput.config_get("vehicle_self_destruct"))
 {
     m_orbitDistance = 20.0f;
 }
@@ -55,27 +53,6 @@ void DebugCameraController::update_vehicle_mod_pre()
     {
         return;
     }
-
-    /*if (m_selfDestruct.triggered())
-    {
-        using osp::active::ACompVehicle;
-        using osp::active::ACompPart;
-
-        auto &tgtVehicle = m_scene.reg_get<ACompVehicle>(m_orbiting);
-
-        // delete the last part
-        //auto &partPart = m_scene.reg_get<ACompPart>(tgtVehicle.m_parts.back());
-        //partPart.m_destroy = true;
-        //tgtVehicle.m_separationCount = 1;
-
-        // separate all parts into their own separation islands
-        for (unsigned i = 0; i < tgtVehicle.m_parts.size(); i ++)
-        {
-            m_scene.reg_get<ACompPart>(tgtVehicle.m_parts[i])
-                    .m_separationIsland = i;
-        }
-        tgtVehicle.m_separationCount = tgtVehicle.m_parts.size();
-    }*/
 }
 
 void DebugCameraController::update_physics_post()
@@ -83,56 +60,52 @@ void DebugCameraController::update_physics_post()
 
     bool targetValid = m_scene.get_registry().valid(m_orbiting);
 
-    /*if (m_switch.triggered())
+    if (m_switch.triggered() || m_switch_back.triggered())
     {
-        std::cout << "switch to new vehicle\n";
+        std::cout << "switch to new target\n";
 
-        auto view = m_scene.get_registry().view<active::ACompVehicle>();
+        auto view = m_scene.get_registry().view<CompDrawableDebug>(entt::exclude<CompPass1Debug>);
+        std::cout << "Options: ";
+        for (auto ent : view)
+        {
+            std::cout << static_cast<int>(ent) << " ";
+        }
         auto it = view.find(m_orbiting);
+        std::cout << "\nCurrent: " << static_cast<int>(*it) << "\n";
+        std::cout << "View 1st: " << static_cast<int>(*(--view.end())) << "\n";
 
-        if (targetValid)
+        if (m_switch.triggered())
         {
-            // disable the first MachineUserControl because switching away
-            active::ActiveEnt firstPart
-                    = *(view.get(m_orbiting).m_parts.begin());
-            m_scene.reg_get<MachineUserControl>(firstPart).m_enable = false;
+            if (it == view.end() || it == view.begin())
+            {
+                // no vehicle selected, or last vehicle is selected (loop around)
+                m_orbiting = view.back();
+            }
+            else
+            {
+                // pick the next vehicle
+                m_orbiting = *(--it);
+                std::cout << "next\n";
+            }
+        }
+        else if (m_switch_back.triggered())
+        {
+            if (it == view.end() || it == --view.end())
+            {
+                // no vehicle selected, or last vehicle is selected (loop around)
+                m_orbiting = view.front();
+            }
+            else
+            {
+                // pick the next vehicle
+                m_orbiting = *(++it);
+                std::cout << "prev\n";
+            }
         }
 
-        if (it == view.end() || it == view.begin())
-        {
-            // no vehicle selected, or last vehicle is selected (loop around)
-            m_orbiting = view.back();
-        }
-        else
-        {
-            // pick the next vehicle
-            m_orbiting = *(--it);
-            std::cout << "next\n";
-        }
 
         targetValid = m_scene.get_registry().valid(m_orbiting);
-
-        if (targetValid)
-        {
-            // enable the first MachineUserControl
-            active::ActiveEnt firstPart
-                    = *(view.get(m_orbiting).m_parts.begin());
-
-            m_scene.reg_get<MachineUserControl>(firstPart).m_enable = true;
-        }
-
-        // pick next entity, or first entity in scene
-        //ActiveEnt search = targetValid
-        //        ? m_scene.reg_get<ACompHierarchy>(m_orbiting).m_siblingNext
-        //        : m_scene.reg_get<ACompHierarchy>(m_scene.hier_get_root())
-        //                 .m_childFirst;
-
-        // keep looping until a vehicle is found
-        //while ((!m_scene.get_registry().has<ACompVehicle>(search)))
-        //{
-        //    search = m_scene.reg_get<ACompHierarchy>(search).m_siblingNext;
-        //}
-    }*/
+    }
 
     if (!targetValid)
     {
@@ -140,7 +113,7 @@ void DebugCameraController::update_physics_post()
     }
 
     Matrix4 &xform = m_scene.reg_get<active::ACompTransform>(m_ent).m_transform;
-    Matrix4 const& xformTgt = m_scene.reg_get<active::ACompTransform>(m_orbiting).m_transform;
+    Matrix4 const& xformTgt = m_scene.reg_get<active::ACompTransform>(m_orbiting).m_transformWorld;
 
     //float keyRotYaw = static_cast<float>(m_rt.trigger_hold() - m_lf.trigger_hold());
     //float keyRotPitch = static_cast<float>(m_dn.trigger_hold() - m_up.trigger_hold());

@@ -69,14 +69,8 @@ private:
     ScrollInputHandle m_scrollInput;
     ButtonControlHandle m_rmb;
     // Keyboard inputs
-    //ButtonControlHandle m_up;
-    //ButtonControlHandle m_dn;
-    //ButtonControlHandle m_lf;
-    //ButtonControlHandle m_rt;
-    //ButtonControlHandle m_switch;
-
-    //ButtonControlHandle m_selfDestruct;
-
+    ButtonControlHandle m_switch;
+    ButtonControlHandle m_switch_back;
 };
 
 

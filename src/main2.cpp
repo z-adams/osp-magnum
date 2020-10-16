@@ -276,6 +276,7 @@ struct PlanetBody
     double m_orbitDist;
     std::string m_name;
     Magnum::Color3 m_color;
+    Vector3d m_velOset;
 };
 
 void create_solar_system_map()
@@ -352,6 +353,7 @@ void create_solar_system_map()
     moon.m_orbitDist = 149.6e6 - 400e3;
     moon.m_name = "Moon";
     moon.m_color = 0xDDDDDD_rgbf;
+    moon.m_velOset = {0.0, 1'000.0 * 1024.0, 0.0};
     planets.push_back(std::move(moon));
 
     // Create mars
@@ -405,7 +407,8 @@ void create_solar_system_map()
         UCompPlanet& satPlanet = typePlanet.add_get_ucomp(sat);
         UCompTransformTraj& satTT = reg.get<UCompTransformTraj>(sat);
         TCompMassG& satM = reg.emplace<TCompMassG>(sat, body.m_mass);
-        TCompVel& satV = reg.emplace<TCompVel>(sat, orbit_vel(body.m_orbitDist, sunMass, body.m_mass));
+        TCompVel& satV = reg.emplace<TCompVel>(sat,
+            orbit_vel(body.m_orbitDist, sunMass, body.m_mass) + body.m_velOset);
 
         satPlanet.m_radius = body.m_radius;
         satTT.m_name = body.m_name;

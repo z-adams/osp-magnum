@@ -328,7 +328,7 @@ void create_solar_system_map()
     planets.push_back(std::move(mercury));
 
     // Create venus
-    PlanetBody venus;    
+    PlanetBody venus;
     venus.m_mass = 4.867e24;
     venus.m_radius = 1e3;
     venus.m_orbitDist = 108e6;
@@ -344,6 +344,15 @@ void create_solar_system_map()
     earth.m_name = "Earth";
     earth.m_color = 0x24A36E_rgbf;
     planets.push_back(std::move(earth));
+
+    // Create the moon
+    PlanetBody moon;
+    moon.m_mass = 7.34e22;
+    moon.m_radius = 1.737e6;
+    moon.m_orbitDist = 149.6e6 - 400e3;
+    moon.m_name = "Moon";
+    moon.m_color = 0xDDDDDD_rgbf;
+    planets.push_back(std::move(moon));
 
     // Create mars
     PlanetBody mars;

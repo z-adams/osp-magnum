@@ -12,7 +12,7 @@ TrajNBody::TrajNBody(Universe& universe, Satellite center) :
 
 void TrajNBody::update()
 {
-    double dt = 10000.0;
+    double dt = m_timestep;
     auto& reg = m_universe.get_reg();
     auto& view = reg.view<UCompTransformTraj, TCompMassG, TCompVel>();
     auto& posMassView = reg.view<UCompTransformTraj, TCompMassG>();

@@ -28,7 +28,7 @@ void SysDebugRender::draw(ACompCamera const& camera)
 
     Renderer::disable(Renderer::Feature::DepthTest);
     Renderer::enable(Renderer::Feature::FaceCulling);
-    Renderer::setClearColor(Magnum::Color4{0.05f});
+    Renderer::setClearColor(Magnum::Color4{Magnum::Color3{0.05f}, 1.0f});
 
     auto orbits = m_scene.get_registry()
         .view<CompDrawableDebug, ACompTransform, CompPass1Debug>();
@@ -37,6 +37,8 @@ void SysDebugRender::draw(ACompCamera const& camera)
 
     Matrix4 entRelative;
 
+    Renderer::enable(Renderer::Feature::Blending);
+    Renderer::setBlendFunction(Renderer::BlendFunction::SourceAlpha, Renderer::BlendFunction::OneMinusSourceAlpha);
     Renderer::setPointSize(1.0f);
     for(auto entity: orbits)
     {
@@ -47,9 +49,10 @@ void SysDebugRender::draw(ACompCamera const& camera)
 
         (*drawable.m_shader)
                 .setTransformationProjectionMatrix(camera.m_projection * entRelative)
-                .setColor(drawable.m_color)
                 .draw(*(drawable.m_mesh));
     }
+    Renderer::disable(Renderer::Feature::Blending);
+    
     for (auto entity : bodies)
     {
         if (entity == static_cast<ActiveEnt>(1))
@@ -67,7 +70,6 @@ void SysDebugRender::draw(ACompCamera const& camera)
 
         (*drawable.m_shader)
             .setTransformationProjectionMatrix(camera.m_projection * entRelative)
-            .setColor(drawable.m_color)
             .draw(*(drawable.m_mesh));
     }
 }

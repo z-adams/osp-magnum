@@ -14,6 +14,8 @@ find_package(MagnumPlugins REQUIRED
     TinyGltfImporter
     StbImageImporter)
 
+find_package(MagnumIntegration REQUIRED ImGui)
+
 find_package(Threads)
 
 # Gather paths to OSP headers and sources
@@ -80,6 +82,7 @@ target_link_libraries(osp-magnum PRIVATE
     Magnum::AnyImageImporter
     MagnumPlugins::TinyGltfImporter
     MagnumPlugins::StbImageImporter
+    MagnumIntegration::ImGui
     dNewton dScene dModel dVehicle
     )
 

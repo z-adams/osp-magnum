@@ -15,6 +15,7 @@
 #include <Magnum/Math/Color.h>
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/Shaders/VertexColor.h>
+#include <Magnum/ImGuiIntegration/Context.hpp>
 
 #include <memory>
 
@@ -44,6 +45,7 @@ public:
     { return m_scenes; }
 
 private:
+    Magnum::ImGuiIntegration::Context m_imgui{Magnum::NoCreate};
 
     void drawEvent() override;
 

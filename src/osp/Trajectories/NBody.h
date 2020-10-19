@@ -30,13 +30,18 @@ struct TCompVel
     //Vector3s m_vel;
 };
 
+struct TCompAccel
+{
+    Magnum::Vector3d m_acceleration;
+};
+
 /**
  * A static universe where everything stays still
  */
 class TrajNBody : public CommonTrajectory<TrajNBody>
 {
 public:
-    static constexpr double m_timestep = 10'000.0f;
+    static constexpr double m_timestep = 5'000.0f;
     TrajNBody(Universe& universe, Satellite center);
     ~TrajNBody() = default;
     void update();

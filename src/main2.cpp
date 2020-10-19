@@ -250,6 +250,19 @@ void config_controls_map()
         {{osp::sc_mouse, (int)Mouse::Right, VarTrig::PRESSED, false, VarOp::AND}});
 }
 
+constexpr double g_sunMass = 1.988e30;
+
+struct PlanetBody
+{
+    double m_radius;
+    double m_mass;
+    double m_orbitDist;
+    std::string m_name;
+    Magnum::Color3 m_color;
+    Vector3d m_velOset;
+    PlanetBody* m_parent{nullptr};
+};
+
 osp::SpaceInt meter_to_spaceint(double meters)
 {
     return static_cast<osp::SpaceInt>(meters) * 1024ll;
@@ -269,15 +282,52 @@ Vector3d orbit_vel(double radiusKM, double sunMass, double ownMass)
     return {0.0, 1024.0 * sqrt(G * (sunMass + ownMass) / (1000.0 * radiusKM)), 0.0};
 }
 
-struct PlanetBody
+void add_body(universe::Satellite sat, PlanetBody body,
+    universe::ISystemTrajectory* traj,
+    planeta::universe::SatPlanet& typePlanet)
 {
-    double m_radius;
-    double m_mass;
-    double m_orbitDist;
-    std::string m_name;
-    Magnum::Color3 m_color;
-    Vector3d m_velOset;
-};
+    using osp::universe::Universe;
+    using osp::universe::TCompVel;
+    using osp::universe::TCompAccel;
+    using osp::universe::Satellite;
+    using osp::universe::UCompTransformTraj;
+    using osp::universe::TCompMassG;
+    using planeta::universe::UCompPlanet;
+
+    Universe& uni = g_osp.get_universe();
+    auto& reg = uni.get_reg();
+
+    UCompPlanet& satPlanet = typePlanet.add_get_ucomp(sat);
+    UCompTransformTraj& satTT = reg.get<UCompTransformTraj>(sat);
+    TCompMassG& satM = reg.emplace<TCompMassG>(sat, body.m_mass);
+
+    if (body.m_parent)
+    {
+        PlanetBody& parent = *body.m_parent;
+        osp::Vector3s parentPos = polar_km_to_v3s(parent.m_orbitDist, 0.0);
+        Vector3d parentVel = orbit_vel(parent.m_orbitDist, g_sunMass, parent.m_mass);
+
+        satTT.m_position = parentPos + polar_km_to_v3s(body.m_orbitDist, 0.0);
+
+        reg.emplace<TCompVel>(sat,
+            parentVel
+            + orbit_vel(body.m_orbitDist, parent.m_mass, body.m_mass)
+            + body.m_velOset);
+    }
+    else
+    {
+        satTT.m_position = polar_km_to_v3s(body.m_orbitDist, 0.0);
+        reg.emplace<TCompVel>(sat,
+            orbit_vel(body.m_orbitDist, g_sunMass, body.m_mass) + body.m_velOset);
+    }
+    reg.emplace<TCompAccel>(sat, Vector3d{0.0});
+
+    satPlanet.m_radius = body.m_radius;
+    satTT.m_name = body.m_name;
+    satTT.m_color = body.m_color;
+
+    traj->add(sat);
+}
 
 void create_solar_system_map()
 {
@@ -286,7 +336,6 @@ void create_solar_system_map()
     using osp::universe::TrajStationary;
     using osp::universe::TrajNBody;
     using osp::universe::TCompMassG;
-    using osp::universe::TCompVel;
     using osp::universe::UCompTransformTraj;
     using planeta::universe::SatPlanet;
     using planeta::universe::UCompPlanet;
@@ -308,8 +357,7 @@ void create_solar_system_map()
     Satellite sun = uni.sat_create();
     UCompPlanet& sunPlanet = typePlanet.add_get_ucomp(sun);
     UCompTransformTraj& sunTT = reg.get<UCompTransformTraj>(sun);
-    constexpr double sunMass = 1.988e30;
-    TCompMassG& sunM = reg.emplace<TCompMassG>(sun, sunMass);
+    TCompMassG& sunM = reg.emplace<TCompMassG>(sun, g_sunMass);
 
     sunPlanet.m_radius = 6.9634e8;
     sunTT.m_position = {0ll, 0ll, 0ll};
@@ -347,14 +395,14 @@ void create_solar_system_map()
     planets.push_back(std::move(earth));
 
     // Create the moon
-    /*PlanetBody moon;
+    PlanetBody moon;
     moon.m_mass = 7.34e22;
     moon.m_radius = 1.737e6;
-    moon.m_orbitDist = 149.6e6 - 400e3;
+    moon.m_orbitDist = 400e3;
     moon.m_name = "Moon";
     moon.m_color = 0xDDDDDD_rgbf;
-    moon.m_velOset = {0.0, 1'000.0 * 1024.0, 0.0};
-    planets.push_back(std::move(moon));*/
+    moon.m_parent = &earth;
+    planets.push_back(std::move(moon));
 
     // Create mars
     PlanetBody mars;
@@ -404,18 +452,7 @@ void create_solar_system_map()
     for (PlanetBody const& body : planets)
     {
         Satellite sat = uni.sat_create();
-        UCompPlanet& satPlanet = typePlanet.add_get_ucomp(sat);
-        UCompTransformTraj& satTT = reg.get<UCompTransformTraj>(sat);
-        TCompMassG& satM = reg.emplace<TCompMassG>(sat, body.m_mass);
-        TCompVel& satV = reg.emplace<TCompVel>(sat,
-            orbit_vel(body.m_orbitDist, sunMass, body.m_mass) + body.m_velOset);
-
-        satPlanet.m_radius = body.m_radius;
-        satTT.m_name = body.m_name;
-        satTT.m_color = body.m_color;
-        satTT.m_position = polar_km_to_v3s(body.m_orbitDist, 0.0);
-
-        stat.add(sat);
+        add_body(sat, body, &stat, typePlanet);
     }
 
 }

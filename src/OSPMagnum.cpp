@@ -20,7 +20,7 @@ OSPMagnum::OSPMagnum(const Magnum::Platform::Application::Arguments& arguments,
                      OSPApplication &ospApp) :
         Magnum::Platform::Application{
             arguments,
-            Configuration{}.setTitle("OSP-Magnum").setSize({1280, 720})},
+            Configuration{}.setTitle("OSP-Magnum").setSize({1600, 900})},
         m_userInput(12),
         m_ospApp(ospApp)
 {
@@ -29,14 +29,60 @@ OSPMagnum::OSPMagnum(const Magnum::Platform::Application::Arguments& arguments,
     m_imgui = Magnum::ImGuiIntegration::Context(Vector2{windowSize()} / dpiScaling(),
         windowSize(), framebufferSize());
     m_implot = ImPlot::CreateContext();
-
+    setSwapInterval(0);
+    
     m_timeline.start();
-
 }
 
 OSPMagnum::~OSPMagnum()
 {
     ImPlot::DestroyContext(m_implot);
+}
+
+void OSPMagnum::plot_phase_space()
+{
+    if (counter > 100)
+    {
+        counter = 0;
+        double energy = 0.0;
+        universe::Satellite target{4};
+        auto& tt = m_ospApp.get_universe().get_reg().get<universe::UCompTransformTraj>(target);
+        auto& vel = m_ospApp.get_universe().get_reg().get<universe::TCompVel>(target);
+        psX[psIdx] = static_cast<double>(tt.m_position.x()) / (1024.0 * 1e6);
+        psY[psIdx] = vel.m_vel.x() / (1024.0);
+        psIdx++;
+        if (psIdx > 10000) { psIdx = 0; }
+    }
+    counter++;
+    if (ImPlot::BeginPlot("Phase space (x)", "x", "dx/dt", {-1, -1}))
+    {
+        //ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
+        ImPlot::PlotLine("Earth", psX, psY, psIdx);
+        ImPlot::EndPlot();
+    }
+}
+
+void OSPMagnum::plot_radius()
+{
+    if (counter > 100)
+    {
+        counter = 0;
+        double energy = 0.0;
+        universe::Satellite target{4};
+        auto& tt = m_ospApp.get_universe().get_reg().get<universe::UCompTransformTraj>(target);
+        psX[psIdx] = psIdx;
+        psY[psIdx] = static_cast<Magnum::Vector3d>(tt.m_position).length();
+        psIdx++;
+        if (psIdx > 10000) { psIdx = 0; }
+    }
+    counter++;
+    if (ImPlot::BeginPlot("Orbital radius", "sample", "r", {-1, -1}))
+    {
+        //ImPlot::SetNextMarkerStyle(-1, 1.0f);
+        //ImPlot::PlotScatter("Earth", psX, psY, psIdx);
+        ImPlot::PlotLine("Earth", psX, psY, psIdx);
+        ImPlot::EndPlot();
+    }
 }
 
 void OSPMagnum::drawEvent()
@@ -88,28 +134,12 @@ void OSPMagnum::drawEvent()
 
     // TODO: GUI and stuff
     m_imgui.newFrame();
-    
-    if (counter > 100)
-    {
-        counter = 0;
-        universe::Satellite earth{4};
-        auto& tt = m_ospApp.get_universe().get_reg().get<universe::UCompTransformTraj>(earth);
-        auto& vel = m_ospApp.get_universe().get_reg().get<universe::TCompVel>(earth);
-        psX[psIdx] = static_cast<double>(tt.m_position.x()) / (1024.0 * 1e6); 
-        psY[psIdx] = vel.m_vel.x() / (1024.0);
-        psIdx++;
-        if (psIdx > 10000) { psIdx = 0; }
-    }
-    counter++;
-    if (ImPlot::BeginPlot("Phase Space (x)", "x", "dx/dt", {-1, -1}))
-    {
-        //ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
-        ImPlot::PlotLine("Earth", psX, psY, psIdx);
-        ImPlot::EndPlot();
-    }
+
+    //plot_radius();
+    plot_phase_space();
+
 
     m_imgui.updateApplicationCursor(*this);
-
     GL::Renderer::enable(GL::Renderer::Feature::Blending);
     GL::Renderer::enable(GL::Renderer::Feature::ScissorTest);
     GL::Renderer::disable(GL::Renderer::Feature::FaceCulling);

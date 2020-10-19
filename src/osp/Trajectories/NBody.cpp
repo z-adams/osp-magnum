@@ -14,16 +14,16 @@ void TrajNBody::update()
 {
     double dt = m_timestep;
     auto& reg = m_universe.get_reg();
-    auto& view = reg.view<UCompTransformTraj, TCompMassG, TCompVel>();
+    auto& view = reg.view<UCompTransformTraj, TCompMassG, TCompVel, TCompAccel>();
     auto& posMassView = reg.view<UCompTransformTraj, TCompMassG>();
 
+    // Update accelerations
     for (Satellite sat : view)
     {
         auto& tt = view.get<UCompTransformTraj>(sat);
         auto& pos = tt.m_position;
         Vector3d posD = static_cast<Vector3d>(pos);
         TCompMassG& mass = view.get<TCompMassG>(sat);
-        TCompVel& vel = view.get<TCompVel>(sat);
         std::string name = tt.m_name;
 
         Vector3d A{0.0};
@@ -42,7 +42,18 @@ void TrajNBody::update()
             A += otherMass.m_mass * rHat / denom;
         }
         A *= 1024.0 * G;
-        vel.m_vel += A * dt;
+        view.get<TCompAccel>(sat).m_acceleration = A;
+    }
+
+    // Update velocities & positions
+    for (Satellite sat : view)
+    {
+        auto& acceleration = view.get<TCompAccel>(sat).m_acceleration;
+        auto& vel = view.get<TCompVel>(sat);
+        auto& tt = view.get<UCompTransformTraj>(sat);
+        auto& pos = tt.m_position;
+
+        vel.m_vel += acceleration * dt;
         pos += static_cast<Vector3s>(vel.m_vel * dt);
     }
 }

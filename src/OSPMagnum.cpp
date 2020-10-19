@@ -5,7 +5,13 @@
 #include <Magnum/PixelFormat.h>
 #include <Magnum/GL/Renderer.h>
 
+#include "osp/Trajectories/NBody.h"
+
 #include <iostream>
+
+static int counter = 100;
+static int psIdx = 0;
+static float psX[10001], psY[10001];
 
 namespace osp
 {
@@ -22,9 +28,15 @@ OSPMagnum::OSPMagnum(const Magnum::Platform::Application::Arguments& arguments,
 
     m_imgui = Magnum::ImGuiIntegration::Context(Vector2{windowSize()} / dpiScaling(),
         windowSize(), framebufferSize());
+    m_implot = ImPlot::CreateContext();
 
     m_timeline.start();
 
+}
+
+OSPMagnum::~OSPMagnum()
+{
+    ImPlot::DestroyContext(m_implot);
 }
 
 void OSPMagnum::drawEvent()
@@ -76,8 +88,26 @@ void OSPMagnum::drawEvent()
 
     // TODO: GUI and stuff
     m_imgui.newFrame();
-    ImGui::ShowDemoWindow();
     
+    if (counter > 100)
+    {
+        counter = 0;
+        universe::Satellite earth{4};
+        auto& tt = m_ospApp.get_universe().get_reg().get<universe::UCompTransformTraj>(earth);
+        auto& vel = m_ospApp.get_universe().get_reg().get<universe::TCompVel>(earth);
+        psX[psIdx] = static_cast<double>(tt.m_position.x()) / (1024.0 * 1e6); 
+        psY[psIdx] = vel.m_vel.x() / (1024.0);
+        psIdx++;
+        if (psIdx > 10000) { psIdx = 0; }
+    }
+    counter++;
+    if (ImPlot::BeginPlot("Phase Space (x)", "x", "dx/dt", {-1, -1}))
+    {
+        //ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
+        ImPlot::PlotLine("Earth", psX, psY, psIdx);
+        ImPlot::EndPlot();
+    }
+
     m_imgui.updateApplicationCursor(*this);
 
     GL::Renderer::enable(GL::Renderer::Feature::Blending);

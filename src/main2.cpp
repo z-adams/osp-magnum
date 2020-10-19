@@ -347,14 +347,14 @@ void create_solar_system_map()
     planets.push_back(std::move(earth));
 
     // Create the moon
-    PlanetBody moon;
+    /*PlanetBody moon;
     moon.m_mass = 7.34e22;
     moon.m_radius = 1.737e6;
     moon.m_orbitDist = 149.6e6 - 400e3;
     moon.m_name = "Moon";
     moon.m_color = 0xDDDDDD_rgbf;
     moon.m_velOset = {0.0, 1'000.0 * 1024.0, 0.0};
-    planets.push_back(std::move(moon));
+    planets.push_back(std::move(moon));*/
 
     // Create mars
     PlanetBody mars;
@@ -493,7 +493,7 @@ void debug_print_sats()
 
         auto &pos = posTraj.m_position;
 
-        std::cout << "SATELLITE: \"" << posTraj.m_name << "\" \n";
+        std::cout << "SATELLITE: \"" << posTraj.m_name << "\" (" << static_cast<int>(sat) << ")\n";
         if (type.m_type)
         {
             std::cout << " * Type: " << type.m_type->get_name() << "\n";

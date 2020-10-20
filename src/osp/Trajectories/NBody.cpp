@@ -11,26 +11,47 @@ TrajNBody::TrajNBody(Universe& universe, Satellite center) :
 }
 
 template <typename VIEW_T, typename INPUTVIEW_T>
-Vector3d TrajNBody::compute_acceleration(Satellite sat, VIEW_T& view, INPUTVIEW_T& inputView)
+void TrajNBody::update_accelerations(VIEW_T& view, INPUTVIEW_T& inputView)
 {
-    auto& tt = view.get<UCompTransformTraj>(sat);
-    auto& pos = tt.m_position;
-    Vector3d posD = static_cast<Vector3d>(pos);
-
-    Vector3d A{0.0};
-    for (Satellite otherSat : inputView)
+    // ### Precompute Gravity Sources ###
+    struct Source
     {
-        if (otherSat == sat) { continue; }
-        auto const& otherPos = inputView.get<UCompTransformTraj>(otherSat).m_position;
-        auto const& otherMass = inputView.get<TCompMassG>(otherSat).m_mass;
-
-        Vector3d r = (static_cast<Vector3d>(otherPos) - posD) / 1024.0;
-        Vector3d rHat = r.normalized();
-        double denom = r.x() * r.x() + r.y() * r.y() + r.z() * r.z();
-
-        A += otherMass * rHat / denom;
+        Vector3d pos;  // 24 bytes
+        double mass;   // 8 bytes
+        Satellite sat;  // 4 bytes :'(
+    };
+    std::vector<Source> sources;
+    sources.reserve(inputView.size());
+    for (Satellite src : inputView)
+    {
+        Source source
+        {
+            static_cast<Vector3d>(inputView.get<UCompTransformTraj>(src).m_position) / 1024.0,
+            inputView.get<TCompMassG>(src).m_mass,
+            src
+        };
+        sources.push_back(std::move(source));
     }
-    return A * 1024.0 * G;
+
+    // ### Update Accelerations ###
+    for (Satellite sat : view)
+    {
+        auto& pos = view.get<UCompTransformTraj>(sat).m_position;
+        Vector3d posD = static_cast<Vector3d>(pos) / 1024.0;
+
+        Vector3d A{0.0};
+        for (Source const& src : sources)
+        {
+            if (src.sat == sat) { continue; }
+            Vector3d r = src.pos - posD;
+            Vector3d rHat = r.normalized();
+            double denom = r.x() * r.x() + r.y() * r.y() + r.z() * r.z();
+            A += (src.mass / denom) * rHat;
+        }
+        A *= 1024.0 * G;
+
+        view.get<TCompAccel>(sat).m_acceleration = A;
+    }
 }
 
 template<typename VIEW_T, typename INPUTVIEW_T>
@@ -96,7 +117,7 @@ void TrajNBody::fast_update(VIEW_T& view, INPUTVIEW_T& posMassView)
     // Update accelerations
     for (Satellite sat : view)
     {
-        Vector3d A = compute_acceleration(sat, view, sourceView);
+        Vector3d A = update_accelerations(sat, view, sourceView);
         A *= 1024.0 * G;
         view.get<TCompAccel>(sat).m_acceleration = A;
     }
@@ -121,18 +142,14 @@ void TrajNBody::update()
     auto sourceView = reg.view<UCompTransformTraj, TCompMassG>(entt::exclude<TCompAsteroid>);
 
     // Update accelerations (full dynamics)
-    for (Satellite sat : view)
-    {
-        Vector3d A = compute_acceleration(sat, view, sourceView);
-        view.get<TCompAccel>(sat).m_acceleration = A;
-    }
+    update_accelerations(view, sourceView);
 
     // Update asteroids
     auto asteroidView = reg.view<UCompTransformTraj, TCompVel, TCompAsteroid>();
     // 1:
     /*for (Satellite asteroid : asteroidView)
     {
-        Vector3d A = compute_acceleration(asteroid, asteroidView, sourceView);
+        Vector3d A = update_accelerations(asteroid, asteroidView, sourceView);
         auto& vel = view.get<TCompVel>(asteroid).m_vel;
         auto& pos = view.get<UCompTransformTraj>(asteroid).m_position;
 

@@ -651,8 +651,9 @@ void create_solar_system_map()
 
     std::random_device rd{};
     std::mt19937 gen{rd()};
-    std::normal_distribution<> d{2.7, 0.25};
+    std::normal_distribution<> d{3.0, 0.25};
     std::uniform_real_distribution<> u{0.0, 2.0 * 3.14159265359};
+    std::normal_distribution<> v{0.0, 1000.0 * 1024.0};
 
     for (size_t i = 0; i < N_ASTEROIDS; i++)
     {
@@ -666,6 +667,7 @@ void create_solar_system_map()
         body.m_name = "asteroid";
         body.m_color = 0xCCCCCC_rgbf;
         body.m_initAngle = polarAngle;
+        body.m_velOset = {v(gen), v(gen), v(gen)};
         add_body(asteroid, body, &stat, typePlanet);
         reg.emplace<universe::TCompAsteroid>(asteroid);
     }

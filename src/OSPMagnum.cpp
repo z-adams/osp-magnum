@@ -135,8 +135,13 @@ void OSPMagnum::drawEvent()
     // TODO: GUI and stuff
     m_imgui.newFrame();
 
+    {
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
+            1000.0 / Double(ImGui::GetIO().Framerate), Double(ImGui::GetIO().Framerate));
+    }
+
     //plot_radius();
-    plot_phase_space();
+    //plot_phase_space();
 
 
     m_imgui.updateApplicationCursor(*this);

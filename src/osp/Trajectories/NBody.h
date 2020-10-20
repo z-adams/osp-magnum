@@ -54,6 +54,10 @@ public:
 private:
     template <typename VIEW_T, typename INPUTVIEW_T>
     Magnum::Vector3d compute_acceleration(Satellite sat, VIEW_T& view, INPUTVIEW_T& posMassView);
+
+    template <typename VIEW_T, typename INPUTVIEW_T>
+    void fast_update(VIEW_T& view, INPUTVIEW_T& posMassView);
+
 };
 
 }

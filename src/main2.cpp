@@ -647,7 +647,7 @@ void create_solar_system_map()
     }
 
     // Add asteroids
-    constexpr size_t N_ASTEROIDS = 1'000;
+    constexpr size_t N_ASTEROIDS = 5'000;
 
     std::random_device rd{};
     std::mt19937 gen{rd()};

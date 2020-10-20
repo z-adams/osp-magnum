@@ -48,7 +48,7 @@ void TrajNBody::fast_update(VIEW_T& view, INPUTVIEW_T& posMassView)
     {
         Source source
         {
-            static_cast<Vector3d>(posMassView.get<UCompTransformTraj>(src).m_position),
+            static_cast<Vector3d>(posMassView.get<UCompTransformTraj>(src).m_position) / 1024.0,
             posMassView.get<TCompMassG>(src).m_mass
         };
         sources.push_back(std::move(source));
@@ -57,22 +57,28 @@ void TrajNBody::fast_update(VIEW_T& view, INPUTVIEW_T& posMassView)
     {
         auto& pos = view.get<UCompTransformTraj>(asteroid).m_position;
         auto& vel = view.get<TCompVel>(asteroid).m_vel;
-        Vector3d posD = static_cast<Vector3d>(pos);
+        Vector3d posD = static_cast<Vector3d>(pos) / 1024.0;
 
         Vector3d A{0.0};
         for (Source const& src : sources)
         {
             // 1:
-            Vector3d r = (src.pos - posD) / 1024.0;
+            /*Vector3d r = (src.pos - posD) / 1024.0;
             Vector3d rHat = r.normalized();
             double denom = r.x()*r.x() + r.y()*r.y() + r.z()*r.z();
-            A += src.mass * rHat / denom;
+            A += src.mass * rHat / denom;*/
 
             // 2:
             /*Vector3d r = src.pos - posD;
             Vector3d rHat = r.normalized();
             double denom = (r.x()*r.x() + r.y()*r.y() + r.z()*r.z()) / (1024.0 * 1024.0);
             A += src.mass * rHat / denom;*/
+
+            // 3 (with /1024 division in source pre-fetch loop and on posD init)
+            Vector3d r = src.pos - posD;
+            Vector3d rHat = r.normalized();
+            double denom = r.x() * r.x() + r.y() * r.y() + r.z() * r.z();
+            A += (src.mass / denom) * rHat;
         }
         A *= 1024.0 * G;
         vel += A * dt;

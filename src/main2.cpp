@@ -244,13 +244,13 @@ void config_controls_map()
         {{0, (int)Key::LeftShift, VarTrig::HOLD, false, VarOp::AND},
          {0, (int)Key::V, VarTrig::PRESSED, false, VarOp::OR}});
 
-
     // RMB drag
     userInput.config_register_control("ui_rmb", true,
         {{osp::sc_mouse, (int)Mouse::Right, VarTrig::PRESSED, false, VarOp::AND}});
 }
 
 constexpr double g_sunMass = 1.988e30;
+constexpr double g_1AU = 149.6e6;  // Units here are in megameters
 
 struct PlanetBody
 {
@@ -260,6 +260,7 @@ struct PlanetBody
     std::string m_name;
     Magnum::Color3 m_color;
     Vector3d m_velOset;
+    float m_initAngle{0.0f};
     PlanetBody* m_parent{nullptr};
 };
 
@@ -276,10 +277,11 @@ osp::Vector3s polar_km_to_v3s(double radiusKM, double angle)
         0ll};
 }
 
-Vector3d orbit_vel(double radiusKM, double sunMass, double ownMass)
+Vector3d orbit_vel(double radiusKM, double sunMass, double ownMass, float initAngle)
 {
     constexpr double G = 6.67e-11;
-    return {0.0, 1024.0 * sqrt(G * (sunMass + ownMass) / (1000.0 * radiusKM)), 0.0};
+    double initVel = 1024.0 * sqrt(G * (sunMass + ownMass) / (1000.0 * radiusKM));
+    return {sin(-initAngle) * initVel, cos(-initAngle) * initVel, 0.0};
 }
 
 void add_body(universe::Satellite sat, PlanetBody body,
@@ -304,21 +306,23 @@ void add_body(universe::Satellite sat, PlanetBody body,
     if (body.m_parent)
     {
         PlanetBody& parent = *body.m_parent;
-        osp::Vector3s parentPos = polar_km_to_v3s(parent.m_orbitDist, 0.0);
-        Vector3d parentVel = orbit_vel(parent.m_orbitDist, g_sunMass, parent.m_mass);
+        osp::Vector3s parentPos = polar_km_to_v3s(parent.m_orbitDist, parent.m_initAngle);
+        Vector3d parentVel =
+            orbit_vel(parent.m_orbitDist, g_sunMass, parent.m_mass, parent.m_initAngle);
 
-        satTT.m_position = parentPos + polar_km_to_v3s(body.m_orbitDist, 0.0);
+        float compositeAngle = body.m_initAngle + parent.m_initAngle;
+        satTT.m_position = parentPos + polar_km_to_v3s(body.m_orbitDist, compositeAngle);
 
         reg.emplace<TCompVel>(sat,
             parentVel
-            + orbit_vel(body.m_orbitDist, parent.m_mass, body.m_mass)
+            + orbit_vel(body.m_orbitDist, parent.m_mass, body.m_mass, compositeAngle)
             + body.m_velOset);
     }
     else
     {
-        satTT.m_position = polar_km_to_v3s(body.m_orbitDist, 0.0);
+        satTT.m_position = polar_km_to_v3s(body.m_orbitDist, body.m_initAngle);
         reg.emplace<TCompVel>(sat,
-            orbit_vel(body.m_orbitDist, g_sunMass, body.m_mass) + body.m_velOset);
+            orbit_vel(body.m_orbitDist, g_sunMass, body.m_mass, body.m_initAngle) + body.m_velOset);
     }
     reg.emplace<TCompAccel>(sat, Vector3d{0.0});
 
@@ -366,8 +370,9 @@ void create_solar_system_map()
     stat.add(sun);
 
     std::vector<PlanetBody> planets;
+    planets.reserve(100);
 
-    // Create mercury
+    /* ####### Mercury ####### */
     PlanetBody mercury;
     mercury.m_mass = 3.30e23;
     mercury.m_radius = 1e3;
@@ -376,7 +381,7 @@ void create_solar_system_map()
     mercury.m_color = 0xCCA91f_rgbf;
     planets.push_back(std::move(mercury));
 
-    // Create venus
+    /* ####### Venus ####### */
     PlanetBody venus;
     venus.m_mass = 4.867e24;
     venus.m_radius = 1e3;
@@ -385,7 +390,7 @@ void create_solar_system_map()
     venus.m_color = 0xFFDF80_rgbf;
     planets.push_back(std::move(venus));
 
-    // Create the earth
+    /* ####### Earth ####### */
     PlanetBody earth;
     earth.m_mass = 5.97e24;
     earth.m_radius = 6.371e6;
@@ -394,17 +399,19 @@ void create_solar_system_map()
     earth.m_color = 0x24A36E_rgbf;
     planets.push_back(std::move(earth));
 
-    // Create the moon
+    PlanetBody* earthPtr = &planets.back();
+
+    // Moon
     PlanetBody moon;
     moon.m_mass = 7.34e22;
     moon.m_radius = 1.737e6;
-    moon.m_orbitDist = 400e3;
+    moon.m_orbitDist = 348e3;
     moon.m_name = "Moon";
     moon.m_color = 0xDDDDDD_rgbf;
     moon.m_parent = &earth;
     planets.push_back(std::move(moon));
 
-    // Create mars
+    /* ####### Mars & moons ####### */
     PlanetBody mars;
     mars.m_mass = 6.42e23;
     mars.m_radius = 1e3;
@@ -413,7 +420,29 @@ void create_solar_system_map()
     mars.m_color = 0xBF6728_rgbf;
     planets.push_back(std::move(mars));
 
-    // Jupiter
+    PlanetBody* marsPtr = &planets.back();
+
+    // Phobos
+    PlanetBody phobos;
+    phobos.m_mass = 1.08e16;
+    phobos.m_radius = 11.1e3;
+    phobos.m_orbitDist = 9.377e3;
+    phobos.m_name = "Phobos";
+    phobos.m_color = 0x8C8C8C_rgbf;
+    phobos.m_parent = marsPtr;
+    planets.push_back(std::move(phobos));
+
+    // Deimos
+    PlanetBody deimos;
+    deimos.m_mass = 2e15;
+    deimos.m_radius = 7.3e3;
+    deimos.m_orbitDist = 2.346e4;
+    deimos.m_name = "Deimos";
+    deimos.m_color = 0x8C8C8C_rgbf;
+    deimos.m_parent = marsPtr;
+    planets.push_back(std::move(deimos));
+
+    /* ####### Jupiter & moons ####### */
     PlanetBody jupiter;
     jupiter.m_mass = 1.898e27;
     jupiter.m_radius = 1e3;
@@ -422,7 +451,49 @@ void create_solar_system_map()
     jupiter.m_color = 0xA68444_rgbf;
     planets.push_back(std::move(jupiter));
 
-    // Saturn
+    PlanetBody* jupiterPtr = &planets.back();
+
+    // Io
+    PlanetBody io;
+    io.m_mass = 8.932e22;
+    io.m_radius = 1.82e9;
+    io.m_orbitDist = 4.217e5;
+    io.m_name = "Io";
+    io.m_color = 0xC4B54F_rgbf;
+    io.m_parent = jupiterPtr;
+    planets.push_back(std::move(io));
+
+    // Europa
+    PlanetBody europa;
+    europa.m_mass = 4.8e22;
+    europa.m_radius = 1.56e9;
+    europa.m_orbitDist = 6.71e5;
+    europa.m_name = "Europa";
+    europa.m_color = 0xADA895_rgbf;
+    europa.m_parent = jupiterPtr;
+    planets.push_back(std::move(europa));
+
+    // Ganymede
+    PlanetBody ganymede;
+    ganymede.m_mass = 1.48e23;
+    ganymede.m_radius = 2.63e9;
+    ganymede.m_orbitDist = 1.07e6;
+    ganymede.m_name = "Ganymede";
+    ganymede.m_color = 0x75736C_rgbf;
+    ganymede.m_parent = jupiterPtr;
+    planets.push_back(std::move(ganymede));
+
+    // Callisto
+    PlanetBody callisto;
+    callisto.m_mass = 1.08e23;
+    callisto.m_radius = 2.41e9;
+    callisto.m_orbitDist = 1.88e6;
+    callisto.m_name = "Callisto";
+    callisto.m_color = 0xB3A292_rgbf;
+    callisto.m_parent = jupiterPtr;
+    planets.push_back(std::move(callisto));
+
+    /* ####### Saturn & moons ####### */
     PlanetBody saturn;
     saturn.m_mass = 5.68e26;
     saturn.m_radius = 1e3;
@@ -431,16 +502,135 @@ void create_solar_system_map()
     saturn.m_color = 0xCFB78A_rgbf;
     planets.push_back(std::move(saturn));
 
-    // Uranus
+    PlanetBody* saturnPtr = &planets.back();
+    
+    // Mimas
+    PlanetBody mimas;
+    mimas.m_mass = 4e19;
+    mimas.m_radius = 198e3;
+    mimas.m_orbitDist = 1.85e5;
+    mimas.m_name = "Mimas";
+    mimas.m_color = 0x9C9C9C_rgbf;
+    mimas.m_parent = saturnPtr;
+    planets.push_back(std::move(mimas));
+
+    // Enceladus
+    PlanetBody enceladus;
+    enceladus.m_mass = 1.1e20;
+    enceladus.m_radius = 252e3;
+    enceladus.m_orbitDist = 2.38e5;
+    enceladus.m_name = "Enceladus";
+    enceladus.m_color = 0xD1C3AE_rgbf;
+    enceladus.m_parent = saturnPtr;
+    planets.push_back(std::move(enceladus));
+
+    // Tethys
+    PlanetBody tethys;
+    tethys.m_mass = 6.2e20;
+    tethys.m_radius = 500e3;
+    tethys.m_orbitDist = 2.95e5;
+    tethys.m_name = "Tethys";
+    tethys.m_color = 0x9C9C9C_rgbf;
+    tethys.m_parent = saturnPtr;
+    planets.push_back(std::move(tethys));
+
+    // Dione
+    PlanetBody dione;
+    dione.m_mass = 1.1e21;
+    dione.m_radius = 550e3;
+    dione.m_orbitDist = 3.77e5;
+    dione.m_name = "Dione";
+    dione.m_color = 0xB0B0B0_rgbf;
+    dione.m_parent = saturnPtr;
+    planets.push_back(std::move(dione));
+
+    // Rhea
+    PlanetBody rhea;
+    rhea.m_mass = 2.3e21;
+    rhea.m_radius = 750e3;
+    rhea.m_orbitDist = 5.27e5;
+    rhea.m_name = "Rhea";
+    rhea.m_color = 0x919191_rgbf;
+    rhea.m_parent = saturnPtr;
+    planets.push_back(std::move(rhea));
+
+    // Titan
+    PlanetBody titan;
+    titan.m_mass = 1.35e23;
+    titan.m_radius = 2500e3;
+    titan.m_orbitDist = 1.22e6;
+    titan.m_name = "Titan";
+    titan.m_color = 0xDBB660_rgbf;
+    titan.m_parent = saturnPtr;
+    planets.push_back(std::move(titan));
+
+    // Iaptus
+    PlanetBody iaptus;
+    iaptus.m_mass = 1.3e21;
+    iaptus.m_radius = 700e3;
+    iaptus.m_orbitDist = 3.56e6;
+    iaptus.m_name = "Iaptus";
+    iaptus.m_color = 0xE3E3E3_rgbf;
+    iaptus.m_parent = saturnPtr;
+    planets.push_back(std::move(iaptus));
+
+    /* ####### Uranus & moons ####### */
     PlanetBody uranus;
-    uranus.m_mass = 8.68e4;
+    uranus.m_mass = 8.68e25;
     uranus.m_radius = 1e3;
     uranus.m_orbitDist = 3000e6;
     uranus.m_name = "Uranus";
     uranus.m_color = 0x91C7EB_rgbf;
     planets.push_back(std::move(uranus));
 
-    // Neptune
+    PlanetBody* uranusPtr = &planets.back();
+
+    PlanetBody miranda;
+    miranda.m_mass = 6.59e19;
+    miranda.m_radius = 235e3;
+    miranda.m_orbitDist = 1.29e5;
+    miranda.m_name = "miranda";
+    miranda.m_color = 0xC2C2C2_rgbf;
+    miranda.m_parent = uranusPtr;
+    planets.push_back(std::move(miranda));
+
+    PlanetBody ariel;
+    ariel.m_mass = 1.35e21;
+    ariel.m_radius = 550e3;
+    ariel.m_orbitDist = 1.91e5;
+    ariel.m_name = "ariel";
+    ariel.m_color = 0xABABAB_rgbf;
+    ariel.m_parent = uranusPtr;
+    planets.push_back(std::move(ariel));
+
+    PlanetBody umbriel;
+    umbriel.m_mass = 1.17e21;
+    umbriel.m_radius = 550e3;
+    umbriel.m_orbitDist = 2.66e5;
+    umbriel.m_name = "umbriel";
+    umbriel.m_color = 0x6E6E6E_rgbf;
+    umbriel.m_parent = uranusPtr;
+    planets.push_back(std::move(umbriel));
+
+    PlanetBody titania;
+    titania.m_mass = 3.53e21;
+    titania.m_radius = 750e3;
+    titania.m_orbitDist = 4.36e5;
+    titania.m_name = "titania";
+    titania.m_color = 0xC2BFB8_rgbf;
+    titania.m_parent = uranusPtr;
+    planets.push_back(std::move(titania));
+
+    PlanetBody oberon;
+    oberon.m_mass = 3.0e21;
+    oberon.m_radius = 750e3;
+    oberon.m_orbitDist = 5.83e5;
+    oberon.m_name = "oberon";
+    oberon.m_color = 0xABA8A1_rgbf;
+    oberon.m_parent = uranusPtr;
+    planets.push_back(std::move(oberon));
+
+    /* ####### Neptune ####### */
     PlanetBody neptune;
     neptune.m_mass = 1.02e26;
     neptune.m_radius = 1e3;
@@ -449,12 +639,34 @@ void create_solar_system_map()
     neptune.m_color = 0x0785D9_rgbf;
     planets.push_back(std::move(neptune));
 
+    // Add planets
     for (PlanetBody const& body : planets)
     {
         Satellite sat = uni.sat_create();
         add_body(sat, body, &stat, typePlanet);
     }
 
+    // Add asteroids
+    /*constexpr size_t N_ASTEROIDS = 1'000;
+
+    std::random_device rd{};
+    std::mt19937 gen{rd()};
+    std::normal_distribution<> d{2.7, 0.25};
+    std::uniform_real_distribution<> u{0.0, 2.0 * 3.14159265359};
+
+    for (size_t i = 0; i < N_ASTEROIDS; i++)
+    {
+        Satellite asteroid = uni.sat_create();
+        double orbitalRadius = d(gen) * g_1AU;
+        float polarAngle = u(gen);
+        PlanetBody body;
+        body.m_mass = 2e18;
+        body.m_radius = 5.0;
+        body.m_orbitDist = orbitalRadius;
+        body.m_name = "asteroid";
+        body.m_color = 0xCCCCCC_rgbf;
+        add_body(asteroid, body, &stat, typePlanet);
+    }*/
 }
 
 void debug_print_help()

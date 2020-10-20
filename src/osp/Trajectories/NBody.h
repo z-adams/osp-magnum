@@ -35,16 +35,25 @@ struct TCompAccel
     Magnum::Vector3d m_acceleration;
 };
 
+struct TCompAsteroid
+{
+
+};
+
 /**
  * A static universe where everything stays still
  */
 class TrajNBody : public CommonTrajectory<TrajNBody>
 {
 public:
-    static constexpr double m_timestep = 5'000.0f;
+    static constexpr double m_timestep = 500.0f;
     TrajNBody(Universe& universe, Satellite center);
     ~TrajNBody() = default;
     void update();
+
+private:
+    template <typename VIEW_T, typename INPUTVIEW_T>
+    Magnum::Vector3d compute_acceleration(Satellite sat, VIEW_T& view, INPUTVIEW_T& posMassView);
 };
 
 }

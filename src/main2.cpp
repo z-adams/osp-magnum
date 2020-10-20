@@ -647,7 +647,7 @@ void create_solar_system_map()
     }
 
     // Add asteroids
-    /*constexpr size_t N_ASTEROIDS = 1'000;
+    constexpr size_t N_ASTEROIDS = 1'000;
 
     std::random_device rd{};
     std::mt19937 gen{rd()};
@@ -665,8 +665,10 @@ void create_solar_system_map()
         body.m_orbitDist = orbitalRadius;
         body.m_name = "asteroid";
         body.m_color = 0xCCCCCC_rgbf;
+        body.m_initAngle = polarAngle;
         add_body(asteroid, body, &stat, typePlanet);
-    }*/
+        reg.emplace<universe::TCompAsteroid>(asteroid);
+    }
 }
 
 void debug_print_help()

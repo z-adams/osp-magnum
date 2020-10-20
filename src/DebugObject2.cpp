@@ -65,11 +65,11 @@ void DebugCameraController::update_physics_post()
         std::cout << "switch to new target\n";
 
         auto view = m_scene.get_registry().view<CompDrawableDebug>(entt::exclude<CompPass1Debug>);
-        std::cout << "Options: ";
+        /*std::cout << "Options: ";
         for (auto ent : view)
         {
             std::cout << static_cast<int>(ent) << " ";
-        }
+        }*/
         auto it = view.find(m_orbiting);
         std::cout << "\nCurrent: " << static_cast<int>(*it) << "\n";
         std::cout << "View 1st: " << static_cast<int>(*(--view.end())) << "\n";

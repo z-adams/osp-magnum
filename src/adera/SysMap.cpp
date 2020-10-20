@@ -52,6 +52,24 @@ void SysMap::update_map()
         auto &type = view.get<universe::UCompType>(sat);
         auto &pos = posTraj.m_position;
 
+        if (reg.has<TCompAsteroid>(sat))
+        {
+            if (m_pointsOnly.find(sat) == m_pointsOnly.end())
+            {
+                // Add point mesh
+                active::ActiveEnt bodyEnt = m_scene.get_registry().create();
+                m_scene.reg_emplace<ACompTransform>(bodyEnt);
+                m_scene.reg_emplace<CompDrawableDebug>(bodyEnt,
+                    &m_pointMesh, std::vector<Texture2D*>{}, &m_shader, 0xFFFFFF_rgbf);
+                m_pointsOnly.emplace(sat, bodyEnt);
+            }
+
+            Vector3 newPos = universe_to_render_space(pos);
+            ACompTransform& transform = m_scene.reg_get<ACompTransform>(m_pointsOnly[sat]);
+            transform.m_transformWorld = Matrix4::translation(newPos);
+            continue;
+        }
+
         if (m_mapping.find(sat) == m_mapping.end())
         {
             create_graphics_data(sat, posTraj.m_color);

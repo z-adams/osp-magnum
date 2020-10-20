@@ -50,6 +50,7 @@ private:
 
     std::map<universe::Satellite,
         std::pair<active::ActiveEnt, OrbitPathData>> m_mapping;
+    std::map<universe::Satellite, active::ActiveEnt> m_pointsOnly;
     Magnum::Shaders::VertexColor3D m_shader;
     Magnum::GL::Mesh m_pointMesh;
 };

@@ -46,7 +46,7 @@ struct TCompAsteroid
 class TrajNBody : public CommonTrajectory<TrajNBody>
 {
 public:
-    static constexpr double m_timestep = 500.0f;
+    static constexpr double m_timestep = 1'000.0f;
     TrajNBody(Universe& universe, Satellite center);
     ~TrajNBody() = default;
     void update();

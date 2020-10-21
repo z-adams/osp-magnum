@@ -52,17 +52,17 @@ void SysDebugRender::draw(ACompCamera const& camera)
                 .draw(*(drawable.m_mesh));
     }
     Renderer::disable(Renderer::Feature::Blending);
-    
+    Renderer::setPointSize(2.0f);
     for (auto entity : bodies)
     {
-        if (entity == static_cast<ActiveEnt>(1))
+        /*if (entity == static_cast<ActiveEnt>(1))
         {
             Renderer::setPointSize(4.0f);
         }
         else
         {
             Renderer::setPointSize(2.0f);
-        }
+        }*/
         CompDrawableDebug& drawable = bodies.get<CompDrawableDebug>(entity);
         ACompTransform& transform = bodies.get<ACompTransform>(entity);
 

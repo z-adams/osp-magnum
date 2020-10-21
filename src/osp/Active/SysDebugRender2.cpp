@@ -3,6 +3,7 @@
 
 #include "SysDebugRender2.h"
 #include "ActiveScene.h"
+#include "adera/SysMap.h"
 
 
 using namespace osp::active;
@@ -40,6 +41,8 @@ void SysDebugRender::draw(ACompCamera const& camera)
     Renderer::enable(Renderer::Feature::Blending);
     Renderer::setBlendFunction(Renderer::BlendFunction::SourceAlpha, Renderer::BlendFunction::OneMinusSourceAlpha);
     Renderer::setPointSize(1.0f);
+    glEnable(GL_PRIMITIVE_RESTART);
+    glPrimitiveRestartIndex(MapRenderData::PRIMITIVE_RESTART);
     for(auto entity: orbits)
     {
         CompDrawableDebug& drawable = orbits.get<CompDrawableDebug>(entity);
@@ -51,6 +54,7 @@ void SysDebugRender::draw(ACompCamera const& camera)
                 .setTransformationProjectionMatrix(camera.m_projection * entRelative)
                 .draw(*(drawable.m_mesh));
     }
+    glDisable(GL_PRIMITIVE_RESTART);
     Renderer::disable(Renderer::Feature::Blending);
     Renderer::setPointSize(2.0f);
     for (auto entity : bodies)

@@ -29,21 +29,23 @@ struct OrbitPathData
 class MapRenderData
 {
 public:
+    // "Primitive restart" index which signifies to break a line strip at that vertex
+    static constexpr GLuint PRIMITIVE_RESTART = std::numeric_limits<GLuint>::max();
+
     MapRenderData(ActiveScene& scene, unsigned maxPoints, unsigned maxPathVertices);
     ~MapRenderData() = default;
     MapRenderData(MapRenderData const& copy) = delete;
     MapRenderData(MapRenderData&& move) = default;
 
     bool add_point(universe::Satellite object, Vector3 pos = Vector3{0.0f});
-    bool add_path(universe::Satellite object, unsigned vertices);
+    bool add_path(universe::Satellite object, unsigned vertices,
+        Magnum::Color3 color = Magnum::Color3{1.0f}, Vector3 initPos = Vector3{0.0f});
 
     Vector3& get_point_pos(universe::Satellite object);
+    void push_path_pos(universe::Satellite object, Vector3 pos);
 
     void update();
 private:
-
-    // "Primitive restart" index which signifies to break a line strip at that vertex
-    static constexpr GLuint PRIMITIVE_RESTART = std::numeric_limits<GLuint>::max();
     const GLuint m_maxPoints;
     const GLuint m_maxPathVerts;
 
@@ -68,6 +70,7 @@ private:
     {
         GLuint m_startIdx;
         GLuint m_endIdx;
+        GLuint m_nextIdx;
     };
     // Mapping from satellites to paths
     std::map<universe::Satellite, PathSegData> m_pathMapping;

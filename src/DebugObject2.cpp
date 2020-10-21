@@ -71,21 +71,7 @@ void DebugCameraController::update_physics_post()
         std::cout << "\nCurrent: " << static_cast<int>(*it) << "\n";
         std::cout << "View 1st: " << static_cast<int>(*(--view.end())) << "\n";
 
-        if (m_switch_back.triggered())
-        {
-            if (it == view.end() || it == view.begin())
-            {
-                // no vehicle selected, or last vehicle is selected (loop around)
-                m_orbiting = view.back();
-            }
-            else
-            {
-                // pick the next vehicle
-                m_orbiting = *(--it);
-                std::cout << "next\n";
-            }
-        }
-        else if (m_switch.triggered())
+        if (m_switch.triggered())
         {
             if (it == view.end() || it == --view.end())
             {
@@ -99,7 +85,20 @@ void DebugCameraController::update_physics_post()
                 std::cout << "prev\n";
             }
         }
-
+        else if (m_switch_back.triggered())
+        {
+            if (it == view.end() || it == view.begin())
+            {
+                // no vehicle selected, or last vehicle is selected (loop around)
+                m_orbiting = view.back();
+            }
+            else
+            {
+                // pick the next vehicle
+                m_orbiting = *(--it);
+                std::cout << "next\n";
+            }
+        }
 
         targetValid = universeReg.valid(m_orbiting);
     }

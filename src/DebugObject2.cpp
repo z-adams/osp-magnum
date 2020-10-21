@@ -3,9 +3,11 @@
 #include <osp/Active/ActiveScene.h>
 #include <osp/Active/SysVehicle.h>
 #include <osp/Active/physics.h>
+#include <planet-a/Satellites/SatPlanet.h>
 
 #include <adera/Machines/UserControl.h>
 #include <osp/Active/SysDebugRender2.h>
+#include <adera/SysMap.h>
 
 using adera::active::machines::MachineUserControl;
 
@@ -31,7 +33,7 @@ using namespace Magnum::Math::Literals;
 DebugCameraController::DebugCameraController(active::ActiveScene &scene,
                                              active::ActiveEnt ent) :
         DebugObject(scene, ent),
-        m_orbiting(static_cast<active::ActiveEnt>(1)),
+        m_orbiting(static_cast<universe::Satellite>(1)),
         m_orbitPos(0, 0, 1),
         m_updatePhysicsPost(scene.get_update_order(), "dbg_cam", "physics", "",
                 std::bind(&DebugCameraController::update_physics_post, this)),
@@ -49,7 +51,7 @@ DebugCameraController::DebugCameraController(active::ActiveScene &scene,
 
 void DebugCameraController::update_vehicle_mod_pre()
 {
-    if (!m_scene.get_registry().valid(m_orbiting))
+    if (!m_scene.get_application().get_universe().get_reg().valid(m_orbiting))
     {
         return;
     }
@@ -57,24 +59,19 @@ void DebugCameraController::update_vehicle_mod_pre()
 
 void DebugCameraController::update_physics_post()
 {
-
-    bool targetValid = m_scene.get_registry().valid(m_orbiting);
+    auto& universeReg = m_scene.get_application().get_universe().get_reg();
+    bool targetValid = universeReg.valid(m_orbiting);
 
     if (m_switch.triggered() || m_switch_back.triggered())
     {
         std::cout << "switch to new target\n";
 
-        auto view = m_scene.get_registry().view<CompDrawableDebug>(entt::exclude<CompPass1Debug>);
-        /*std::cout << "Options: ";
-        for (auto ent : view)
-        {
-            std::cout << static_cast<int>(ent) << " ";
-        }*/
+        auto view = universeReg.view<planeta::universe::UCompPlanet>();
         auto it = view.find(m_orbiting);
         std::cout << "\nCurrent: " << static_cast<int>(*it) << "\n";
         std::cout << "View 1st: " << static_cast<int>(*(--view.end())) << "\n";
 
-        if (m_switch.triggered())
+        if (m_switch_back.triggered())
         {
             if (it == view.end() || it == view.begin())
             {
@@ -88,7 +85,7 @@ void DebugCameraController::update_physics_post()
                 std::cout << "next\n";
             }
         }
-        else if (m_switch_back.triggered())
+        else if (m_switch.triggered())
         {
             if (it == view.end() || it == --view.end())
             {
@@ -104,7 +101,7 @@ void DebugCameraController::update_physics_post()
         }
 
 
-        targetValid = m_scene.get_registry().valid(m_orbiting);
+        targetValid = universeReg.valid(m_orbiting);
     }
 
     if (!targetValid)
@@ -113,7 +110,8 @@ void DebugCameraController::update_physics_post()
     }
 
     Matrix4 &xform = m_scene.reg_get<active::ACompTransform>(m_ent).m_transform;
-    Matrix4 const& xformTgt = m_scene.reg_get<active::ACompTransform>(m_orbiting).m_transformWorld;
+    Vector3s const& v3sPos = universeReg.get<universe::UCompTransformTraj>(m_orbiting).m_position;
+    Vector3 tgtPos = SysMap::universe_to_render_space(v3sPos);
 
     //float keyRotYaw = static_cast<float>(m_rt.trigger_hold() - m_lf.trigger_hold());
     //float keyRotPitch = static_cast<float>(m_dn.trigger_hold() - m_up.trigger_hold());
@@ -140,7 +138,7 @@ void DebugCameraController::update_physics_post()
             * Quaternion::rotation(pitch * rotRate, xform.right());
     }
 
-    Vector3 posRelative = xform.translation() - xformTgt.translation();
+    Vector3 posRelative = xform.translation() - tgtPos;
 
     // set camera orbit distance
     constexpr float distSensitivity = 5e4f;
@@ -153,14 +151,8 @@ void DebugCameraController::update_physics_post()
     m_orbitPos = m_orbitPos.normalized() * m_orbitDistance;
     m_orbitPos = mcFish.transformVector(m_orbitPos);
 
-    xform.translation() = xformTgt.translation() + m_orbitPos;
+    xform.translation() = tgtPos + m_orbitPos;
 
     // look at target
-    xform = Matrix4::lookAt(xform.translation(), xformTgt.translation(), xform[1].xyz());
+    xform = Matrix4::lookAt(xform.translation(), tgtPos, xform[1].xyz());
 }
-
-void DebugCameraController::view_orbit(active::ActiveEnt ent)
-{
-    m_orbiting = ent;
-}
-

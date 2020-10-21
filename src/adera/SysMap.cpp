@@ -32,11 +32,6 @@ void SysMap::update_map()
 
     for (Satellite sat : view)
     {
-        if (m_mapData.add_point(sat))
-        {
-
-        }
-
         auto pos = m_universe.get_reg().get<UCompTransformTraj>(sat).m_position;
         m_mapData.get_point_pos(sat) = universe_to_render_space(pos);
     }
@@ -116,6 +111,17 @@ void SysMap::update_map()
     }*/
 
     m_mapData.update();
+}
+
+void SysMap::check_and_initialize_objects()
+{
+    auto& reg = m_universe.get_reg();
+    auto view = reg.view<UCompTransformTraj, UCompType, UCompPlanet>();
+
+    for (Satellite sat : view)
+    {
+        m_mapData.add_point(sat);
+    }
 }
 
 /*void osp::active::SysMap::create_graphics_data(Satellite sat, Color3 color)

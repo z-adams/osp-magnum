@@ -199,6 +199,7 @@ void magnum_application_map()
     auto &sysDebugRender = scene.dynamic_system_add<active::SysDebugRender>("DebugRender");
     auto& sysPlanet = scene.dynamic_system_add<active::SysPlanetA>("Planet");
     auto& sysMap = scene.dynamic_system_add<osp::active::SysMap>("Map", uni);
+    sysMap.check_and_initialize_objects();
 
     // Camera
     ActiveEnt camera = scene.hier_create_child(scene.hier_get_root(), "Camera");
@@ -653,7 +654,7 @@ void create_solar_system_map()
     std::mt19937 gen{rd()};
     std::normal_distribution<> d{3.0, 0.25};
     std::uniform_real_distribution<> u{0.0, 2.0 * 3.14159265359};
-    std::normal_distribution<> v{0.0, 1000.0 * 1024.0};
+    std::normal_distribution<> v{0.0, 500.0 * 1024.0};
 
     for (size_t i = 0; i < N_ASTEROIDS; i++)
     {

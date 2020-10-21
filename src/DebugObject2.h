@@ -5,6 +5,7 @@
 #include <osp/Active/activetypes.h>
 #include <osp/UserInputHandler.h>
 #include <osp/types.h>
+#include <osp/Universe.h>
 
 namespace osp
 {
@@ -53,10 +54,10 @@ public:
     ~DebugCameraController() = default;
     void update_vehicle_mod_pre();
     void update_physics_post();
-    void view_orbit(active::ActiveEnt ent);
+    void view_orbit(universe::Satellite ent) { m_orbiting = ent; }
 private:
 
-    active::ActiveEnt m_orbiting;
+    universe::Satellite m_orbiting;
     Vector3 m_orbitPos;
     float m_orbitDistance;
 

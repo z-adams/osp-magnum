@@ -340,6 +340,8 @@ void create_solar_system_map()
     using osp::universe::Satellite;
     using osp::universe::TrajStationary;
     using osp::universe::TrajNBody;
+    using osp::universe::TCompVel;
+    using osp::universe::TCompAccel;
     using osp::universe::TCompMassG;
     using osp::universe::UCompTransformTraj;
     using planeta::universe::SatPlanet;
@@ -354,24 +356,32 @@ void create_solar_system_map()
     SatPlanet &typePlanet = uni.type_register<SatPlanet>(uni);
     uni.type_register<universe::SatActiveArea>(uni);
 
-    //TrajStationary &stat = uni.trajectory_create<TrajStationary>(uni, uni.sat_root());
-    TrajNBody& stat = uni.trajectory_create<TrajNBody>(uni, uni.sat_root());
+    //TrajStationary &nbody = uni.trajectory_create<TrajStationary>(uni, uni.sat_root());
+    TrajNBody& nbody = uni.trajectory_create<TrajNBody>(uni, uni.sat_root());
 
     auto& reg = uni.get_reg();
-    // Create the sun
-    Satellite sun = uni.sat_create();
-    UCompPlanet& sunPlanet = typePlanet.add_get_ucomp(sun);
-    UCompTransformTraj& sunTT = reg.get<UCompTransformTraj>(sun);
-    TCompMassG& sunM = reg.emplace<TCompMassG>(sun, g_sunMass);
-
-    sunPlanet.m_radius = 6.9634e8;
-    sunTT.m_position = {0ll, 0ll, 0ll};
-    sunTT.m_name = "The sun";
-
-    stat.add(sun);
-
     std::vector<PlanetBody> planets;
     planets.reserve(100);
+
+    /* ####### Sun ####### */
+    PlanetBody sun;
+    sun.m_mass = g_sunMass;
+    sun.m_radius = 6.9634e8;
+    sun.m_orbitDist = 1e-10;
+    sun.m_name = "The sun";
+    sun.m_color = 0xFFFFFF_rgbf;
+    
+    Satellite sunSat = uni.sat_create();
+    
+    UCompPlanet& sunPlanet = typePlanet.add_get_ucomp(sunSat);
+    sunPlanet.m_radius = sun.m_radius;
+
+    UCompTransformTraj& sunTT = reg.get<UCompTransformTraj>(sunSat);
+    sunTT.m_position = {0ll, 0ll, 0ll};
+    sunTT.m_name = sun.m_name;
+    reg.emplace<TCompMassG>(sunSat, sun.m_mass);
+    reg.emplace<TCompAccel>(sunSat, Vector3d{0.0});
+    reg.emplace<TCompVel>(sunSat, Vector3d{0.0});
 
     /* ####### Mercury ####### */
     PlanetBody mercury;
@@ -644,11 +654,11 @@ void create_solar_system_map()
     for (PlanetBody const& body : planets)
     {
         Satellite sat = uni.sat_create();
-        add_body(sat, body, &stat, typePlanet);
+        add_body(sat, body, &nbody, typePlanet);
     }
 
     // Add asteroids
-    constexpr size_t N_ASTEROIDS = 5'000;
+    /*constexpr size_t N_ASTEROIDS = 5'000;
 
     std::random_device rd{};
     std::mt19937 gen{rd()};
@@ -669,9 +679,9 @@ void create_solar_system_map()
         body.m_color = 0xCCCCCC_rgbf;
         body.m_initAngle = polarAngle;
         body.m_velOset = {v(gen), v(gen), v(gen)};
-        add_body(asteroid, body, &stat, typePlanet);
+        add_body(asteroid, body, &nbody, typePlanet);
         reg.emplace<universe::TCompAsteroid>(asteroid);
-    }
+    }*/
 }
 
 void debug_print_help()

@@ -24,6 +24,7 @@ struct TCompMassG
     double m_mass;
 };
 
+// Units: space vel (1/1024 m/s)
 struct TCompVel
 {
     Magnum::Vector3d m_vel;
@@ -40,8 +41,35 @@ struct TCompAsteroid
 
 };
 
+//struct GravitySource
+//{
+//    Vector3d pos;
+//    double mass;
+//};
+
+struct IntegrationStep
+{
+    std::vector<Magnum::Vector3d> m_accelerations;
+    std::vector<Magnum::Vector3d> m_velocities;
+    std::vector<Magnum::Vector3d> m_positions;
+    //std::vector<GravitySource> m_posMass;
+};
+
+class SysEvolution
+{
+public:
+    size_t m_nBodies{0};
+    size_t m_nSteps{0};
+    std::vector<Satellite> m_bodies;
+    std::vector<double> m_masses;
+    std::vector<IntegrationStep> m_steps;
+    
+    void reserve_bodies(size_t bodies);
+    void reserve_steps(size_t steps);
+};
+
 /**
- * A static universe where everything stays still
+ * A not very static universe where everything moves constantly
  */
 class TrajNBody : public CommonTrajectory<TrajNBody>
 {
@@ -58,6 +86,15 @@ private:
     template <typename VIEW_T, typename INPUTVIEW_T>
     void fast_update(VIEW_T& view, INPUTVIEW_T& posMassView);
 
+    size_t m_stepsAhead;
+    size_t m_currentStep;
+    SysEvolution m_evol;
+
+    template <typename VIEW_T>
+    void update_world(VIEW_T& view);
+
+    template <typename VIEW_T>
+    void evolve_system(VIEW_T& view);
 };
 
 }

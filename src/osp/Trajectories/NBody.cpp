@@ -1,4 +1,5 @@
 #include "NBody.h"
+#include <iostream>
 
 using namespace osp::universe;
 
@@ -7,7 +8,8 @@ using Magnum::Vector3d;
 TrajNBody::TrajNBody(Universe& universe, Satellite center) :
     CommonTrajectory<TrajNBody>(universe, center)
 {
-
+    m_stepsAhead = 5'000;
+    m_currentStep = 9'999;
 }
 
 template <typename VIEW_T, typename INPUTVIEW_T>
@@ -54,6 +56,89 @@ void TrajNBody::update_accelerations(VIEW_T& view, INPUTVIEW_T& inputView)
     }
 }
 
+template<typename VIEW_T>
+void TrajNBody::update_world(VIEW_T& view)
+{
+    for (size_t body = 0; body < m_evol.m_bodies.size(); body++)
+    {
+        Satellite sat = m_evol.m_bodies[body];
+        IntegrationStep const& lastStep = m_evol.m_steps.back();
+
+        view.get<TCompVel>(sat).m_vel = lastStep.m_velocities[body] * 1024.0;
+        view.get<UCompTransformTraj>(m_evol.m_bodies[body]).m_position = static_cast<Vector3s>(m_evol.m_steps[m_currentStep].m_positions[body] * 1024.0);
+    }
+}
+
+template <typename VIEW_T>
+void TrajNBody::evolve_system(VIEW_T& view)
+{
+    size_t nBodies = 0;
+    for (Satellite const sat : view) { nBodies++; }
+    // ### Compute initial conditions ###
+    m_evol.reserve_bodies(nBodies);
+    m_evol.reserve_steps(m_stepsAhead);
+    {
+        size_t i = 0;
+        for (Satellite src : view)
+        {
+            std::string name = view.get<UCompTransformTraj>(src).m_name;
+            m_evol.m_bodies[i] = src;
+            m_evol.m_masses[i] = view.get<TCompMassG>(src).m_mass;
+            IntegrationStep& step1 = m_evol.m_steps[0];
+            step1.m_positions[i] =
+                static_cast<Vector3d>(view.get<UCompTransformTraj>(src).m_position) / 1024.0;
+            step1.m_velocities[i] = view.get<TCompVel>(src).m_vel / 1024.0;
+            i++;
+        }
+    }
+
+    std::vector<double>& mass = m_evol.m_masses;
+    std::vector<Satellite>& bodies = m_evol.m_bodies;
+    for (size_t step = 1; step < m_stepsAhead; step++)
+    {
+        IntegrationStep& prevStep = m_evol.m_steps[step - 1];
+
+        // ### Update Accelerations ###
+        for (size_t body = 0; body < nBodies; body++)
+        {
+            std::string name = view.get<UCompTransformTraj>(bodies[body]).m_name;
+            Vector3d A{0.0};
+            for (size_t src = 0; src < nBodies; src++)
+            {
+                std::string name2 = view.get<UCompTransformTraj>(bodies[src]).m_name;
+
+                // Crucial bandwidth: reading positions and masses
+                if (src == body) { continue; }
+                Vector3d r = prevStep.m_positions[src] - prevStep.m_positions[body];
+                Vector3d rHat = r.normalized();
+                double denom = r.x()*r.x() + r.y()*r.y() + r.z()*r.z();
+                A += (mass[src] / denom) * rHat;
+            }
+            A *= G;
+
+            prevStep.m_accelerations[body] = A;
+        }
+
+        double dt = m_timestep;
+        IntegrationStep& nextStep = m_evol.m_steps[step];
+        // ### Update velocities & positions ###
+        for (size_t body = 0; body < nBodies; body++)
+        {
+            std::string name = view.get<UCompTransformTraj>(bodies[body]).m_name;
+            // Crucial bandwidth: reading acceleration, velocity, position all at once
+            auto const& acceleration = prevStep.m_accelerations[body];
+            auto const& vel = prevStep.m_velocities[body];
+            auto const& pos = prevStep.m_positions[body];
+
+            auto& newVel = nextStep.m_velocities[body];
+            auto& newPos = nextStep.m_positions[body];
+
+            newVel = vel + acceleration*dt;
+            newPos = pos + newVel*dt;
+        }
+    }
+}
+
 template<typename VIEW_T, typename INPUTVIEW_T>
 void TrajNBody::fast_update(VIEW_T& view, INPUTVIEW_T& posMassView)
 {
@@ -83,19 +168,6 @@ void TrajNBody::fast_update(VIEW_T& view, INPUTVIEW_T& posMassView)
         Vector3d A{0.0};
         for (Source const& src : sources)
         {
-            // 1:
-            /*Vector3d r = (src.pos - posD) / 1024.0;
-            Vector3d rHat = r.normalized();
-            double denom = r.x()*r.x() + r.y()*r.y() + r.z()*r.z();
-            A += src.mass * rHat / denom;*/
-
-            // 2:
-            /*Vector3d r = src.pos - posD;
-            Vector3d rHat = r.normalized();
-            double denom = (r.x()*r.x() + r.y()*r.y() + r.z()*r.z()) / (1024.0 * 1024.0);
-            A += src.mass * rHat / denom;*/
-
-            // 3 (with /1024 division in source pre-fetch loop and on posD init)
             Vector3d r = src.pos - posD;
             Vector3d rHat = r.normalized();
             double denom = r.x() * r.x() + r.y() * r.y() + r.z() * r.z();
@@ -111,18 +183,17 @@ void TrajNBody::fast_update(VIEW_T& view, INPUTVIEW_T& posMassView)
 {
     double dt = m_timestep;
     auto& reg = m_universe.get_reg();
-    auto view = reg.view<UCompTransformTraj, TCompMassG, TCompVel, TCompAccel>();
+    auto view = reg.view<UCompTransformTraj, TCompMassG, TCompVel, TCompAccel>(entt::exclude<TCompAsteroid>);
     auto sourceView = reg.view<UCompTransformTraj, TCompMassG>(entt::exclude<TCompAsteroid>);
 
-    // Update accelerations
-    for (Satellite sat : view)
-    {
-        Vector3d A = update_accelerations(sat, view, sourceView);
-        A *= 1024.0 * G;
-        view.get<TCompAccel>(sat).m_acceleration = A;
-    }
+    // Update accelerations (full dynamics)
+    update_accelerations(view, sourceView);
 
-    // Update velocities & positions
+    // Update asteroids
+    auto asteroidView = reg.view<UCompTransformTraj, TCompVel, TCompAsteroid>();
+    fast_update(asteroidView, sourceView);
+
+    // Update velocities & positions (full dynamics)
     for (Satellite sat : view)
     {
         auto& acceleration = view.get<TCompAccel>(sat).m_acceleration;
@@ -136,39 +207,23 @@ void TrajNBody::fast_update(VIEW_T& view, INPUTVIEW_T& posMassView)
 
 void TrajNBody::update()
 {
+    static bool firstTime = true;
     double dt = m_timestep;
     auto& reg = m_universe.get_reg();
     auto view = reg.view<UCompTransformTraj, TCompMassG, TCompVel, TCompAccel>(entt::exclude<TCompAsteroid>);
-    auto sourceView = reg.view<UCompTransformTraj, TCompMassG>(entt::exclude<TCompAsteroid>);
 
-    // Update accelerations (full dynamics)
-    update_accelerations(view, sourceView);
-
-    // Update asteroids
     auto asteroidView = reg.view<UCompTransformTraj, TCompVel, TCompAsteroid>();
-    // 1:
-    /*for (Satellite asteroid : asteroidView)
-    {
-        Vector3d A = update_accelerations(asteroid, asteroidView, sourceView);
-        auto& vel = view.get<TCompVel>(asteroid).m_vel;
-        auto& pos = view.get<UCompTransformTraj>(asteroid).m_position;
-
-        vel += A * dt;
-        pos += static_cast<Vector3s>(vel * dt);
-    }*/
-    // 2:
+    auto sourceView = reg.view<UCompTransformTraj, TCompMassG>(entt::exclude<TCompAsteroid>);
     fast_update(asteroidView, sourceView);
 
-    // Update velocities & positions (full dynamics)
-    for (Satellite sat : view)
+    m_currentStep++;
+    if (m_currentStep >= m_stepsAhead - 1)
     {
-        auto& acceleration = view.get<TCompAccel>(sat).m_acceleration;
-        auto& vel = view.get<TCompVel>(sat).m_vel;
-        auto& pos = view.get<UCompTransformTraj>(sat).m_position;
-
-        vel += acceleration * dt;
-        pos += static_cast<Vector3s>(vel * dt);
+        std::cout << "Calculating...\n";
+        evolve_system(view);
+        m_currentStep = 1;
     }
+    update_world(view);
 }
 
 // with ints
@@ -225,3 +280,31 @@ void TrajNBody::update()
 //        }
 //    }
 //}
+
+void SysEvolution::reserve_bodies(size_t bodies)
+{
+    m_bodies.clear();
+    m_masses.clear();
+    m_nBodies = bodies;
+    m_bodies.resize(bodies);
+    m_masses.resize(bodies);
+}
+
+void SysEvolution::reserve_steps(size_t steps)
+{
+    if (m_nBodies == 0) { return; } // Silently fail without telling anyone
+
+    m_nSteps = steps;
+    m_steps.resize(steps);
+    for (size_t i = 0; i < steps; i++)
+    {
+        IntegrationStep& is = m_steps[i];
+        is.m_accelerations.clear();
+        is.m_velocities.clear();
+        is.m_positions.clear();
+
+        is.m_accelerations.resize(m_nBodies);
+        is.m_velocities.resize(m_nBodies);
+        is.m_positions.resize(m_nBodies);
+    }
+}

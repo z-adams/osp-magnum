@@ -382,6 +382,7 @@ void create_solar_system_map()
     reg.emplace<TCompMassG>(sunSat, sun.m_mass);
     reg.emplace<TCompAccel>(sunSat, Vector3d{0.0});
     reg.emplace<TCompVel>(sunSat, Vector3d{0.0});
+    nbody.add(sunSat);
 
     /* ####### Mercury ####### */
     PlanetBody mercury;

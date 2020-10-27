@@ -43,6 +43,7 @@ public:
 
     Vector3& get_point_pos(universe::Satellite object);
     void push_path_pos(universe::Satellite object, Vector3 pos);
+    void write_path_data(universe::Satellite object, std::vector<Vector3> const& data);
 
     void update();
 private:

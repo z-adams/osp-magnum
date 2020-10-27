@@ -31,13 +31,19 @@ void SysMap::update_map()
 
     for (Satellite sat : view)
     {
-        auto pos = reg.get<UCompTransformTraj>(sat).m_position;
+        auto& tt = reg.get<UCompTransformTraj>(sat);
+        auto* nbody = dynamic_cast<osp::universe::TrajNBody*>(tt.m_trajectory);
+        if (nbody->just_recomputed())
+        {
+            m_mapData.write_path_data(sat, nbody->get_sat_traj(sat));
+        }
+        auto pos = tt.m_position;
         Vector3 renderSpace = universe_to_render_space(pos);
         m_mapData.get_point_pos(sat) = renderSpace;
-        if (!reg.has<TCompAsteroid>(sat))
+        /*if (!reg.has<TCompAsteroid>(sat))
         {
             m_mapData.push_path_pos(sat, renderSpace);
-        }
+        }*/
     }
 
     m_mapData.update();
@@ -131,7 +137,7 @@ void SysMap::set_sun_sphere(Satellite ent, float radius)
     pair.second.m_indexBuf.setData(indices);
 }*/
 
-Vector3 osp::active::SysMap::universe_to_render_space(Vector3s v3s)
+Vector3 SysMap::universe_to_render_space(Vector3s v3s)
 {
     constexpr int64_t units_per_m = 1024ll;
     float x = static_cast<double>(v3s.x() / units_per_m) / 1e6;
@@ -259,6 +265,36 @@ void MapRenderData::push_path_pos(Satellite object, Vector3 pos)
     pathIdxBuf[index] = begin;
     index++;
     if (index >= nElems) { index = 0; }
+
+    m_vertexBuffer.unmap();
+    m_indexBuffer.unmap();
+}
+
+void MapRenderData::write_path_data(Satellite object, std::vector<Vector3> const& data)
+{
+    PathSegData& pathData = m_pathMapping.at(object);
+    GLuint begin = pathData.m_startIdx;
+    GLuint nElems = pathData.m_endIdx - begin + 1;
+    GLuint& index = pathData.m_nextIdx;
+
+    ArrayView<ColorVertex> pathDataBuf = arrayCast<ColorVertex>(m_vertexBuffer
+        .map(begin * sizeof(ColorVertex),
+            nElems * sizeof(ColorVertex),
+            GL::Buffer::MapFlag::Write | GL::Buffer::MapFlag::Read));
+    ArrayView<GLuint> pathIdxBuf = arrayCast<GLuint>(m_indexBuffer
+        .map(begin * sizeof(GLuint),
+            nElems * sizeof(GLuint),
+            GL::Buffer::MapFlag::Write | GL::Buffer::MapFlag::Read));
+
+    // Divide data into steps
+    size_t interval = data.size() / static_cast<size_t>(nElems);
+
+    size_t dataIdx = 0;
+    for (size_t i = 0; i < nElems; i++, dataIdx += interval)
+    {
+        pathIdxBuf[i] = begin + i;
+        pathDataBuf[i].m_pos = data[dataIdx];
+    }
 
     m_vertexBuffer.unmap();
     m_indexBuffer.unmap();

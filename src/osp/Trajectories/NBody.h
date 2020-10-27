@@ -79,6 +79,8 @@ public:
     ~TrajNBody() = default;
     void update();
 
+    std::vector<Magnum::Vector3> get_sat_traj(Satellite sat) const;
+    bool just_recomputed() const { return m_justUpdated; }
 private:
     template <typename VIEW_T, typename INPUTVIEW_T>
     void update_accelerations(VIEW_T& view, INPUTVIEW_T& posMassView);
@@ -89,6 +91,7 @@ private:
     size_t m_stepsAhead;
     size_t m_currentStep;
     SysEvolution m_evol;
+    bool m_justUpdated;
 
     template <typename VIEW_T>
     void update_world(VIEW_T& view);

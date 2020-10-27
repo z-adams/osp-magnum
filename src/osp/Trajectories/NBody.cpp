@@ -222,8 +222,35 @@ void TrajNBody::update()
         std::cout << "Calculating...\n";
         evolve_system(view);
         m_currentStep = 1;
+        m_justUpdated = true;
+    }
+    else
+    {
+        m_justUpdated = false;
     }
     update_world(view);
+}
+
+std::vector<Magnum::Vector3> TrajNBody::get_sat_traj(Satellite sat) const
+{
+    // Find index of sat
+    size_t idx = 0;
+    while (idx < m_evol.m_bodies.size())
+    {
+        if (m_evol.m_bodies[idx] == sat) { break; }
+        idx++;
+    }
+
+    std::vector<Vector3> data;
+    data.reserve(m_evol.m_nSteps);
+
+    for (size_t i = 0; i < m_evol.m_nSteps; i++)
+    {
+        Vector3 v = static_cast<Vector3>(m_evol.m_steps[i].m_positions[idx]) * 1e-6f;
+        data.push_back(std::move(v));
+    }
+
+    return data;
 }
 
 // with ints

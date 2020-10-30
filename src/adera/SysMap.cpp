@@ -23,6 +23,12 @@ osp::active::SysMap::SysMap(ActiveScene &scene, Universe& universe) :
 {
 }
 
+// TODO HACK should be default but need to erase MapPath before MapRenderData dies
+SysMap::~SysMap()
+{
+    m_universe.get_reg().clear<MCompPath>();
+}
+
 void SysMap::update_map()
 {
     auto& reg = m_universe.get_reg();
@@ -32,18 +38,25 @@ void SysMap::update_map()
     for (Satellite sat : view)
     {
         auto& tt = reg.get<UCompTransformTraj>(sat);
-        auto* nbody = dynamic_cast<osp::universe::TrajNBody*>(tt.m_trajectory);
+        
+        // Future trajectories
+        /*auto* nbody = dynamic_cast<osp::universe::TrajNBody*>(tt.m_trajectory);
         if (nbody->just_recomputed())
         {
             m_mapData.write_path_data(sat, nbody->get_sat_traj(sat));
-        }
+        }*/
+
+        // Update points
         auto pos = tt.m_position;
         Vector3 renderSpace = universe_to_render_space(pos);
         m_mapData.get_point_pos(sat) = renderSpace;
-        /*if (!reg.has<TCompAsteroid>(sat))
+
+        // Trails
+        auto* path = reg.try_get<MCompPath>(sat);
+        if (path)
         {
-            m_mapData.push_path_pos(sat, renderSpace);
-        }*/
+            m_mapData.push_path_pos(path->m_path, renderSpace);
+        }
     }
 
     m_mapData.update();
@@ -62,9 +75,10 @@ void SysMap::check_and_initialize_objects()
 
     for (Satellite sat : pathView)
     {
+        auto& pathComp = reg.emplace<MCompPath>(sat);
         auto& tt = pathView.get<UCompTransformTraj>(sat);
         Vector3 initPos = universe_to_render_space(tt.m_position);
-        m_mapData.add_path(sat, m_orbitSamples, tt.m_color, initPos);
+        pathComp.m_path = m_mapData.add_path(m_orbitSamples, tt.m_color, initPos);
     }
 }
 
@@ -202,12 +216,13 @@ bool MapRenderData::add_point(Satellite object, Vector3 pos)
     return true;
 }
 
-bool MapRenderData::add_path(universe::Satellite object, unsigned nVertices,
-    Color3 color, Vector3 initPos)
+MapPath MapRenderData::add_path(unsigned nVertices, Color3 color, Vector3 initPos)
 {
-    if (m_pathMapping.find(object) != m_pathMapping.end()) { return false; }
+    // Find free slot
+    size_t slot = alloc_path();
 
-    PathSegData pathData;
+    // Create path
+    PathSegInfo pathData;
     pathData.m_startIdx = m_nextPathIndex;
     pathData.m_endIdx = m_nextPathIndex + nVertices - 1;
     pathData.m_nextIdx = 0;
@@ -224,9 +239,48 @@ bool MapRenderData::add_path(universe::Satellite object, unsigned nVertices,
     m_mesh.setCount(m_nextPathIndex + nIndices);
     m_nextPathIndex += nIndices;
 
-    m_pathMapping.emplace(object, std::move(pathData));
+    m_pathPool[slot] = std::move(pathData);
 
-    return true;
+    return MapPath{this, slot};
+}
+
+size_t MapRenderData::alloc_path()
+{
+    size_t pathSlot;
+    bool foundSlot = false;
+    for (size_t i = 0; i < m_pathUsed.size(); i++)
+    {
+        if (!m_pathUsed[i])
+        {
+            foundSlot = true;
+            pathSlot = i;
+            m_pathUsed[i] = true;
+            break;
+        }
+    }
+    if (!foundSlot)
+    {
+
+        pathSlot = m_pathPool.size();
+        m_pathPool.push_back(PathSegInfo{});
+        m_pathUsed.push_back(true);
+    }
+    return pathSlot;
+}
+
+void MapRenderData::free_path(MapPath const& path)
+{
+    PathSegInfo& data = m_pathPool[path.m_index];
+
+    ArrayView<GLuint> pathIdxBuf = arrayCast<GLuint>(m_indexBuffer
+        .map(data.m_startIdx * sizeof(GLuint),
+            (data.m_endIdx - data.m_startIdx + 1) * sizeof(GLuint),
+            GL::Buffer::MapFlag::Write | GL::Buffer::MapFlag::Read));
+
+    for (GLuint& i : pathIdxBuf) { i = 0; }
+
+    // Free path
+    m_pathUsed[path.m_index] = false;
 }
 
 Vector3& MapRenderData::get_point_pos(Satellite object)
@@ -234,9 +288,9 @@ Vector3& MapRenderData::get_point_pos(Satellite object)
     return m_points[m_pointMapping.at(object)].m_pos;
 }
 
-void MapRenderData::push_path_pos(Satellite object, Vector3 pos)
+void MapRenderData::push_path_pos(MapPath const& path, Vector3 pos)
 {
-    PathSegData& pathData = m_pathMapping.at(object);
+    PathSegInfo& pathData = m_pathPool.at(path.m_index);
     GLuint begin = pathData.m_startIdx;
     GLuint nElems = pathData.m_endIdx - begin + 1;
     GLuint& index = pathData.m_nextIdx;
@@ -270,9 +324,9 @@ void MapRenderData::push_path_pos(Satellite object, Vector3 pos)
     m_indexBuffer.unmap();
 }
 
-void MapRenderData::write_path_data(Satellite object, std::vector<Vector3> const& data)
+void MapRenderData::write_path_data(MapPath const& path, std::vector<Vector3> const& data)
 {
-    PathSegData& pathData = m_pathMapping.at(object);
+    PathSegInfo& pathData = m_pathPool.at(path.m_index);
     GLuint begin = pathData.m_startIdx;
     GLuint nElems = pathData.m_endIdx - begin + 1;
     GLuint& index = pathData.m_nextIdx;
@@ -303,4 +357,24 @@ void MapRenderData::write_path_data(Satellite object, std::vector<Vector3> const
 void MapRenderData::update()
 {
     m_pointBuffer.setData(m_points, GL::BufferUsage::DynamicDraw);
+}
+
+MapPath::MapPath(MapPath&& move) noexcept
+    : m_owner(std::exchange(move.m_owner, nullptr)), m_index(std::exchange(move.m_index, 0))
+{}
+
+MapPath& MapPath::operator=(MapPath&& move) noexcept
+{
+    m_owner = std::exchange(move.m_owner, nullptr);
+    m_index = std::exchange(move.m_index, 0);
+    return *this;
+}
+
+MapPath::~MapPath()
+{
+    if (m_owner)
+    {
+        m_owner->free_path(*this);
+    }
+    m_owner = nullptr;
 }

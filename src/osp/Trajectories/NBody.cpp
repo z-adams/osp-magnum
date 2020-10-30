@@ -179,7 +179,7 @@ void TrajNBody::fast_update(VIEW_T& view, INPUTVIEW_T& posMassView)
     }
 }
 
-/*void TrajNBody::update()
+void TrajNBody::update()
 {
     double dt = m_timestep;
     auto& reg = m_universe.get_reg();
@@ -203,9 +203,9 @@ void TrajNBody::fast_update(VIEW_T& view, INPUTVIEW_T& posMassView)
         vel += acceleration * dt;
         pos += static_cast<Vector3s>(vel * dt);
     }
-}*/
+}
 
-void TrajNBody::update()
+/*void TrajNBody::update()
 {
     static bool firstTime = true;
     double dt = m_timestep;
@@ -229,7 +229,7 @@ void TrajNBody::update()
         m_justUpdated = false;
     }
     update_world(view);
-}
+}*/
 
 std::vector<Magnum::Vector3> TrajNBody::get_sat_traj(Satellite sat) const
 {

@@ -219,6 +219,8 @@ void magnum_application_map()
     // Add CompDebugObject
     scene.reg_emplace<osp::CompDebugObject>(camera, std::move(camObj));
 
+
+
     // Run game loop
     g_ospMagnum->exec();
 

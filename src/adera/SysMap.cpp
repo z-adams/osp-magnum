@@ -26,7 +26,11 @@ osp::active::SysMap::SysMap(ActiveScene &scene, Universe& universe) :
 // TODO HACK should be default but need to erase MapPath before MapRenderData dies
 SysMap::~SysMap()
 {
-    m_universe.get_reg().clear<MCompPath>();
+    auto view = m_universe.get_reg().view<MCompPath>();
+    for (Satellite sat : view)
+    {
+        m_universe.get_reg().get<MCompPath>(sat).m_path.reset();
+    }
 }
 
 void SysMap::update_map()
@@ -370,7 +374,7 @@ MapPath& MapPath::operator=(MapPath&& move) noexcept
     return *this;
 }
 
-MapPath::~MapPath()
+void MapPath::reset()
 {
     if (m_owner)
     {

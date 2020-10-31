@@ -88,6 +88,12 @@ private:
     template <typename VIEW_T, typename INPUTVIEW_T>
     void fast_update(VIEW_T& view, INPUTVIEW_T& posMassView);
 
+    template <typename VIEW_T, typename INPUTVIEW_T>
+    void fast_update_simd(VIEW_T& view, INPUTVIEW_T& posMassView);
+
+    template <typename VIEW_T, typename INPUTVIEW_T>
+    void fast_update_asm(VIEW_T& view, INPUTVIEW_T& posMassView);
+
     size_t m_stepsAhead;
     size_t m_currentStep;
     SysEvolution m_evol;

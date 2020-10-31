@@ -1,5 +1,6 @@
 #include "NBody.h"
 #include <iostream>
+#include <immintrin.h>
 
 using namespace osp::universe;
 
@@ -159,6 +160,7 @@ void TrajNBody::fast_update(VIEW_T& view, INPUTVIEW_T& posMassView)
         };
         sources.push_back(std::move(source));
     }
+
     for (Satellite asteroid : view)
     {
         auto& pos = view.get<UCompTransformTraj>(asteroid).m_position;
@@ -173,10 +175,190 @@ void TrajNBody::fast_update(VIEW_T& view, INPUTVIEW_T& posMassView)
             double denom = r.x() * r.x() + r.y() * r.y() + r.z() * r.z();
             A += (src.mass / denom) * rHat;
         }
+
         A *= 1024.0 * G;
         vel += A * dt;
         pos += static_cast<Vector3s>(vel * dt);
     }
+}
+
+template<typename VIEW_T, typename INPUTVIEW_T>
+void TrajNBody::fast_update_simd(VIEW_T& view, INPUTVIEW_T& posMassView)
+{
+    double dt = m_timestep;
+    struct Source
+    {
+        Vector3d pos;
+        double mass;
+    };
+    std::vector<Source> sources;
+    sources.reserve(posMassView.size());
+    for (Satellite src : posMassView)
+    {
+        Source source
+        {
+            static_cast<Vector3d>(posMassView.get<UCompTransformTraj>(src).m_position) / 1024.0,
+            posMassView.get<TCompMassG>(src).m_mass
+        };
+        sources.push_back(std::move(source));
+    }
+
+    // SIMD: make sources a multiple of 4
+    size_t padding = sources.size() % 4;
+    for (size_t i = 0; i < padding; i++)
+    {
+        Source fakeSource
+        {
+            Vector3d{1.0, 1.0, 1.0},
+            0.0
+        };
+        sources.push_back(std::move(fakeSource));
+    }
+
+    for (Satellite asteroid : view)
+    {
+        auto& pos = view.get<UCompTransformTraj>(asteroid).m_position;
+        auto& vel = view.get<TCompVel>(asteroid).m_vel;
+        Vector3d posD = static_cast<Vector3d>(pos) / 1024.0;
+
+        // SIMD
+        Vector3d A{0.0};
+        for (size_t i = 0; i < sources.size(); i += 4)
+        {
+            Vector3d r1 = sources[i].pos - posD;
+            Vector3d r2 = sources[i + 1].pos - posD;
+            Vector3d r3 = sources[i + 2].pos - posD;
+            Vector3d r4 = sources[i + 3].pos - posD;
+
+            __m256d masses = _mm256_set_pd(
+                sources[i].mass, sources[i + 1].mass,
+                sources[i + 2].mass, sources[i + 3].mass);
+
+            __m256d denoms = _mm256_set_pd(r1.dot(), r2.dot(), r3.dot(), r4.dot());
+
+            __m256d lengths = _mm256_sqrt_pd(denoms);
+
+            // Normalization coefficient (1/norm)
+            __m256d n = _mm256_div_pd(_mm256_set_pd(1.0, 1.0, 1.0, 1.0), lengths);
+            double n_d[4];
+            _mm256_storeu_pd(n_d, n);
+            // Gravity coefficient (mass / norm^2)
+            __m256d c = _mm256_div_pd(masses, denoms);
+            double c_d[4];
+            _mm256_storeu_pd(c_d, c);
+
+            // Vector operations (1 __m256d per vector, 4th component ignored)
+            __m256d rHat1 = {_mm256_set_pd(r1.x(), r1.y(), r1.z(), 0.0)};
+            __m256d rHat2 = {_mm256_set_pd(r2.x(), r2.y(), r2.z(), 0.0)};
+            __m256d rHat3 = {_mm256_set_pd(r3.x(), r3.y(), r3.z(), 0.0)};
+            __m256d rHat4 = {_mm256_set_pd(r4.x(), r4.y(), r4.z(), 0.0)};
+
+            rHat1 = _mm256_mul_pd(rHat1, _mm256_set_pd(n_d[0], n_d[0], n_d[0], 0.0));
+            rHat2 = _mm256_mul_pd(rHat2, _mm256_set_pd(n_d[1], n_d[1], n_d[1], 0.0));
+            rHat3 = _mm256_mul_pd(rHat3, _mm256_set_pd(n_d[2], n_d[2], n_d[2], 0.0));
+            rHat4 = _mm256_mul_pd(rHat4, _mm256_set_pd(n_d[3], n_d[3], n_d[3], 0.0));
+
+            rHat1 = _mm256_mul_pd(rHat1, _mm256_set_pd(c_d[0], c_d[0], c_d[0], 0.0));
+            rHat2 = _mm256_mul_pd(rHat2, _mm256_set_pd(c_d[1], c_d[1], c_d[1], 0.0));
+            rHat3 = _mm256_mul_pd(rHat3, _mm256_set_pd(c_d[2], c_d[2], c_d[2], 0.0));
+            rHat4 = _mm256_mul_pd(rHat4, _mm256_set_pd(c_d[3], c_d[3], c_d[3], 0.0));
+
+            double rh_d1[4];
+            double rh_d2[4];
+            double rh_d3[4];
+            double rh_d4[4];
+
+            _mm256_storeu_pd(rh_d1, rHat1);
+            _mm256_storeu_pd(rh_d2, rHat2);
+            _mm256_storeu_pd(rh_d3, rHat3);
+            _mm256_storeu_pd(rh_d4, rHat4);
+
+            A.x() += rh_d1[0] + rh_d2[0] + rh_d3[0] + rh_d4[0];
+            A.y() += rh_d1[1] + rh_d2[1] + rh_d3[1] + rh_d4[1];
+            A.z() += rh_d1[2] + rh_d2[2] + rh_d3[2] + rh_d4[2];
+        }
+
+        A *= 1024.0 * G;
+        vel += A * dt;
+        pos += static_cast<Vector3s>(vel * dt);
+    }
+}
+
+extern "C" __m256d fast_linear_update(__m256d ownPos, void* srcs, size_t nSrcs);
+
+template<typename VIEW_T, typename INPUTVIEW_T>
+void TrajNBody::fast_update_asm(VIEW_T& view, INPUTVIEW_T& posMassView)
+{
+    double dt = m_timestep;
+
+    size_t nSources = 0;
+    for (Satellite src : posMassView) { nSources++; }
+
+    /* The data arrays must be padded to a multiple of 4 elements, as the
+       vectorized loop will perform the computation in batches of 4 */
+    size_t padding = nSources % 4;
+    nSources += padding;
+
+    double* sourceMem = (double*)_aligned_malloc(nSources * 4*sizeof(double), 32);
+
+    struct Sources
+    {
+        double* x_vals;
+        double* y_vals;
+        double* z_vals;
+        double* masses;
+    } sources;
+
+    sources.x_vals = sourceMem;
+    sources.y_vals = sourceMem + nSources;
+    sources.z_vals = sourceMem + 2*nSources;
+    sources.masses = sourceMem + 3*nSources;
+
+    size_t i = 0;
+    for (Satellite src : posMassView)
+    {
+        Vector3d v = static_cast<Vector3d>(
+            posMassView.get<UCompTransformTraj>(src).m_position) / 1024.0;
+        double mass = posMassView.get<TCompMassG>(src).m_mass;
+
+        sources.x_vals[i] = v.x();
+        sources.y_vals[i] = v.y();
+        sources.z_vals[i] = v.z();
+        sources.masses[i] = mass;
+
+        i++;
+    }
+    // Fill in fake padding sources
+    for (size_t j = 0; j < padding; j++)
+    {
+        sources.x_vals[i] = 1.0;
+        sources.y_vals[i] = 1.0;
+        sources.z_vals[i] = 1.0;
+        sources.masses[i] = 0.0;
+
+        i++;
+    }
+
+    for (Satellite asteroid : view)
+    {
+        auto& pos = view.get<UCompTransformTraj>(asteroid).m_position;
+        auto& vel = view.get<TCompVel>(asteroid).m_vel;
+        Vector3d posD = static_cast<Vector3d>(pos) / 1024.0;
+        __m256d ownPos = _mm256_set_pd(posD.x(), posD.y(), posD.z(), 0.0);
+
+
+        __m256d a = fast_linear_update(ownPos, &sources, nSources);
+        double conv = 1024.0 * G * dt;
+        __m256d c = _mm256_set_pd(conv, conv, conv, conv);
+        a = _mm256_mul_pd(a, c);
+
+        double data[4];
+        _mm256_storeu_pd(data, a);
+        Vector3d Adt{data[3], data[2], data[1]};
+        vel += Adt;
+        pos += static_cast<Vector3s>(vel * dt);
+    }
+    _aligned_free(sourceMem);
 }
 
 void TrajNBody::update()
@@ -191,7 +373,9 @@ void TrajNBody::update()
 
     // Update asteroids
     auto asteroidView = reg.view<UCompTransformTraj, TCompVel, TCompAsteroid>();
-    fast_update(asteroidView, sourceView);
+    //fast_update(asteroidView, sourceView);
+    //fast_update_simd(asteroidView, sourceView);
+    fast_update_asm(asteroidView, sourceView);
 
     // Update velocities & positions (full dynamics)
     for (Satellite sat : view)

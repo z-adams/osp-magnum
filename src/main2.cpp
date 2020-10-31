@@ -661,7 +661,7 @@ void create_solar_system_map()
     }
 
     // Add asteroids
-    /*constexpr size_t N_ASTEROIDS = 5'000;
+    constexpr size_t N_ASTEROIDS = 5'000;
 
     std::random_device rd{};
     std::mt19937 gen{rd()};
@@ -684,7 +684,7 @@ void create_solar_system_map()
         body.m_velOset = {v(gen), v(gen), v(gen)};
         add_body(asteroid, body, &nbody, typePlanet);
         reg.emplace<universe::TCompAsteroid>(asteroid);
-    }*/
+    }
 }
 
 void debug_print_help()

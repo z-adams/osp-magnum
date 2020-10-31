@@ -38,7 +38,9 @@ public:
     MapPath(MapPath&& move) noexcept;
     MapPath& operator=(MapPath&& move) noexcept;
 
-    ~MapPath();
+    void reset();
+
+    ~MapPath() { reset(); }
 private:
     MapPath(MapRenderData* owner, size_t index) : m_index(index), m_owner(owner) {}
 

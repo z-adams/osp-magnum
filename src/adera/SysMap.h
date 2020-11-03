@@ -122,6 +122,7 @@ public:
     void check_and_initialize_objects();
 
     static Vector3 universe_to_render_space(Vector3s v3s);
+    void set_focus(universe::Satellite sat);
 private:
     static constexpr int m_orbitSamples = 500;
 
@@ -129,6 +130,9 @@ private:
         Magnum::Color3 color = Magnum::Color3{0.25f});
     void set_orbit_circle(osp::universe::Satellite ent, float radius);
     void set_sun_sphere(osp::universe::Satellite ent, float radius);*/
+
+    universe::Satellite m_focus;
+    MapPath m_focusTraj;
 
     universe::Universe& m_universe;
     active::ActiveScene& m_scene;

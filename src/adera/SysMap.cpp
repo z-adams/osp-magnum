@@ -19,8 +19,10 @@ osp::active::SysMap::SysMap(ActiveScene &scene, Universe& universe) :
     m_universe(universe), m_scene(scene),
     m_updateMap(scene.get_update_order(), "map_screen", "physics", "debug",
         std::bind(&SysMap::update_map, this)),
-    m_mapData(scene, 6'000, 35 * m_orbitSamples)
+    m_mapData(scene, 6'000, 25'000)
+    //m_focusTraj(m_mapData.add_path(5000))
 {
+    m_focusTraj = m_mapData.add_path(20000);
 }
 
 // TODO HACK should be default but need to erase MapPath before MapRenderData dies
@@ -44,6 +46,15 @@ void SysMap::update_map()
         auto& tt = reg.get<UCompTransformTraj>(sat);
         
         // Future trajectories
+        if (sat == m_focus)
+        {
+            auto* nbody = dynamic_cast<osp::universe::TrajNBody*>(tt.m_trajectory);
+            if (nbody->just_recomputed())
+            {
+                m_mapData.write_path_data(m_focusTraj, nbody->get_sat_traj(sat));
+            }
+        }
+        
         /*auto* nbody = dynamic_cast<osp::universe::TrajNBody*>(tt.m_trajectory);
         if (nbody->just_recomputed())
         {
@@ -56,11 +67,11 @@ void SysMap::update_map()
         m_mapData.get_point_pos(sat) = renderSpace;
 
         // Trails
-        auto* path = reg.try_get<MCompPath>(sat);
+        /*auto* path = reg.try_get<MCompPath>(sat);
         if (path)
         {
             m_mapData.push_path_pos(path->m_path, renderSpace);
-        }
+        }*/
     }
 
     m_mapData.update();
@@ -77,13 +88,13 @@ void SysMap::check_and_initialize_objects()
         m_mapData.add_point(sat);
     }
 
-    for (Satellite sat : pathView)
+    /*for (Satellite sat : pathView)
     {
         auto& pathComp = reg.emplace<MCompPath>(sat);
         auto& tt = pathView.get<UCompTransformTraj>(sat);
         Vector3 initPos = universe_to_render_space(tt.m_position);
         pathComp.m_path = m_mapData.add_path(m_orbitSamples, tt.m_color, initPos);
-    }
+    }*/
 }
 
 /*void SysMap::set_orbit_circle(Satellite ent, float radius)
@@ -163,6 +174,15 @@ Vector3 SysMap::universe_to_render_space(Vector3s v3s)
     float z = static_cast<double>(v3s.z() / units_per_m) / 1e6;
     return Vector3{x, y, z};
 }
+
+void SysMap::set_focus(Satellite sat)
+{
+    m_focus = sat;
+    auto tt = m_universe.get_reg().get<UCompTransformTraj>(sat);
+    auto* nbody = dynamic_cast<osp::universe::TrajNBody*>(tt.m_trajectory);
+    m_mapData.write_path_data(m_focusTraj, nbody->get_sat_traj(sat));
+}
+
 
 MapRenderData::MapRenderData(ActiveScene& scene, unsigned maxPoints, unsigned maxPathVertices)
     : m_maxPoints(maxPoints), m_maxPathVerts(maxPathVertices),

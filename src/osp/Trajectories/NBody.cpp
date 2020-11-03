@@ -9,7 +9,7 @@ using Magnum::Vector3d;
 TrajNBody::TrajNBody(Universe& universe, Satellite center) :
     CommonTrajectory<TrajNBody>(universe, center)
 {
-    m_stepsAhead = 5'000;
+    m_stepsAhead = 20'000;
     m_currentStep = 9'999;
 }
 
@@ -361,7 +361,7 @@ void TrajNBody::fast_update_asm(VIEW_T& view, INPUTVIEW_T& posMassView)
     _aligned_free(sourceMem);
 }
 
-void TrajNBody::update()
+/*void TrajNBody::update()
 {
     double dt = m_timestep;
     auto& reg = m_universe.get_reg();
@@ -387,9 +387,9 @@ void TrajNBody::update()
         vel += acceleration * dt;
         pos += static_cast<Vector3s>(vel * dt);
     }
-}
+}*/
 
-/*void TrajNBody::update()
+void TrajNBody::update()
 {
     static bool firstTime = true;
     double dt = m_timestep;
@@ -413,7 +413,7 @@ void TrajNBody::update()
         m_justUpdated = false;
     }
     update_world(view);
-}*/
+}
 
 std::vector<Magnum::Vector3> TrajNBody::get_sat_traj(Satellite sat) const
 {

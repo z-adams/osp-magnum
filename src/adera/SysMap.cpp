@@ -19,10 +19,9 @@ osp::active::SysMap::SysMap(ActiveScene &scene, Universe& universe) :
     m_universe(universe), m_scene(scene),
     m_updateMap(scene.get_update_order(), "map_screen", "physics", "debug",
         std::bind(&SysMap::update_map, this)),
-    m_mapData(scene, 6'000, 25'000)
-    //m_focusTraj(m_mapData.add_path(5000))
+    m_mapData(scene, 55'000, 25'000)
 {
-    m_focusTraj = m_mapData.add_path(20000);
+    //m_focusTraj = m_mapData.add_path(20000);
 }
 
 // TODO HACK should be default but need to erase MapPath before MapRenderData dies
@@ -46,14 +45,14 @@ void SysMap::update_map()
         auto& tt = reg.get<UCompTransformTraj>(sat);
         
         // Future trajectories
-        if (sat == m_focus)
+        /*if (sat == m_focus)
         {
             auto* nbody = dynamic_cast<osp::universe::TrajNBody*>(tt.m_trajectory);
             if (nbody->just_recomputed())
             {
                 m_mapData.write_path_data(m_focusTraj, nbody->get_sat_traj(sat));
             }
-        }
+        }*/
         
         /*auto* nbody = dynamic_cast<osp::universe::TrajNBody*>(tt.m_trajectory);
         if (nbody->just_recomputed())
@@ -67,11 +66,11 @@ void SysMap::update_map()
         m_mapData.get_point_pos(sat) = renderSpace;
 
         // Trails
-        /*auto* path = reg.try_get<MCompPath>(sat);
+        auto* path = reg.try_get<MCompPath>(sat);
         if (path)
         {
             m_mapData.push_path_pos(path->m_path, renderSpace);
-        }*/
+        }
     }
 
     m_mapData.update();

@@ -99,7 +99,7 @@ void DebugCameraController::update_physics_post()
                 std::cout << "next\n";
             }
         }
-        m_scene.dynamic_system_get<SysMap>("Map").set_focus(m_orbiting);
+        //m_scene.dynamic_system_get<SysMap>("Map").set_focus(m_orbiting);
         targetValid = universeReg.valid(m_orbiting);
     }
 

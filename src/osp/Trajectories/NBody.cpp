@@ -192,7 +192,7 @@ void TrajNBody::fast_update_simd(VIEW_T& view, INPUTVIEW_T& posMassView)
 
     /* The data arrays must be padded to a multiple of 4 elements, as the
        vectorized loop will perform the computation in batches of 4 */
-    size_t padding = nSources % 4;
+    size_t padding = 4 - (nSources % 4);
     nSources += padding;
 
     double* sourceMem = (double*)_aligned_malloc(nSources * 4 * sizeof(double), 32);

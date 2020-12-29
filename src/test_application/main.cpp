@@ -198,27 +198,26 @@ void load_a_bunch_of_stuff()
     osp::Package lazyDebugPack("lzdb", "lazy-debug");
 
     // Load sturdy glTF files
-    constexpr std::string datapath = "OSPData/adera/";
-    using osp::AssetImporter::load_sturdy_file;
-    //osp::AssetImporter::load_sturdy_file("OSPData/adera/spamcan.sturdy.gltf", lazyDebugPack);
-    //osp::AssetImporter::load_sturdy_file("OSPData/adera/stomper.sturdy.gltf", lazyDebugPack);
-    load_sturdy_file(datapath + "ph_capsule.sturdy.gltf", lazyDebugPack);
-    load_sturdy_file(datapath + "ph_fuselage.sturdy.gltf", lazyDebugPack);
-    load_sturdy_file(datapath + "ph_engine.sturdy.gltf", lazyDebugPack);
-    load_sturdy_file(datapath + "ph_plume.sturdy.gltf", lazyDebugPack);
-    //load_sturdy_file(datapath + "ph_rcs.sturdy.gltf", lazyDebugPack);
-    //load_sturdy_file(datapath + "ph_rcs_plume.sturdy.gltf", lazyDebugPack);
+    const std::string datapath = "OSPData/adera/";
+    /*osp::AssetImporter::load_sturdy_file("OSPData/adera/spamcan.sturdy.gltf", lazyDebugPack);
+    osp::AssetImporter::load_sturdy_file("OSPData/adera/stomper.sturdy.gltf", lazyDebugPack);*/
+    osp::AssetImporter::load_sturdy_file(datapath + "ph_capsule.sturdy.gltf", lazyDebugPack);
+    osp::AssetImporter::load_sturdy_file(datapath + "ph_fuselage.sturdy.gltf", lazyDebugPack);
+    osp::AssetImporter::load_sturdy_file(datapath + "ph_engine.sturdy.gltf", lazyDebugPack);
+    osp::AssetImporter::load_sturdy_file(datapath + "ph_plume.sturdy.gltf", lazyDebugPack);
+    osp::AssetImporter::load_sturdy_file(datapath + "ph_rcs.sturdy.gltf", lazyDebugPack);
+    osp::AssetImporter::load_sturdy_file(datapath + "ph_rcs_plume.sturdy.gltf", lazyDebugPack);
 
     // Immediately load noise textures
-    constexpr std::string noise256 = "noise256";
-    constexpr std::string noise1024 = "noise1024";
-    constexpr std::string n256path = datapath + noise256 + ".png";
-    constexpr std::string n1024path = datapath + noise1024 + ".png";
+    const std::string noise256 = "noise256";
+    const std::string noise1024 = "noise1024";
+    const std::string n256path = datapath + noise256 + ".png";
+    const std::string n1024path = datapath + noise1024 + ".png";
 
     osp::AssetImporter::load_image(n256path, lazyDebugPack);
     osp::AssetImporter::load_image(n1024path, lazyDebugPack);
-    osp::AssetImporter::compile_tex(n256path, lazyDebugPack);
-    osp::AssetImporter::compile_tex(n1024path, lazyDebugPack);
+    /*osp::AssetImporter::compile_tex(n256path, lazyDebugPack);
+    osp::AssetImporter::compile_tex(n1024path, lazyDebugPack);*/
 
     // Add package to the univere
     g_osp.debug_get_packges().push_back(std::move(lazyDebugPack));

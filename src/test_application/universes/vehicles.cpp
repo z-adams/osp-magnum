@@ -170,6 +170,8 @@ Vector3 part_offset(PrototypePart const& attachTo,
         std::string const& attachToName, PrototypePart const& toAttach,
         std::string const& toAttachName)
 {
+    using osp::PrototypeObject;
+
     Vector3 oset1{0.0f};
     Vector3 oset2{0.0f};
 
@@ -195,10 +197,12 @@ Vector3 part_offset(PrototypePart const& attachTo,
 }
 
 
-osp::universe::Satellite debug_add_part_vehicle(
+osp::universe::Satellite testapp::debug_add_part_vehicle(
         osp::universe::Universe& uni, osp::Package& pkg,
         std::string const& name)
 {
+    using namespace Magnum::Math::Literals;
+
     // Start making the blueprint
     BlueprintVehicle blueprint;
 
@@ -280,13 +284,13 @@ osp::universe::Satellite debug_add_part_vehicle(
     Satellite sat = uni.sat_create();
 
     // Set the name
-    auto& posTraj = uni.get_reg().get<universe::UCompTransformTraj>(sat);
+    auto& posTraj = uni.get_reg().get<osp::universe::UCompTransformTraj>(sat);
     posTraj.m_name = name;
 
     // Make it into a vehicle
-    auto& typeVehicle = *static_cast<universe::SatVehicle*>(
+    auto& typeVehicle = *static_cast<osp::universe::SatVehicle*>(
             uni.sat_type_find("Vehicle")->second.get());
-    universe::UCompVehicle& compVeh = typeVehicle.add_get_ucomp(sat);
+    osp::universe::UCompVehicle& compVeh = typeVehicle.add_get_ucomp(sat);
 
     // Set the SatVehicle's blueprint to the one just made
     compVeh.m_blueprint = std::move(depend);

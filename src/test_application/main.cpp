@@ -272,6 +272,21 @@ void load_a_bunch_of_stuff()
     osp::AssetImporter::load_image(n256path, lazyDebugPack);
     osp::AssetImporter::load_image(n1024path, lazyDebugPack);
 
+    // Load cubesphere placeholders
+    constexpr std::array<std::string_view, 6> cubeTexs =
+    {
+        "OSPData/adera/Planet1/surface_diff_pos_x.png",
+        "OSPData/adera/Planet1/surface_diff_neg_x.png",
+        "OSPData/adera/Planet1/surface_diff_pos_y.png",
+        "OSPData/adera/Planet1/surface_diff_neg_y.png",
+        "OSPData/adera/Planet1/surface_diff_pos_z.png",
+        "OSPData/adera/Planet1/surface_diff_neg_z.png",
+    };
+    for (auto& t : cubeTexs)
+    {
+        osp::AssetImporter::load_image(t, lazyDebugPack);
+    }
+
     // Load placeholder fuel type
     using adera::active::machines::ShipResourceType;
     ShipResourceType fuel

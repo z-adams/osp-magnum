@@ -1,6 +1,6 @@
 /**
  * Open Space Program
- * Copyright © 2019-2020 Open Space Program Project
+ * Copyright Â© 2019-2020 Open Space Program Project
  *
  * MIT License
  *
@@ -22,13 +22,26 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#pragma once
+//#version 430 core
 
-namespace osp::phys::constants
+layout(location = 0) in vec4 vertPosition;
+layout(location = 1) in vec2 vertTexCoords;
+layout(location = 5) in vec3 vertNormal;
+
+// Surface normal
+out vec3 normal;
+
+// Sphere normal (center to edge)
+out vec3 radialOut;
+
+layout(location = 0) uniform mat4 projMat;
+layout(location = 1) uniform mat4 modelTransformMat;
+layout(location = 2) uniform mat3 normalMat;
+
+void main()
 {
+    gl_Position = projMat * modelTransformMat * vertPosition;
+    normal = normalMat * vertNormal;
+    radialOut = vertPosition.xyz;
+}
 
-constexpr float g_0 = 9.80665f;
-constexpr float newton_G = 6.67408e-11f;
-
-
-} // namespace osp::phys

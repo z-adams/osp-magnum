@@ -32,6 +32,7 @@
 #include <Magnum/Trade/MeshData.h>
 #include <Magnum/Trade/TextureData.h>
 #include <Magnum/GL/TextureFormat.h>
+#include <Magnum/GL/CubeMapTexture.h>
 #include <Magnum/Trade/ImageData.h>
 #include <Magnum/ImageView.h>
 #include <Magnum/Trade/MaterialData.h>
@@ -300,7 +301,7 @@ void osp::AssetImporter::load_sturdy(TinyGltfImporter& gltfImporter,
 }
 
 DependRes<ImageData2D> osp::AssetImporter::load_image(
-    const std::string& filepath, Package& pkg)
+    std::string_view filepath, Package& pkg)
 {
     using Magnum::Trade::AbstractImporter;
     using Corrade::PluginManager::Manager;
@@ -309,7 +310,7 @@ DependRes<ImageData2D> osp::AssetImporter::load_image(
     Manager<AbstractImporter> manager;
     Pointer<AbstractImporter> importer
         = manager.loadAndInstantiate("AnyImageImporter");
-    if (!importer || !importer->openFile(filepath))
+    if (!importer || !importer->openFile(std::string{filepath}))
     {
         std::cout << "Error: could not open file " << filepath << "\n";
         return DependRes<ImageData2D>();
@@ -386,6 +387,62 @@ DependRes<Magnum::GL::Texture2D> AssetImporter::compile_tex(
         return {};
     }
     return compile_tex(imgData, dstPackage);
+}
+
+DependRes<Magnum::GL::CubeMapTexture> AssetImporter::compile_cubemap(
+    std::string_view resname, std::array<DependRes<ImageData2D>, 6> const& imageData,
+    Package& package)
+{
+    using Magnum::GL::SamplerWrapping;
+    using Magnum::GL::SamplerFilter;
+    using Magnum::GL::textureFormat;
+    using Magnum::GL::CubeMapCoordinate;
+
+    DependRes<ImageData2D> const& firstImg = imageData[0];
+
+    Magnum::Vector2i size = firstImg->size();
+    for (int i = 1; i < 6; i++)
+    {
+        if (imageData[i]->size() != size)
+        {
+            std::cout << "Error: all cubemap faces must have the same image size\n";
+            return {};
+        }
+    }
+
+    Magnum::GL::CubeMapTexture cubemap;
+    cubemap
+        .setMagnificationFilter(SamplerFilter::Linear)
+        .setMinificationFilter(SamplerFilter::Linear)
+        .setStorage(Magnum::Math::log2(256) + 1,
+            textureFormat(firstImg->format()), firstImg->size())
+        .setSubImage(CubeMapCoordinate::PositiveX, 0, {}, *imageData[0])
+        .setSubImage(CubeMapCoordinate::NegativeX, 0, {}, *imageData[1])
+        .setSubImage(CubeMapCoordinate::PositiveY, 0, {}, *imageData[2])
+        .setSubImage(CubeMapCoordinate::NegativeY, 0, {}, *imageData[3])
+        .setSubImage(CubeMapCoordinate::PositiveZ, 0, {}, *imageData[4])
+        .setSubImage(CubeMapCoordinate::NegativeZ, 0, {}, *imageData[5]);
+
+    return package.add<Magnum::GL::CubeMapTexture>(resname, std::move(cubemap));
+}
+
+DependRes<Magnum::GL::CubeMapTexture> AssetImporter::compile_cubemap(
+    std::string_view resname,
+    std::array<std::string_view, 6> imgDataNames,
+    Package& srcPackage, Package& dstPackage)
+{
+    std::array<DependRes<ImageData2D>, 6> imgData;
+
+    for (int i = 0; i < 6; i++)
+    {
+        imgData[i] = srcPackage.get<ImageData2D>(imgDataNames[i]);
+        if (imgData[i].empty())
+        {
+            return {};
+        }
+    }
+
+    return compile_cubemap(resname, imgData, dstPackage);
 }
 
 //either an appendable package, or

@@ -29,6 +29,7 @@
 #include "ActiveScene.h"
 #include "adera/Shaders/Phong.h"
 #include "adera/Shaders/PlumeShader.h"
+#include "adera/Shaders/PlanetShader.h"
 
 
 using namespace osp::active;
@@ -42,6 +43,11 @@ using namespace Magnum::Math::Literals;
 
 void SysDebugRender::add_functions(ActiveScene &rScene)
 {
+    rScene.debug_render_add(rScene.get_render_order(), "debug", "", "",
+                            &SysDebugRender::draw);
+
+    // Initialize some GL resources (temporary)
+
     Package& glResources = rScene.get_context_resources();
 
     using namespace adera::shader;
@@ -51,8 +57,7 @@ void SysDebugRender::add_functions(ActiveScene &rScene)
 
     glResources.add<PlumeShader>("plume_shader");
 
-    rScene.debug_render_add(rScene.get_render_order(), "debug", "", "",
-                            &SysDebugRender::draw);
+    glResources.add<PlanetShader>("planet_shader");
 }
 
 void SysDebugRender::draw(ActiveScene &rScene, ACompCamera const& camera)

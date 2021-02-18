@@ -1,6 +1,6 @@
 /**
  * Open Space Program
- * Copyright © 2019-2020 Open Space Program Project
+ * Copyright Â© 2019-2020 Open Space Program Project
  *
  * MIT License
  *
@@ -22,13 +22,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#pragma once
+//#version 430 core
+//documentation here
 
-namespace osp::phys::constants
+in vec3 normal;
+in vec3 radialOut;
+
+layout(location = 0, index = 0) out vec3 color;
+
+layout(location = 3) uniform samplerCube diffuse;
+
+void main()
 {
-
-constexpr float g_0 = 9.80665f;
-constexpr float newton_G = 6.67408e-11f;
-
-
-} // namespace osp::phys
+    color = texture(diffuse, radialOut).rgb;
+    //color = vec3(1.0);
+}

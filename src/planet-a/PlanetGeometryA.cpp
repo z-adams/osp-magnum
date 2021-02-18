@@ -202,7 +202,7 @@ float debug_stupid_heightmap(Vector3 pos)
     raise += (std::sin(pos.x() / 128.0f) + std::sin(pos.y() / 128.0f) + std::sin(pos.z() / 128.0f)) * 64.0f;
     raise += (std::sin(pos.x() / 500.0f) + std::sin(pos.y() / 500.0f) + std::sin(pos.z() / 500.0f)) * 128.0f;
     raise += (std::sin(pos.x() / 720.0f) + std::sin(pos.y() / 720.0f) + std::sin(pos.z() / 720.0f)) * 512.0f;
-    return raise * 0.0f; // remove 0.0f for fun on the moon
+    return raise;// *0.0f; // remove 0.0f for fun on the moon
 }
 
 void PlanetGeometryA::chunk_add(trindex_t triInd)

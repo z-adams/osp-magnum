@@ -24,6 +24,11 @@
  */
 #include "../Satellites/SatPlanet.h"
 #include "SysPlanetA.h"
+#include "adera/Shaders/PlanetShader.h"
+#include <osp/PhysicsConstants.h>
+#include <osp/Resource/AssetImporter.h>
+#include <osp/Active/SysDebugRender.h>
+#include <osp/string_concat.h>
 
 #include <osp/Active/ActiveScene.h>
 #include <osp/Universe.h>
@@ -79,8 +84,6 @@ SysPlanetA::SysPlanetA(osp::active::ActiveScene &scene,
             [this] (ActiveScene& rScene) { this->update_geometry(rScene); } )
  , m_updatePhysics(scene.get_update_order(), "planet_phys", "planet_geo", "",
             [this] (ActiveScene& rScene) { this->update_physics(rScene); })
- , m_renderPlanetDraw(scene.get_render_order(), "", "", "",
-            [this] (ACompCamera const& camera) { this->draw(camera); })
  , m_debugUpdate(userInput.config_get("debug_planet_update"))
 { }
 
@@ -113,48 +116,9 @@ ActiveEnt SysPlanetA::activate(
 
     auto &rPlanetForceField = rScene.reg_emplace<ACompFFGravity>(planetEnt);
 
-    // gravitational constant
-    static const float sc_GravConst = 6.67408E-11f;
-
-    rPlanetForceField.m_Gmass = loadMePlanet.m_mass * sc_GravConst;
+    rPlanetForceField.m_Gmass = loadMePlanet.m_mass * osp::phys::constants::newton_G;
 
     return planetEnt;
-}
-
-
-void SysPlanetA::draw(osp::active::ACompCamera const& camera)
-{
-    // TODO: move planet drawing to something more generic, like debug drawable
-    //       SysPlanet should NOT be doing rendering
-
-    auto drawGroup = m_scene.get_registry().group<ACompPlanet>(
-                            entt::get<ACompTransform>);
-
-    Matrix4 entRelative;
-
-    for(auto entity: drawGroup)
-    {
-        auto& planet = drawGroup.get<ACompPlanet>(entity);
-        auto& transform = drawGroup.get<ACompTransform>(entity);
-
-        if (planet.m_planet == nullptr)
-        {
-            continue;
-        }
-
-        entRelative = camera.m_inverse * transform.m_transformWorld;
-
-        planet.m_shader
-                //.setDiffuseColor(Magnum::Color4{0.2f, 1.0f, 0.2f, 1.0f})
-                //.setLightPosition({10.0f, 15.0f, 5.0f})
-                .setColor(0x2f83cc_rgbf)
-                .setWireframeColor(0xdcdcdc_rgbf)
-                .setViewportSize(Vector2{Magnum::GL::defaultFramebuffer.viewport().size()})
-                .setTransformationMatrix(entRelative)
-                .setNormalMatrix(entRelative.normalMatrix())
-                .setProjectionMatrix(camera.m_projection)
-                .draw(planet.m_mesh);
-    }
 }
 
 void SysPlanetA::debug_create_chunk_collider(osp::active::ActiveEnt ent,
@@ -259,6 +223,42 @@ void SysPlanetA::update_geometry(ActiveScene& rScene)
 
             //planet_update_geometry(ent, planet);
 
+            // TMP: cubemap texture
+            osp::Package& glResources = rScene.get_context_resources();
+
+            std::string name = osp::string_concat("planet_mesh_",
+                std::to_string(static_cast<int>(ent)));
+            planet.m_mesh = glResources.add<Magnum::GL::Mesh>(name);
+
+            // Generate cubemap
+            osp::DependRes<Magnum::GL::CubeMapTexture> mapRes
+                = glResources.get<Magnum::GL::CubeMapTexture>("testCubemap");
+
+            if (mapRes.empty())
+            {
+                // Compile cubemap
+                constexpr std::array<std::string_view, 6> cubeTexs =
+                {
+                    "OSPData/adera/Planet1/surface_diff_pos_x.png",
+                    "OSPData/adera/Planet1/surface_diff_neg_x.png",
+                    "OSPData/adera/Planet1/surface_diff_pos_y.png",
+                    "OSPData/adera/Planet1/surface_diff_neg_y.png",
+                    "OSPData/adera/Planet1/surface_diff_pos_z.png",
+                    "OSPData/adera/Planet1/surface_diff_neg_z.png",
+                };
+                osp::Package& pkg = rScene.get_application().debug_find_package("lzdb");
+                mapRes = osp::AssetImporter::compile_cubemap("testCubemap", cubeTexs, pkg, glResources);
+            }
+
+            // Emplace renderable
+            using ShaderInstance_t = adera::shader::PlanetShader::ACompPlanetShaderInstance;
+
+            rScene.reg_emplace<ShaderInstance_t>(ent,
+                glResources.get<adera::shader::PlanetShader>("planet_shader"),
+                mapRes);
+            rScene.reg_emplace<osp::active::CompDrawableDebug>(ent,
+                planet.m_mesh, &adera::shader::PlanetShader::draw_planet);
+
             std::cout << "Planet initialized, now making colliders\n";
 
             // temporary: make colliders for all the chunks
@@ -279,7 +279,7 @@ void SysPlanetA::update_geometry(ActiveScene& rScene)
             using Magnum::GL::MeshPrimitive;
             using Magnum::GL::MeshIndexType;
 
-            planet.m_mesh
+            (*planet.m_mesh)
                 .setPrimitive(MeshPrimitive::Triangles)
                 .addVertexBuffer(planet.m_vrtxBufGL, 0,
                                  MeshVisualizer3D::Position{},
@@ -399,7 +399,7 @@ void SysPlanetA::planet_update_geometry(osp::active::ActiveEnt planetEnt,
     //planet.m_indxBufGL.setData(planet.m_planet->get_index_buffer());
     rPlanetGeo.updates_clear();
 
-    rPlanetPlanet.m_mesh.setCount(rPlanetGeo.calc_index_count());
+    rPlanetPlanet.m_mesh->setCount(rPlanetGeo.calc_index_count());
 
     rPlanetGeo.get_ico_tree()->debug_verify_state();
 }

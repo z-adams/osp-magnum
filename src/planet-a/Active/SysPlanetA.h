@@ -35,7 +35,7 @@
 
 #include <Magnum/Shaders/MeshVisualizer.h>
 #include <Magnum/GL/Mesh.h>
-
+#include <Magnum/Trade/ImageData.h>
 
 namespace planeta::active
 {
@@ -44,10 +44,8 @@ struct ACompPlanet
 {
     std::shared_ptr<IcoSphereTree> m_icoTree;
     std::shared_ptr<PlanetGeometryA> m_planet;
-    Magnum::GL::Mesh m_mesh{};
-    Magnum::Shaders::MeshVisualizer3D m_shader{
-            Magnum::Shaders::MeshVisualizer3D::Flag::Wireframe
-            | Magnum::Shaders::MeshVisualizer3D::Flag::NormalDirection};
+    osp::DependRes<Magnum::GL::Mesh> m_mesh{};
+    osp::DependRes<Magnum::Trade::ImageData2D> m_heightmap;
     Magnum::GL::Buffer m_vrtxBufGL{};
     Magnum::GL::Buffer m_indxBufGL{};
     double m_radius;
@@ -67,8 +65,6 @@ public:
     static osp::active::ActiveEnt activate(
             osp::active::ActiveScene &rScene, osp::universe::Universe &rUni,
             osp::universe::Satellite areaSat, osp::universe::Satellite tgtSat);
-
-    void draw(osp::active::ACompCamera const& camera);
 
     void debug_create_chunk_collider(osp::active::ActiveEnt ent,
                                      ACompPlanet &planet,
@@ -90,8 +86,6 @@ private:
     osp::active::UpdateOrderHandle_t m_updateActivate;
     osp::active::UpdateOrderHandle_t m_updateGeometry;
     osp::active::UpdateOrderHandle_t m_updatePhysics;
-
-    osp::active::RenderOrderHandle_t m_renderPlanetDraw;
 
     osp::ButtonControlHandle m_debugUpdate;
 };

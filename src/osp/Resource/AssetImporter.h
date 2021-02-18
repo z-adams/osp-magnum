@@ -30,6 +30,7 @@
 #include <MagnumPlugins/StbImageImporter/StbImageImporter.h>
 #include <Corrade/PluginManager/Manager.h>
 #include <Magnum/GL/Texture.h>
+#include <Magnum/GL/CubeMapTexture.h>
 #include <Magnum/Trade/ImageData.h>
 #include <Magnum/Trade/MeshData.h>
 
@@ -63,7 +64,7 @@ public:
      * @param package [out] Package to put image data into
      */
     static DependRes<Magnum::Trade::ImageData2D> load_image(
-        const std::string& filepath, Package& package);
+        std::string_view filepath, Package& package);
 
     /**
      * Compile MeshData into an OpenGL Mesh object
@@ -90,6 +91,39 @@ public:
         const DependRes<Magnum::Trade::ImageData2D> imageData, Package& package);
     static DependRes<Magnum::GL::Texture2D> compile_tex(
         std::string_view imageDataName, Package& srcPackage, Package& dstPackage);
+
+    /**
+     * Compile 6 ImageData2D into an OpenGL CubeMap texture object
+     * 
+     * Takes an ImageData2D for each of positive and negative X, Y, and Z, and
+     * compiles it into a Magnum::CubeMapTexture for use in shaders.
+     * 
+     * OpenGL defines the following ordering for cubemap faces, which is the
+     * order in which they should be specified in the input array:
+     * 
+     *  #   Axis   Direction
+     * -----------------------
+     *  1 |  +X  |  Right
+     *  2 |  -X  |  Left
+     *  3 |  +Y  |  Top
+     *  4 |  -Y  |  Bottom
+     *  5 |  +Z  |  Back
+     *  6 |  -Z  |  Front
+     * 
+     * @param resname   [in]  The desired name of the resulting cubemap
+     * @param imageData [in]  Array of imagedata to fill cubemap, using OpenGL ordering
+     * @param package   [out] Package to put CubeMapTexture into
+     * 
+     * @return the new resource
+     */
+    static DependRes<Magnum::GL::CubeMapTexture> compile_cubemap(
+        std::string_view resname,
+        std::array<DependRes<Magnum::Trade::ImageData2D>, 6> const& imageData,
+        Package& package);
+    static DependRes<Magnum::GL::CubeMapTexture> compile_cubemap(
+        std::string_view resname,
+        std::array<std::string_view, 6> imgDataNames,
+        Package& srcPackage, Package& dstPackage);
 private:
 
     /**

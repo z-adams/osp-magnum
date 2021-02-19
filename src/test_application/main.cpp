@@ -236,6 +236,22 @@ void load_a_bunch_of_stuff()
     osp::AssetImporter::load_image(n256path, lazyDebugPack);
     osp::AssetImporter::load_image(n1024path, lazyDebugPack);
 
+    //  Load cubesphere textures
+    constexpr osp::AssetImporter::CubemapImageNames_t cubeTextures =
+    {
+        "OSPData/adera/cubemaps/placeholder/posX.png",
+        "OSPData/adera/cubemaps/placeholder/negX.png",
+        "OSPData/adera/cubemaps/placeholder/posY.png",
+        "OSPData/adera/cubemaps/placeholder/negY.png",
+        "OSPData/adera/cubemaps/placeholder/posZ.png",
+        "OSPData/adera/cubemaps/placeholder/negZ.png"
+    };
+    for (auto& t : cubeTextures)
+    {
+        osp::AssetImporter::load_image(t, lazyDebugPack);
+    }
+
+
     // Load placeholder fuel type
     using adera::active::machines::ShipResourceType;
     ShipResourceType fuel

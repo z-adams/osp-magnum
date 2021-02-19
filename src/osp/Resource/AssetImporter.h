@@ -30,6 +30,7 @@
 #include <MagnumPlugins/StbImageImporter/StbImageImporter.h>
 #include <Corrade/PluginManager/Manager.h>
 #include <Magnum/GL/Texture.h>
+#include <Magnum/GL/CubeMapTexture.h>
 #include <Magnum/Trade/ImageData.h>
 #include <Magnum/Trade/MeshData.h>
 
@@ -63,33 +64,139 @@ public:
      * @param package [out] Package to put image data into
      */
     static DependRes<Magnum::Trade::ImageData2D> load_image(
-        const std::string& filepath, Package& package);
+        std::string_view filepath, Package& package);
 
     /**
      * Compile MeshData into an OpenGL Mesh object
      *
-     * Takes the MeshData object from the package and compiles it into a Mesh
-     * which can then be drawn
-     * @param meshData [in] MeshData resource
-     * @param package [out] Package to put Mesh resource into
+     * Takes a MeshData object, compiles it into a Mesh object, and places
+     * it into the package
+     * 
+     * @param meshData [in]  MeshData resource
+     * @param package  [out] Package to put Mesh resource into
+     * 
+     * @return DependRes to the new Mesh resource
      */
     static DependRes<Magnum::GL::Mesh> compile_mesh(
         const DependRes<Magnum::Trade::MeshData> meshData, Package& package);
+
+    /**
+     * Fetch and compile MeshData into an OpenGL Mesh object
+     *
+     * Attempts to retrieve a MeshData with the specified name from the source
+     * package, compile it, and place it into the destination package
+     * 
+     * @param meshDataName [in]  Name of the MeshData resource
+     * @param srcPackage   [in]  Package storing the MeshData
+     * @param dstPackage   [out] Package to put new Mesh resource into
+     * 
+     * @return DependRes to the new Mesh resource
+     */
     static DependRes<Magnum::GL::Mesh> compile_mesh(
         std::string_view meshDataName, Package& srcPackage, Package& dstPackage);
 
     /**
      * Compile ImageData2D into an OpenGL Texture2D object
      *
-     * Takes the ImageData2D object from the package and compiles it into a
-     * Texture2D which can then be used by shaders
-     * @param imageData [in] ImageData2D resource
-     * @param package [out] Package to put Texture2D resource into
+     * Takes the ImageData2D object, compiles it into a Texture2D, and places
+     * it into the specified package
+     * 
+     * @param imageData [in]  ImageData2D resource
+     * @param package   [out] Package to put Texture2D resource into
+     * 
+     * @return DependRes to the new Texture2D resource
      */
     static DependRes<Magnum::GL::Texture2D> compile_tex(
         const DependRes<Magnum::Trade::ImageData2D> imageData, Package& package);
+
+    /**
+     * Fetch and compile ImageData2D into an OpenGL Texture2D object
+     *
+     * Attempts to retrieve an ImageData2D object with the specified name from
+     * the source package, compile it, and place it into the destination package
+     *
+     * @param imageDataName [in]  Name of the ImageData2D resource
+     * @param srcPackage    [in]  Package storing the ImageData2D
+     * @param dstPackage    [out] Package to put new Texture2D resource into
+     *
+     * @return DependRes to the new Texture2D resource
+     */
     static DependRes<Magnum::GL::Texture2D> compile_tex(
         std::string_view imageDataName, Package& srcPackage, Package& dstPackage);
+
+    enum ECubeMapSideIndex
+    {
+        PosX = 0,
+        NegX = 1,
+        PosY = 2,
+        NegY = 3,
+        PosZ = 4,
+        NegZ = 5
+    };
+
+    using CubemapImageData_t = std::array<DependRes<Magnum::Trade::ImageData2D>, 6>;
+    using CubemapImageNames_t = std::array<std::string_view, 6>;
+
+    /**
+     * Compile 6 ImageData2D into an OpenGL CubeMap texture object
+     *
+     * Takes an ImageData2D for each of positive and negative X, Y, and Z, and
+     * compiles it into a CubeMapTexture for use in shaders.
+     *
+     * OpenGL defines the following ordering for cubemap faces, which is the
+     * order in which they should be specified in the input array:
+     *
+     *  #   Axis   Direction
+     * -----------------------
+     *  0 |  +X  |  Right
+     *  1 |  -X  |  Left
+     *  2 |  +Y  |  Top
+     *  3 |  -Y  |  Bottom
+     *  4 |  +Z  |  Back
+     *  5 |  -Z  |  Front
+     *
+     * @param resName   [in]  The desired name of the resulting CubeMapTexture
+     * @param imageData [in]  Array of imagedata to fill cubemap, using OpenGL ordering
+     * @param package   [out] Package to put new CubeMapTexture resource into
+     *
+     * @return DependRes to the new CubeMapTexture resource
+     */
+    static DependRes<Magnum::GL::CubeMapTexture> compile_cubemap(
+        std::string_view resName,
+        CubemapImageData_t const& imageData,
+        Package& package);
+
+    /**
+     * Fetch and compile ImageData2D into an OpenGL CubeMapTexture
+     * 
+     * Takes an array of names corresponding to ImageData2D objects in the
+     * source package, compiles them into a cubemap texture, and stores it in
+     * the destination package.
+     * 
+     * OpenGL defines the following ordering for cubemap faces, which is the
+     * order in which they should be specified in the input array:
+     *
+     *  #   Axis   Direction
+     * -----------------------
+     *  0 |  +X  |  Right
+     *  1 |  -X  |  Left
+     *  2 |  +Y  |  Top
+     *  3 |  -Y  |  Bottom
+     *  4 |  +Z  |  Back
+     *  5 |  -Z  |  Front
+     * 
+     * @param resName        [in]  The desired name of the resulting CubeMapTexture
+     * @param imageDataNames [in]  Array of names of ImageData2D objects to fill
+                                   cubemap, using OpenGL ordering
+     * @param srcPackage     [out] Package to fetch image data from
+     * @param dstPackage     [out] Package to put new CubeMapTexture resource into
+     * 
+     * @return DependRes to the new CubeMapTexture resource
+     */
+    static DependRes<Magnum::GL::CubeMapTexture> compile_cubemap(
+        std::string_view resName,
+        CubemapImageNames_t imgDataNames,
+        Package& srcPackage, Package& dstPackage);
 private:
 
     /**

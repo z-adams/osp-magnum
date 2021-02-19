@@ -29,6 +29,7 @@
 #include "ActiveScene.h"
 #include "adera/Shaders/Phong.h"
 #include "adera/Shaders/PlumeShader.h"
+#include "adera/Shaders/PlanetShader.h"
 
 
 using namespace osp::active;
@@ -54,6 +55,8 @@ SysDebugRender::SysDebugRender(ActiveScene &rScene) :
         Phong{Magnum::Shaders::Phong::Flag::DiffuseTexture});
 
     glResources.add<PlumeShader>("plume_shader");
+
+    glResources.add<PlanetShader>("planet_shader");
 }
 
 void SysDebugRender::draw(ACompCamera const& camera)

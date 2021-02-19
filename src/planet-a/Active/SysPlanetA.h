@@ -35,24 +35,46 @@
 
 #include <Magnum/Shaders/MeshVisualizer.h>
 #include <Magnum/GL/Mesh.h>
+#include <Magnum/GL/CubeMapTexture.h>
 
 
 namespace planeta::active
 {
 
+struct CubeMapDef
+{
+    std::string m_name;
+    std::array<std::string, 6> m_sidePaths;
+};
+
+struct TerrainDataPaths
+{
+    CubeMapDef m_diffuseCM;
+    //CubeMapDef_t m_specular;
+    //CubeMapDef_t m_normal;
+    //CubeMapDef_t m_heightmap;
+};
+
+struct TerrainData
+{
+    TerrainDataPaths m_resourcePaths;
+    osp::DependRes<Magnum::GL::CubeMapTexture> m_diffuse;
+    //osp::DependRes<Magnum::GL::CubeMapTexture> m_heightmap;...
+};
+
 struct ACompPlanet
 {
     std::shared_ptr<IcoSphereTree> m_icoTree;
     std::shared_ptr<PlanetGeometryA> m_planet;
-    Magnum::GL::Mesh m_mesh{};
+    osp::DependRes<Magnum::GL::Mesh> m_mesh{};
     Magnum::Shaders::MeshVisualizer3D m_shader{
             Magnum::Shaders::MeshVisualizer3D::Flag::Wireframe
             | Magnum::Shaders::MeshVisualizer3D::Flag::NormalDirection};
     Magnum::GL::Buffer m_vrtxBufGL{};
     Magnum::GL::Buffer m_indxBufGL{};
     double m_radius;
+    TerrainData m_terrainData;  // TODO eventually move to separate component
 };
-
 
 class SysPlanetA : public osp::active::IDynamicSystem
 {
@@ -67,8 +89,6 @@ public:
     static osp::active::ActiveEnt activate(
             osp::active::ActiveScene &rScene, osp::universe::Universe &rUni,
             osp::universe::Satellite areaSat, osp::universe::Satellite tgtSat);
-
-    void draw(osp::active::ACompCamera const& camera);
 
     void debug_create_chunk_collider(osp::active::ActiveEnt ent,
                                      ACompPlanet &planet,
@@ -85,13 +105,14 @@ public:
 
 private:
 
+    static void emplace_graphics_components(osp::active::ActiveScene& rScene,
+        osp::active::ActiveEnt planetEnt);
+
     osp::active::ActiveScene &m_scene;
 
     osp::active::UpdateOrderHandle_t m_updateActivate;
     osp::active::UpdateOrderHandle_t m_updateGeometry;
     osp::active::UpdateOrderHandle_t m_updatePhysics;
-
-    osp::active::RenderOrderHandle_t m_renderPlanetDraw;
 
     osp::ButtonControlHandle m_debugUpdate;
 };

@@ -102,10 +102,35 @@ void SysMachineContainer::update_containers(ActiveScene& rScene)
 Machine& SysMachineContainer::instantiate(ActiveEnt ent,
     PrototypeMachine config, BlueprintMachine settings)
 {
-    float capacity = std::get<double>(config.m_config["capacity"]);
+    // Get container shape (defaults to CYLINDER if none found)
+    phys::ECollisionShape containerShape{phys::ECollisionShape::CYLINDER};
+    if (auto resItr = settings.m_config.find("shape");
+        resItr != settings.m_config.end())
+    {
+        std::string_view shapeName = std::get<std::string>(resItr->second);
+        containerShape = phys::shape_from_name(shapeName);
+    }
 
+    /* Get container volume
+     *
+     * User may override tank capacity with "capacity_override" key, otherwise
+     * the volume will be calculated from the shape and scale of the entity
+     */
+    float capacity = 0.0f;
+    if (auto resItr = settings.m_config.find("capacity_override");
+        resItr != settings.m_config.end())
+    {
+        capacity = std::get<double>(config.m_config["capacity_override"]);
+    }
+    else
+    {
+        Vector3 scale = m_scene.reg_get<ACompTransform>(ent).m_transform.scaling();
+        capacity = phys::shape_volume(containerShape, scale);
+    }
+
+    // Get the resource stored by the container
     ShipResource resource{};
-    if (auto resItr = settings.m_config.find("resourcename");
+    if (auto resItr = settings.m_config.find("resource_name");
         resItr != settings.m_config.end())
     {
         std::string_view resName = std::get<std::string>(resItr->second);
@@ -113,14 +138,12 @@ Machine& SysMachineContainer::instantiate(ActiveEnt ent,
         Package& pkg = m_scene.get_application().debug_find_package(resPath.prefix);
 
         resource.m_type = pkg.get<ShipResourceType>(resPath.identifier);
-        double fuelLevel = std::get<double>(settings.m_config["fuellevel"]);
+        double fuelLevel = std::get<double>(settings.m_config["fuel_level"]);
         resource.m_quantity = resource.m_type->resource_capacity(capacity * fuelLevel);
     }
 
     m_scene.reg_emplace<ACompMass>(ent, 0.0f);
-    // All tanks are cylindrical for now
-    m_scene.reg_emplace<ACompShape>(ent, phys::ECollisionShape::CYLINDER);
-
+    m_scene.reg_emplace<ACompShape>(ent, containerShape);
     return m_scene.reg_emplace<MachineContainer>(ent, ent, capacity, resource);
 }
 

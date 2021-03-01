@@ -219,7 +219,15 @@ void load_a_bunch_of_stuff()
         "ph_engine.sturdy.gltf",
         "ph_plume.sturdy.gltf",
         "ph_rcs.sturdy.gltf",
-        "ph_rcs_plume.sturdy.gltf"
+        "ph_rcs_plume.sturdy.gltf",
+        "ph_lander_capsule.sturdy.gltf",
+        "ph_lander_fuselage.sturdy.gltf",
+        "ph_lander_leg.sturdy.gltf",
+        "ph_lander_ME.sturdy.gltf",
+        "ph_lander_rcs45.sturdy.gltf",
+        "ph_lander_rcsplume.sturdy.gltf",
+        "ph_lander_plume.sturdy.gltf"
+
     };
     for (auto meshName : meshes)
     {
@@ -244,11 +252,32 @@ void load_a_bunch_of_stuff()
         "Rocket fuel", // display name
         1 << 16,       // quanta per unit
         1.0f,          // volume per unit (m^3)
-        1000.0f,       // mass per unit (kg)
-        1000.0f        // density (kg/m^3)
+        1000.0f        // mass per unit (kg)
     };
 
-    lazyDebugPack.add<ShipResourceType>("fuel", std::move(fuel));
+    // Load Aerozine 50 fuel
+    ShipResourceType aero50
+    {
+        "aero50",
+        "Aerozine 50",
+        1 << 16,
+        1.0f,
+        903.0f
+    };
+
+    // Load N2O4 (Nitrogen Tetroxide) oxidizer
+    ShipResourceType nto
+    {
+        "nto",
+        "Nitrogen Tetroxide",
+        1 << 16,
+        1.0f,
+        1450.0f
+    };
+
+    lazyDebugPack.add<ShipResourceType>(fuel.m_identifier, std::move(fuel));
+    lazyDebugPack.add<ShipResourceType>(aero50.m_identifier, std::move(aero50));
+    lazyDebugPack.add<ShipResourceType>(nto.m_identifier, std::move(nto));
 
     // Add package to the univere
     g_osp.debug_add_package(std::move(lazyDebugPack));

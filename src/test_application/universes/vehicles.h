@@ -77,6 +77,9 @@ osp::universe::Satellite debug_add_part_vehicle(
     osp::universe::Universe& uni, osp::Package& pkg,
     std::string_view name);
 
+osp::universe::Satellite debug_add_lander(
+    osp::universe::Universe& uni, osp::Package& pkg,
+    std::string_view name);
 // TODO: put test with creating a universe with just vehicles
 
 }

@@ -25,6 +25,7 @@
 #pragma once
 
 #include "types.h"
+#include <string_view>
 
 namespace osp::phys
 {
@@ -61,6 +62,8 @@ enum class ECollisionShape : uint8_t
  * @return the volume of the shape in m^3
  */
 float shape_volume(ECollisionShape shape, Vector3 scale);
+
+ECollisionShape shape_from_name(std::string_view name);
 
 // Formerly SysNewton
 /**

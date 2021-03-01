@@ -91,7 +91,9 @@ struct PrototypeObject
     std::vector<unsigned> m_machineIndices;
 };
 
-using config_node_t = std::variant<double, int, std::string>;
+using config_node_t = std::variant<
+    double, int, std::string,
+    std::vector<double>, std::vector<int>, std::vector<std::string>>;
 
 struct PrototypeMachine
 {

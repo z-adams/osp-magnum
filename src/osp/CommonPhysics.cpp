@@ -57,6 +57,28 @@ float shape_volume(ECollisionShape shape, Vector3 scale)
     }
 }
 
+ECollisionShape shape_from_name(std::string_view name)
+{
+    if (name.compare("sphere") == 0)
+    {
+        return ECollisionShape::SPHERE;
+    }
+    else if (name.compare("box") == 0)
+    {
+        return ECollisionShape::BOX;
+    }
+    else if (name.compare("cylinder") == 0)
+    {
+        return ECollisionShape::CYLINDER;
+    }
+    else if (name.compare("capsule") == 0)
+    {
+        return ECollisionShape::CAPSULE;
+    }
+
+    return ECollisionShape::NONE;
+}
+
 Matrix3 transform_inertia_tensor(Matrix3 I, float mass, Vector3 translation, Matrix3 rotation)
 {
     // Apply rotation via similarity transformation

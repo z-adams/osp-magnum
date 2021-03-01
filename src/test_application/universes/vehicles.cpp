@@ -303,3 +303,134 @@ osp::universe::Satellite testapp::debug_add_part_vehicle(
 
     return sat;
 }
+
+Satellite testapp::debug_add_lander(Universe& uni, Package& pkg, std::string_view name)
+{
+    using namespace Magnum::Math::Literals;
+
+    // Start making the blueprint
+    BlueprintVehicle blueprint;
+
+    // Parts
+    DependRes<PrototypePart> capsule = pkg.get<PrototypePart>("part_ph_landerCapsule");
+    DependRes<PrototypePart> fuselage = pkg.get<PrototypePart>("part_ph_landerFuselage");
+    DependRes<PrototypePart> engine = pkg.get<PrototypePart>("part_ph_landerME");
+    DependRes<PrototypePart> leg = pkg.get<PrototypePart>("part_ph_landerLeg");
+    //DependRes<PrototypePart> rcs = pkg.get<PrototypePart>("part_ph_rcs45");
+
+    Vector3 cfOset = part_offset(*capsule, "attach_bottom",
+        *fuselage, "attach_top");
+    Vector3 feOset = part_offset(*fuselage, "attach_eng",
+        *engine, "attach_engPoint");
+    Vector3 leg0 = part_offset(*fuselage, "attach_fuselageLeg0",
+        *leg, "attach_leg");
+    Vector3 leg90 = part_offset(*fuselage, "attach_fuselageLeg90",
+        *leg, "attach_leg");
+    Vector3 leg180 = part_offset(*fuselage, "attach_fuselageLeg180",
+        *leg, "attach_leg");
+    Vector3 leg270 = part_offset(*fuselage, "attach_fuselageLeg270",
+        *leg, "attach_leg");
+    //Vector3 rcsOsetTop = cfOset + Vector3{1.0f, 0.0f, 2.0f};
+    //Vector3 rcsOsetBtm = cfOset + Vector3{1.0f, 0.0f, -2.0f};
+
+    Quaternion idRot;
+    Vector3 scl{1};
+    Magnum::Rad qtrTurn(-90.0_degf);
+    Quaternion rotY_090 = Quaternion::rotation(qtrTurn, Vector3{0, 1, 0});
+    Quaternion rotZ_090 = Quaternion::rotation(qtrTurn, Vector3{0, 0, 1});
+    Quaternion rotZ_180 = Quaternion::rotation(2 * qtrTurn, Vector3{0, 0, 1});
+    Quaternion rotZ_270 = Quaternion::rotation(3 * qtrTurn, Vector3{0, 0, 1});
+
+    blueprint.add_part(capsule, Vector3{0}, idRot, scl);
+
+    auto& fuselageBP = blueprint.add_part(fuselage, cfOset, idRot, scl);
+    fuselageBP.m_machines[0].m_config.emplace("resourcename", "lzdb:fuel");
+    fuselageBP.m_machines[0].m_config.emplace("fuellevel", 0.5);
+
+    auto& engBP = blueprint.add_part(engine, cfOset + feOset, idRot, scl);
+
+    blueprint.add_part(leg, cfOset + leg0, rotZ_090, scl);
+    blueprint.add_part(leg, cfOset + leg90, idRot, scl);
+    blueprint.add_part(leg, cfOset + leg180, rotZ_270, scl);
+    blueprint.add_part(leg, cfOset + leg270, rotZ_180, scl);
+
+    Quaternion yz090 = rotZ_090 * rotY_090;
+    Quaternion yz180 = rotZ_180 * rotY_090;
+    Quaternion yz270 = rotZ_270 * rotY_090;
+
+    // Top RCS ring
+    /*blueprint.add_part(rcs, rcsOsetTop, rotY_090, scl);
+    blueprint.add_part(rcs, rotZ_090.transformVector(rcsOsetTop), yz090, scl);
+    blueprint.add_part(rcs, rotZ_180.transformVector(rcsOsetTop), yz180, scl);
+    blueprint.add_part(rcs, rotZ_270.transformVector(rcsOsetTop), yz270, scl);
+
+    // Top RCS ring
+    blueprint.add_part(rcs, rcsOsetBtm, rotY_090, scl);
+    blueprint.add_part(rcs, rotZ_090.transformVector(rcsOsetBtm), yz090, scl);
+    blueprint.add_part(rcs, rotZ_180.transformVector(rcsOsetBtm), yz180, scl);
+    blueprint.add_part(rcs, rotZ_270.transformVector(rcsOsetBtm), yz270, scl);*/
+
+    enum Parts
+    {
+        CAPSULE = 0,
+        FUSELAGE = 1,
+        ENGINE = 2,
+        RCS1 = 3,
+        RCS2 = 4,
+        RCS3 = 5,
+        RCS4 = 6,
+        RCS5 = 7,
+        RCS6 = 8,
+        RCS7 = 9,
+        RCS8 = 10
+    };
+
+    std::vector<int> rcsPorts = {RCS1, RCS2, RCS3, RCS4, RCS5, RCS6, RCS7, RCS8};
+
+    // Wire throttle control
+    // from (output): a MachineUserControl m_woThrottle
+    // to    (input): a MachineRocket m_wiThrottle
+    blueprint.add_wire(
+        Parts::CAPSULE, 0, 1,
+        Parts::ENGINE, 0, 2);
+
+    // Wire attitude contrl to gimbal
+    // from (output): a MachineUserControl m_woAttitude
+    // to    (input): a MachineRocket m_wiGimbal
+    blueprint.add_wire(
+        Parts::CAPSULE, 0, 0,
+        Parts::ENGINE, 0, 0);
+
+    // Pipe fuel tank to rocket engine
+    // from (output): fuselage MachineContainer m_outputs;
+    // to    (input): entine MachineRocket m_resourcesLines[0]
+    blueprint.add_wire(Parts::FUSELAGE, 0, 0,
+        Parts::ENGINE, 0, 3);
+
+    /*for (auto port : rcsPorts)
+    {
+        // Attitude control -> RCS Control
+        blueprint.add_wire(Parts::CAPSULE, 0, 0,
+            port, 0, 0);
+        // RCS Control -> RCS Rocket
+        blueprint.add_wire(port, 0, 0,
+            port, 1, 2);
+        // Fuselage tank -> RCS Rocket
+        blueprint.add_wire(Parts::FUSELAGE, 0, 0,
+            port, 1, 3);
+    }*/
+
+    // Put blueprint in package
+    auto depend = pkg.add<BlueprintVehicle>(std::string{name}, std::move(blueprint));
+
+    Satellite sat = uni.sat_create();
+
+    // Set the name
+    auto& posTraj = uni.get_reg().get<osp::universe::UCompTransformTraj>(sat);
+    posTraj.m_name = name;
+
+    // Make the satellite into a vehicle
+    SatVehicle::add_vehicle(uni, sat, std::move(depend));
+
+    return sat;
+}

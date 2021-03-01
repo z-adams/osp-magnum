@@ -251,15 +251,22 @@ Machine& SysMachineRocket::instantiate(ActiveEnt ent, PrototypeMachine config,
     params.m_maxThrust = std::get<double>(config.m_config["thrust"]);
     params.m_specImpulse = std::get<double>(config.m_config["Isp"]);
 
-    std::string const& fuelIdent = std::get<std::string>(config.m_config["fueltype"]);
-    Path resPath = decompose_path(fuelIdent);
-    Package& pkg = m_scene.get_application().debug_find_package(resPath.prefix);
-    DependRes<ShipResourceType> fuel = pkg.get<ShipResourceType>(resPath.identifier);
-
+    auto& fuelIdent = std::get<std::vector<std::string>>(config.m_config["input_names"]);
+    auto& massRates = std::get<std::vector<double>>(config.m_config["input_mass_rate_fractions"]);
+    assert(fuelIdent.size() == massRates.size());
     std::vector<MachineRocket::input_t> inputs;
-    if (!fuel.empty())
+    for (size_t i = 0; i < fuelIdent.size(); i++)
     {
-        inputs.push_back({std::move(fuel), 1.0f});
+        std::string_view identifier = fuelIdent[i];
+        double massRate = massRates[i];
+
+        Path resPath = decompose_path(identifier);
+        Package& pkg = m_scene.get_application().debug_find_package(resPath.prefix);
+        DependRes<ShipResourceType> input = pkg.get<ShipResourceType>(resPath.identifier);
+        if (!input.empty())
+        {
+            inputs.push_back({std::move(input), massRate});
+        }
     }
 
     attach_plume_effect(ent);

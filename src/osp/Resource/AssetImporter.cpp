@@ -23,6 +23,7 @@
  * SOFTWARE.
  */
 #include <iostream>
+#include <vector>
 
 #include <Corrade/Containers/Optional.h>
 #include <Corrade/PluginManager/Manager.h>
@@ -38,7 +39,6 @@
 #include <Magnum/Trade/PbrMetallicRoughnessMaterialData.h>
 #include <Magnum/MeshTools/Compile.h>
 #include <Magnum/GL/Mesh.h>
-
 
 #include <MagnumExternal/TinyGltf/tiny_gltf.h>
 
@@ -79,6 +79,72 @@ void osp::AssetImporter::load_sturdy_file(std::string_view filepath, Package& pk
     gltfImporter.close();
 }
 
+osp::config_node_t AssetImporter::parse_config(tinygltf::Value const& value,
+    std::string_view key)
+{
+    std::cout << "Read config '" << key << "' : ";
+    tinygltf::Value const v = value.Get(std::string{key});
+    switch (v.Type())
+    {
+    case tinygltf::Type::REAL_TYPE:
+    {
+        double val = v.Get<double>();
+        std::cout << val << " (real)\n";
+        return {val};
+    }
+
+    case tinygltf::Type::INT_TYPE:
+    {
+        int val = v.Get<int>();
+        std::cout << val << " (int)\n";
+        return {val};
+    }
+    case tinygltf::Type::STRING_TYPE:
+    {
+        std::string val = v.Get<std::string>();
+        std::cout << val << "(string)\n";
+        return {val};
+    }
+    case tinygltf::Type::ARRAY_TYPE:
+    {
+        std::cout << "(array of ";
+        auto& vec = v.Get<std::vector<tinygltf::Value>>();
+        if (vec.size() > 0)
+        {
+            switch (vec[0].Type())
+            {
+            case tinygltf::Type::REAL_TYPE:
+            {
+                std::cout << "real)\n";
+                return {parse_tinygltf_array<double>(v)};
+            }
+            case tinygltf::INT_TYPE:
+            {
+                std::cout << "int)\n";
+                return {parse_tinygltf_array<int>(v)};
+            }
+            case tinygltf::Type::STRING_TYPE:
+            {
+                std::cout << "string)\n";
+                return {parse_tinygltf_array<std::string>(v)};
+            }
+            default:
+            {
+                std::cout << "UNKNOWN)\n";
+                return {};
+            }
+            }
+        }
+        std::cout << " NULL)\n";
+        return {};
+    }
+    default:
+        std::cout << "(UNKNOWN)\n";
+        return {};
+    }
+    return {};
+}
+
 std::vector<unsigned> AssetImporter::load_machines(tinygltf::Value const& extras,
     std::vector<PrototypeMachine>& machineArray)
 {
@@ -114,36 +180,7 @@ std::vector<unsigned> AssetImporter::load_machines(tinygltf::Value const& extras
 
         for (auto const& key : value.Keys())
         {
-            std::cout << "Read config '" << key << "' : ";
-            tinygltf::Value v = value.Get(key);
-            switch (v.Type())
-            {
-            case tinygltf::Type::REAL_TYPE:
-            {
-                double val = v.Get<double>();
-                machine.m_config.emplace(key, val);
-                std::cout << val << " (real)\n";
-                break;
-            }
-
-            case tinygltf::Type::INT_TYPE:
-            {
-                int val = v.Get<int>();
-                machine.m_config.emplace(key, val);
-                std::cout << val << " (int)\n";
-                break;
-            }
-            case tinygltf::Type::STRING_TYPE:
-            {
-                std::string val = v.Get<std::string>();
-                machine.m_config.emplace(key, std::move(val));
-                std::cout << val << "(string)\n";
-                break;
-            }
-            default:
-                std::cout << "(UNKNOWN)\n";
-                break;
-            }
+            machine.m_config.emplace(key, std::move(parse_config(value, key)));
         }
 
         machineIndices.emplace_back(machineArray.size());

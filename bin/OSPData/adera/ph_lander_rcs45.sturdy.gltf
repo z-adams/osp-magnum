@@ -1,0 +1,327 @@
+{
+    "asset" : {
+        "generator" : "Khronos glTF Blender I/O v1.3.48",
+        "version" : "2.0"
+    },
+    "scene" : 0,
+    "scenes" : [
+        {
+            "name" : "Scene",
+            "nodes" : [
+                9
+            ]
+        }
+    ],
+    "nodes" : [
+        {
+            "extras" : {
+                "plumename" : "plume_rcs45"
+            },
+            "name" : "fx_plume_rcs45_+x",
+            "rotation" : [
+                0,
+                -0.7933533191680908,
+                0,
+                0.6087614297866821
+            ],
+            "translation" : [
+                0.3075319528579712,
+                0,
+                0.08842851221561432
+            ]
+        },
+        {
+            "extras" : {
+                "plumename" : "plume_rcs45"
+            },
+            "name" : "fx_plume_rcs45_+y",
+            "rotation" : [
+                0.6532815098762512,
+                -0.653281569480896,
+                0.27059808373451233,
+                0.27059808373451233
+            ],
+            "translation" : [
+                0.022780543193221092,
+                0.1910121887922287,
+                0.16893164813518524
+            ]
+        },
+        {
+            "extras" : {
+                "plumename" : "plume_rcs45"
+            },
+            "name" : "fx_plume_rcs45_-x",
+            "rotation" : [
+                0.7933533191680908,
+                0,
+                0.6087614297866821,
+                -7.357093778637136e-08
+            ],
+            "translation" : [
+                -0.3075319826602936,
+                0,
+                0.0884285494685173
+            ]
+        },
+        {
+            "extras" : {
+                "plumename" : "plume_rcs45"
+            },
+            "name" : "fx_plume_rcs45_-y",
+            "rotation" : [
+                -0.6532815098762512,
+                -0.653281569480896,
+                -0.27059808373451233,
+                0.27059808373451233
+            ],
+            "translation" : [
+                -0.022780513390898705,
+                -0.1910121887922287,
+                0.16893166303634644
+            ]
+        },
+        {
+            "mesh" : 0,
+            "name" : "rcs45d"
+        },
+        {
+            "extras" : {
+                "machines" : [
+                    {
+                        "type" : "Rocket",
+                        "thrust" : 1000.0,
+                        "Isp" : 310.0,
+                        "fueltype" : "lzdb:fuel"
+                    }
+                ]
+            },
+            "name" : "rcs45thruster_+x",
+            "rotation" : [
+                0,
+                0.6087614297866821,
+                0,
+                0.7933533191680908
+            ],
+            "translation" : [
+                0.16387347877025604,
+                0,
+                0.04804856702685356
+            ]
+        },
+        {
+            "extras" : {
+                "machines" : [
+                    {
+                        "type" : "Rocket",
+                        "thrust" : 1000.0,
+                        "Isp" : 310.0,
+                        "fueltype" : "lzdb:fuel"
+                    }
+                ]
+            },
+            "name" : "rcs45thruster_+y",
+            "rotation" : [
+                -0.3826834559440613,
+                0,
+                0,
+                0.9238795042037964
+            ],
+            "translation" : [
+                0.02278054878115654,
+                0.08549372851848602,
+                0.06341319531202316
+            ]
+        },
+        {
+            "extras" : {
+                "machines" : [
+                    {
+                        "type" : "Rocket",
+                        "thrust" : 1000.0,
+                        "Isp" : 310.0,
+                        "fueltype" : "lzdb:fuel"
+                    }
+                ]
+            },
+            "name" : "rcs45thruster_-x",
+            "rotation" : [
+                0,
+                -0.6087614297866821,
+                0,
+                0.7933533191680908
+            ],
+            "translation" : [
+                -0.16387352347373962,
+                0,
+                0.048048581928014755
+            ]
+        },
+        {
+            "extras" : {
+                "machines" : [
+                    {
+                        "type" : "Rocket",
+                        "thrust" : 1000.0,
+                        "Isp" : 310.0,
+                        "fueltype" : "lzdb:fuel"
+                    }
+                ]
+            },
+            "name" : "rcs45thruster_-y",
+            "rotation" : [
+                0.3826834559440613,
+                0,
+                0,
+                0.9238795042037964
+            ],
+            "translation" : [
+                -0.022780541330575943,
+                -0.08549374341964722,
+                0.06341320276260376
+            ]
+        },
+        {
+            "children" : [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8
+            ],
+            "extras" : {
+                "country" : "Lunaria",
+                "description" : "An RCS quad that ended up being useful even though it accidentally got bent",
+                "manufacturer" : "Falling stack of crates",
+                "massdry" : 25,
+                "name" : "Improvised 45deg RCS quad"
+            },
+            "name" : "part_ph_rcs45"
+        }
+    ],
+    "materials" : [
+        {
+            "doubleSided" : true,
+            "emissiveFactor" : [
+                0,
+                0,
+                0
+            ],
+            "name" : "Material",
+            "pbrMetallicRoughness" : {
+                "baseColorTexture" : {
+                    "index" : 0,
+                    "texCoord" : 0
+                },
+                "metallicRoughnessTexture" : {
+                    "index" : 1,
+                    "texCoord" : 0
+                }
+            }
+        }
+    ],
+    "meshes" : [
+        {
+            "name" : "Cube",
+            "primitives" : [
+                {
+                    "attributes" : {
+                        "POSITION" : 0,
+                        "NORMAL" : 1,
+                        "TEXCOORD_0" : 2
+                    },
+                    "indices" : 3,
+                    "material" : 0
+                }
+            ]
+        }
+    ],
+    "textures" : [
+        {
+            "source" : 0
+        },
+        {
+            "source" : 1
+        }
+    ],
+    "images" : [
+        {
+            "mimeType" : "image/png",
+            "name" : "ph_base",
+            "uri" : "ph_base.png"
+        },
+        {
+            "mimeType" : "image/png",
+            "name" : "ph_metal-ph_rough",
+            "uri" : "ph_metal-ph_rough.png"
+        }
+    ],
+    "accessors" : [
+        {
+            "bufferView" : 0,
+            "componentType" : 5126,
+            "count" : 600,
+            "max" : [
+                0.32329413294792175,
+                0.2322010099887848,
+                0.21012049913406372
+            ],
+            "min" : [
+                -0.32329416275024414,
+                -0.2322010099887848,
+                -0.034800026565790176
+            ],
+            "type" : "VEC3"
+        },
+        {
+            "bufferView" : 1,
+            "componentType" : 5126,
+            "count" : 600,
+            "type" : "VEC3"
+        },
+        {
+            "bufferView" : 2,
+            "componentType" : 5126,
+            "count" : 600,
+            "type" : "VEC2"
+        },
+        {
+            "bufferView" : 3,
+            "componentType" : 5123,
+            "count" : 2190,
+            "type" : "SCALAR"
+        }
+    ],
+    "bufferViews" : [
+        {
+            "buffer" : 0,
+            "byteLength" : 7200,
+            "byteOffset" : 0
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 7200,
+            "byteOffset" : 7200
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 4800,
+            "byteOffset" : 14400
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 4380,
+            "byteOffset" : 19200
+        }
+    ],
+    "buffers" : [
+        {
+            "byteLength" : 23580,
+            "uri" : "ph_lander_rcs45.sturdy.bin"
+        }
+    ]
+}

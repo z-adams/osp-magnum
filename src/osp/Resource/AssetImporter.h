@@ -28,6 +28,7 @@
 
 #include <MagnumPlugins/TinyGltfImporter/TinyGltfImporter.h>
 #include <MagnumPlugins/StbImageImporter/StbImageImporter.h>
+#include <MagnumExternal/TinyGltf/tiny_gltf.h>
 #include <Corrade/PluginManager/Manager.h>
 #include <Magnum/GL/Texture.h>
 #include <Magnum/Trade/ImageData.h>
@@ -91,6 +92,14 @@ public:
     static DependRes<Magnum::GL::Texture2D> compile_tex(
         std::string_view imageDataName, Package& srcPackage, Package& dstPackage);
 private:
+
+    template <typename T>
+    static std::vector<T> parse_tinygltf_array(tinygltf::Value const& gltfArray);
+
+    /**
+     *
+     */
+    static osp::config_node_t parse_config(tinygltf::Value const& value, std::string_view key);
 
     /**
      * Load machines from node extras
@@ -158,5 +167,19 @@ private:
                                Magnum::UnsignedInt childGltfIndex);
 
 };
+
+template<typename T>
+std::vector<T> AssetImporter::parse_tinygltf_array(tinygltf::Value const& gltfArray)
+{
+    assert(gltfArray.Type() == tinygltf::Type::ARRAY_TYPE);
+    std::vector<tinygltf::Value> const& arrayVal = gltfArray.Get<tinygltf::Value::Array>();
+    std::vector<T> outputVector;
+    outputVector.reserve(arrayVal.size());
+    for (size_t i = 0; i < arrayVal.size(); i++)
+    {
+        outputVector.push_back(arrayVal[i].Get<T>());
+    }
+    return outputVector;
+}
 
 }

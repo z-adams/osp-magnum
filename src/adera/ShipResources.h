@@ -96,7 +96,7 @@ struct ShipResourceType
     const float m_massPerUnit;
 
     // The density of this resource (kg/m^3)
-    const float m_density;
+    //const float m_density;
 
     // Compute the volume of the specified quantity of resource
     constexpr double resource_volume(uint64_t quantity) const
@@ -127,13 +127,13 @@ struct ShipResourceType
     }
 
     ShipResourceType(std::string identifier, std::string displayName,
-        uint64_t quantaPerUnit, float volume, float mass, float density)
+        uint64_t quantaPerUnit, float volume, float mass)
         : m_identifier(std::move(identifier))
         , m_displayName(std::move(displayName))
         , m_quantaPerUnit(quantaPerUnit)
         , m_volumePerUnit(volume)
         , m_massPerUnit(mass)
-        , m_density(density)
+        //, m_density(density)
     {
         assert(osp::math::is_power_of_2(m_quantaPerUnit));
     }

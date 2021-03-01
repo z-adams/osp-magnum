@@ -61,7 +61,7 @@ void testapp::create_simple_solar_system(osp::OSPApplication& ospApp)
                                         rUni, rUni.sat_root());
 
     // Create 10 random vehicles
-    for (int i = 0; i < 1; i ++)
+    /*for (int i = 0; i < 1; i ++)
     {
         // Creates a random mess of spamcans as a vehicle
         Satellite sat = debug_add_random_vehicle(rUni, pkg, "TestyMcTestFace Mk"
@@ -73,10 +73,11 @@ void testapp::create_simple_solar_system(osp::OSPApplication& ospApp)
         posTraj.m_dirty = true;
 
         stationary.add(sat);
-    }
+    }*/
 
     //Satellite sat = debug_add_deterministic_vehicle(uni, pkg, "Stomper Mk. I");
-    Satellite sat = testapp::debug_add_part_vehicle(rUni, pkg, "Placeholder Mk. I");
+    //Satellite sat = testapp::debug_add_part_vehicle(rUni, pkg, "Placeholder Mk. I");
+    Satellite sat = testapp::debug_add_lander(rUni, pkg, "Landertest");
     auto& posTraj = rUni.get_reg().get<UCompTransformTraj>(sat);
     posTraj.m_position = osp::Vector3s(22 * 1024l * 5l, 0l, 0l);
     posTraj.m_dirty = true;

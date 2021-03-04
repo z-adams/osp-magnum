@@ -87,7 +87,7 @@ inline void SysDebugRender::draw_group(T& rCollection, ACompCamera const& camera
 
         auto& drawable = rCollection.template get<CompDrawableDebug>(entity);
         auto const& transform = rCollection.template get<ACompTransform>(entity);
-        Vector3 vector = transform.m_transform.translation();
+
         drawable.m_shader_draw(entity, m_scene, *drawable.m_mesh, camera, transform);
     }
 }

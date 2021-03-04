@@ -117,10 +117,10 @@ Machine& SysMachineContainer::instantiate(ActiveEnt ent,
      * the volume will be calculated from the shape and scale of the entity
      */
     float capacity = 0.0f;
-    if (auto resItr = settings.m_config.find("capacity_override");
+    if (auto resItr = settings.m_config.find("CapacityOverride");
         resItr != settings.m_config.end())
     {
-        capacity = std::get<double>(config.m_config["capacity_override"]);
+        capacity = std::get<double>(resItr->second);
     }
     else
     {
@@ -130,15 +130,23 @@ Machine& SysMachineContainer::instantiate(ActiveEnt ent,
 
     // Get the resource stored by the container
     ShipResource resource{};
-    if (auto resItr = settings.m_config.find("resource_name");
+    if (auto resItr = settings.m_config.find("ResourceName");
         resItr != settings.m_config.end())
     {
+        // Find contained resource
         std::string_view resName = std::get<std::string>(resItr->second);
         Path resPath = decompose_path(resName);
         Package& pkg = m_scene.get_application().debug_find_package(resPath.prefix);
-
         resource.m_type = pkg.get<ShipResourceType>(resPath.identifier);
-        double fuelLevel = std::get<double>(settings.m_config["fuel_level"]);
+
+        // Adjust fuel level, if specified
+        double fuelLevel = 1.0;
+        if (auto itr = settings.m_config.find("FuelLevel");
+            itr != settings.m_config.end())
+        {
+            fuelLevel = std::get<double>(itr->second);
+        }
+
         resource.m_quantity = resource.m_type->resource_capacity(capacity * fuelLevel);
     }
 

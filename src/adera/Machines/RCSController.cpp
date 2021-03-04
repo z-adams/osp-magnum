@@ -92,7 +92,8 @@ float SysMachineRCSController::thruster_influence(Vector3 posOset, Vector3 direc
     // Total component of thrust in direction of command
     float total = rotInfluence + translInfluence;
 
-    if (total < .05f)
+    constexpr float influenceCutoff = 0.05f;
+    if (total < influenceCutoff)
     {
         /* Ignore small contributions from imprecision
          * Real thrusters can't throttle this deep anyways, so if their
@@ -126,10 +127,6 @@ void SysMachineRCSController::update_controls(ActiveScene& rScene)
         if (WireData *gimbal = machine.m_wiCommandOrient.connected_value())
         {
             AttitudeControl *attCtrl = std::get_if<AttitudeControl>(gimbal);
-            /*if (attCtrl->m_attitude.length() < 0.00001f)
-            {
-                continue;
-            }*/
 
             // Get rigidbody ancestor and its transformation component
             auto const* pRbAncestor =

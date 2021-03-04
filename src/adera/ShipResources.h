@@ -95,9 +95,6 @@ struct ShipResourceType
     // The mass (in kg) of one unit of this resource
     const float m_massPerUnit;
 
-    // The density of this resource (kg/m^3)
-    //const float m_density;
-
     // Compute the volume of the specified quantity of resource
     constexpr double resource_volume(uint64_t quantity) const
     {
@@ -133,7 +130,6 @@ struct ShipResourceType
         , m_quantaPerUnit(quantaPerUnit)
         , m_volumePerUnit(volume)
         , m_massPerUnit(mass)
-        //, m_density(density)
     {
         assert(osp::math::is_power_of_2(m_quantaPerUnit));
     }

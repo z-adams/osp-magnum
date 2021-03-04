@@ -464,19 +464,19 @@ Satellite testapp::debug_add_lander(Universe& uni, Package& pkg, std::string_vie
 
     auto& capsuleBP = blueprint.add_part(capsule, Vector3{0}, idRot, scl);
     auto& capMmhCfg = get_config(blueprint, capsuleBP, "MMH_tank", "Container");
-    capMmhCfg.emplace("resource_name", "lzdb:mmh");
-    capMmhCfg.emplace("fuel_level", 1.0);
+    capMmhCfg.emplace("ResourceName", "lzdb:mmh");
+    capMmhCfg.emplace("FuelLevel", 1.0);
     auto& capNtoCfg = get_config(blueprint, capsuleBP, "NTO_tank", "Container");
-    capNtoCfg.emplace("resource_name", "lzdb:nto");
-    capNtoCfg.emplace("fuel_level", 1.0);
+    capNtoCfg.emplace("ResourceName", "lzdb:nto");
+    capNtoCfg.emplace("FuelLevel", 1.0);
 
     auto& fuselageBP = blueprint.add_part(fuselage, cfOset, idRot, scl);
     auto& fusNtoCfg = get_config(blueprint, fuselageBP, "fueltankOx", "Container");
-    fusNtoCfg.emplace("resource_name", "lzdb:nto");
-    fusNtoCfg.emplace("fuel_level", 1.0);
+    fusNtoCfg.emplace("ResourceName", "lzdb:nto");
+    fusNtoCfg.emplace("FuelLevel", 1.0);
     auto& fusA50Cfg = get_config(blueprint, fuselageBP, "fueltankFuel", "Container");
-    fusA50Cfg.emplace("resource_name", "lzdb:aero50");
-    fusA50Cfg.emplace("fuel_level", 1.0);
+    fusA50Cfg.emplace("ResourceName", "lzdb:aero50");
+    fusA50Cfg.emplace("FuelLevel", 1.0);
 
     auto& engBP = blueprint.add_part(engine, cfOset + feOset, idRot, scl);
 

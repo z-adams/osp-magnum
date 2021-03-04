@@ -46,47 +46,6 @@ SysExhaustPlume::SysExhaustPlume(ActiveScene& rScene)
         [this](ActiveScene& rScene){this->update_plumes(rScene);})
 {}
 
-/*void attach_plume_effect(ActiveEnt partRoot, ActiveEnt ent)
-{
-    ActiveEnt plumeNode = entt::null;
-
-    auto findPlumeHandle = [this, &plumeNode](ActiveEnt ent)
-    {
-        auto const& node = m_scene.reg_get<ACompHierarchy>(ent);
-        static constexpr std::string_view nodePrefix = "fx_plume_";
-        if (0 == node.m_name.compare(0, nodePrefix.size(), nodePrefix))
-        {
-            plumeNode = ent;
-            return EHierarchyTraverseStatus::Stop;  // terminate search
-        }
-        return EHierarchyTraverseStatus::Continue;
-    };
-
-    m_scene.hierarchy_traverse(ent, findPlumeHandle);
-
-    if (plumeNode == entt::null)
-    {
-        std::cout << "ERROR: could not find plume anchor for MachineRocket "
-            << ent << "\n";
-        return;
-    }
-    std::cout << "MachineRocket " << ent << "'s associated plume: "
-        << plumeNode << "\n";
-
-    // Get plume effect
-    Package& pkg = m_scene.get_application().debug_find_package("lzdb");
-    std::string_view plumeAnchorName = m_scene.reg_get<ACompHierarchy>(plumeNode).m_name;
-    std::string_view effectName = plumeAnchorName.substr(3, plumeAnchorName.length() - 3);
-    DependRes<PlumeEffectData> plumeEffect = pkg.get<PlumeEffectData>(effectName);
-    if (plumeEffect.empty())
-    {
-        std::cout << "ERROR: couldn't find plume effect " << effectName << "!\n";
-        return;
-    }
-
-    m_scene.reg_emplace<ACompExhaustPlume>(plumeNode, ent, plumeEffect);
-}*/
-
 void SysExhaustPlume::create_plumes(ActiveScene& rScene)
 {
     for (auto [ent, precursor] : rScene.get_registry().view<ACompPlumePrecursor>().each())

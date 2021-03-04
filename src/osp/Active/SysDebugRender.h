@@ -79,12 +79,15 @@ inline void SysDebugRender::draw_group(T& rCollection, ACompCamera const& camera
 {
     for (auto entity : rCollection)
     {
+        if (auto const* visible = m_scene.reg_try_get<CompVisibleDebug>(entity);
+            (visible != nullptr) && (visible->m_state == false))
+        {
+            continue;
+        }
+
         auto& drawable = rCollection.template get<CompDrawableDebug>(entity);
         auto const& transform = rCollection.template get<ACompTransform>(entity);
-        auto const* visible = m_scene.get_registry().try_get<CompVisibleDebug>(entity);
-
-        if (visible && !visible->m_state) { continue; }
-
+        Vector3 vector = transform.m_transform.translation();
         drawable.m_shader_draw(entity, m_scene, *drawable.m_mesh, camera, transform);
     }
 }

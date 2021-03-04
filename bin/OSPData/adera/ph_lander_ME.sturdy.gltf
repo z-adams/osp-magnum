@@ -59,7 +59,7 @@
         {
             "extras" : {
                 "PlumeName" : "plume_landerME",
-                "RocketName" : "part_ph_landerME"
+                "RocketName" : "landerMErkt"
             },
             "name" : "fx_plume_landerME",
             "translation" : [
@@ -78,6 +78,23 @@
             ]
         },
         {
+            "extras" : {
+                "machines" : [
+                    {
+                        "type" : "Rocket",
+                        "thrust" : 100000.0,
+                        "Isp" : 310.0,
+                        "input_names" : [
+                            "lzdb:aero50",
+                            "lzdb:nto"
+                        ],
+                        "input_mass_rate_fractions" : [
+                            1.0,
+                            1.0
+                        ]
+                    }
+                ]
+            },
             "name" : "landerMErkt",
             "rotation" : [
                 1,
@@ -105,22 +122,7 @@
                 "country" : "Lunaria",
                 "description" : "A hole through which to vent mass at (hopefully) high velocity",
                 "manufacturer" : "Discount tools depot",
-                "name" : "Lunar descent engine",
-                "machines" : [
-                    {
-                        "type" : "Rocket",
-                        "thrust" : 100000.0,
-                        "Isp" : 310.0,
-                        "input_names" : [
-                            "lzdb:aero50",
-                            "lzdb:nto"
-                        ],
-                        "input_mass_rate_fractions" : [
-                            1.0,
-                            1.0
-                        ]
-                    }
-                ]
+                "name" : "Lunar descent engine"
             },
             "name" : "part_ph_landerME",
             "translation" : [

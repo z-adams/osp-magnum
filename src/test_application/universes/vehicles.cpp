@@ -505,34 +505,24 @@ Satellite testapp::debug_add_lander(Universe& uni, Package& pkg, std::string_vie
     // to    (input): a MachineRocket m_wiThrottle
     add_wire(blueprint,
         capsuleBP, "part_ph_landerCapsule", "UserControl", 1,
-        engBP, "part_ph_landerME", "Rocket", 2);
-    /*blueprint.add_wire(
-        Parts::CAPSULE, 0, 1,
-        Parts::ENGINE, 0, 2);*/
+        engBP, "landerMErkt", "Rocket", 2);
 
     // Wire attitude contrl to gimbal
     // from (output): a MachineUserControl m_woAttitude
     // to    (input): a MachineRocket m_wiGimbal
     add_wire(blueprint,
         capsuleBP, "part_ph_landerCapsule", "UserControl", 0,
-        engBP, "part_ph_landerME", "Rocket", 0);
-    /*blueprint.add_wire(
-        Parts::CAPSULE, 0, 0,
-        Parts::ENGINE, 0, 0);*/
+        engBP, "landerMErkt", "Rocket", 0);
 
     // Pipe fuel tank to rocket engine
     // from (output): fuselage MachineContainer m_outputs;
     // to    (input): engine MachineRocket m_resourcesLines[0]
     add_wire(blueprint,
         fuselageBP, "fueltankFuel", "Container", 0,
-        engBP, "part_ph_landerME", "Rocket", 3);
+        engBP, "landerMErkt", "Rocket", 3);
     add_wire(blueprint,
         fuselageBP, "fueltankOx", "Container", 0,
-        engBP, "part_ph_landerME", "Rocket", 4);
-    /*blueprint.add_wire(Parts::FUSELAGE, 0, 0,
-        Parts::ENGINE, 0, 3);
-    blueprint.add_wire(Parts::FUSELAGE, 1, 0,
-        Parts::ENGINE, 0, 4);*/
+        engBP, "landerMErkt", "Rocket", 4);
 
     for (auto const& port : rcsThrusters)
     {
@@ -564,24 +554,6 @@ Satellite testapp::debug_add_lander(Universe& uni, Package& pkg, std::string_vie
                 capsuleBP, "NTO_tank", "Container", 0,
                 port, objName, "Rocket", 4);
         }
-        //for (size_t i = 0; i < 4; i++)
-        //{
-        //    size_t rcsCtrlIdx = 2 * i;
-        //    size_t rcsRocketIdx = 2 * i + 1;
-
-        //    // Attitude control -> RCS Control
-        //    
-        //    blueprint.add_wire(Parts::CAPSULE, 0, 0,
-        //        port, rcsCtrlIdx, 0);
-        //    // RCS Control -> RCS Rocket
-        //    blueprint.add_wire(port, rcsCtrlIdx, 0,
-        //        port, rcsRocketIdx, 2);
-        //    // Capsule tank -> RCS Rocket
-        //    blueprint.add_wire(Parts::CAPSULE, 1, 0,
-        //        port, rcsRocketIdx, 3);
-        //    blueprint.add_wire(Parts::CAPSULE, 2, 0,
-        //        port, rcsRocketIdx, 4);
-        //}
     }
 
     // Put blueprint in package

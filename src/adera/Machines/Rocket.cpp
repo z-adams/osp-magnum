@@ -163,10 +163,13 @@ void SysMachineRocket::update_physics(ActiveScene& rScene)
         Matrix4 relTransform = pRbAncestor->m_relTransform;
 
         /* Compute thrust force
-         * Thrust force is defined to be along +Z by convention.
+         * Thrust force is defined to be along -Z by convention. This choice was
+         * made so that the "arrow" empty in Blender can be used to represent
+         * MachineRockets, and the arrow points along the direction of exhaust
+         * momentum.
          * Obtains thrust vector in rigidbody space
          */
-        Vector3 thrustDir = relTransform.transformVector(Vector3{0.0f, 0.0f, 1.0f});
+        Vector3 thrustDir = relTransform.transformVector(Vector3{0.0f, 0.0f, -1.0f});
         float thrustMag = machine.m_params.m_maxThrust * pThrotPercent->m_value;
         // Take thrust in rigidbody space and apply to RB in world space
         Vector3 thrust = thrustMag * thrustDir;

@@ -92,7 +92,7 @@ float SysMachineRCSController::thruster_influence(Vector3 posOset, Vector3 direc
     // Total component of thrust in direction of command
     float total = rotInfluence + translInfluence;
 
-    if (total < .01f)
+    if (total < .05f)
     {
         /* Ignore small contributions from imprecision
          * Real thrusters can't throttle this deep anyways, so if their

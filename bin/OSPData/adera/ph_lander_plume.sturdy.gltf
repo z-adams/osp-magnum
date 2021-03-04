@@ -29,8 +29,8 @@
                     1,
                     1
                 ],
-                "zMax" : 1.25,
-                "zMin" : -3.48
+                "zMax" : 0.84,
+                "zMin" : -2.25
             },
             "name" : "plume_landerME"
         }

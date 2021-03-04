@@ -229,7 +229,7 @@ size_t find_machine_index(BlueprintVehicle const& vehicle,
 
     if (foundObject == objects.end())
     {
-        throw std::exception("Couldn't find object");
+        throw std::runtime_error("Couldn't find object");
     }
     
     std::vector<PrototypeMachine> const& objMachines = part.get_machines();
@@ -247,7 +247,7 @@ size_t find_machine_index(BlueprintVehicle const& vehicle,
 
     if (foundMachine == foundObject->m_machineIndices.end())
     {
-        throw std::exception("Couldn't find machine");
+        throw std::runtime_error("Couldn't find machine");
     }
     return *foundMachine;
 }

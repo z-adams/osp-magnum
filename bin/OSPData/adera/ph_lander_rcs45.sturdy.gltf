@@ -8,11 +8,25 @@
         {
             "name" : "Scene",
             "nodes" : [
-                9
+                10
             ]
         }
     ],
     "nodes" : [
+        {
+            "name" : "attach_root",
+            "rotation" : [
+                0.27059805393218994,
+                -0.6532815098762512,
+                -0.27059805393218994,
+                0.6532815098762512
+            ],
+            "translation" : [
+                0,
+                0,
+                -0.033017754554748535
+            ]
+        },
         {
             "extras" : {
                 "plumename" : "plume_rcs45"
@@ -89,10 +103,20 @@
             "extras" : {
                 "machines" : [
                     {
+                        "type" : "RCSController"
+                    },
+                    {
                         "type" : "Rocket",
                         "thrust" : 1000.0,
                         "Isp" : 310.0,
-                        "fueltype" : "lzdb:fuel"
+                        "input_names" : [
+                            "lzdb:mmh",
+                            "lzdb:nto"
+                        ],
+                        "input_mass_rate_fractions" : [
+                            1.0,
+                            2.16
+                        ]
                     }
                 ]
             },
@@ -113,10 +137,20 @@
             "extras" : {
                 "machines" : [
                     {
+                        "type" : "RCSController"
+                    },
+                    {
                         "type" : "Rocket",
                         "thrust" : 1000.0,
                         "Isp" : 310.0,
-                        "fueltype" : "lzdb:fuel"
+                        "input_names" : [
+                            "lzdb:mmh",
+                            "lzdb:nto"
+                        ],
+                        "input_mass_rate_fractions" : [
+                            1.0,
+                            2.16
+                        ]
                     }
                 ]
             },
@@ -137,10 +171,20 @@
             "extras" : {
                 "machines" : [
                     {
+                        "type" : "RCSController"
+                    },
+                    {
                         "type" : "Rocket",
                         "thrust" : 1000.0,
                         "Isp" : 310.0,
-                        "fueltype" : "lzdb:fuel"
+                        "input_names" : [
+                            "lzdb:mmh",
+                            "lzdb:nto"
+                        ],
+                        "input_mass_rate_fractions" : [
+                            1.0,
+                            2.16
+                        ]
                     }
                 ]
             },
@@ -161,10 +205,20 @@
             "extras" : {
                 "machines" : [
                     {
+                        "type" : "RCSController"
+                    },
+                    {
                         "type" : "Rocket",
                         "thrust" : 1000.0,
                         "Isp" : 310.0,
-                        "fueltype" : "lzdb:fuel"
+                        "input_names" : [
+                            "lzdb:mmh",
+                            "lzdb:nto"
+                        ],
+                        "input_mass_rate_fractions" : [
+                            1.0,
+                            2.16
+                        ]
                     }
                 ]
             },
@@ -191,16 +245,28 @@
                 5,
                 6,
                 7,
-                8
+                8,
+                9
             ],
             "extras" : {
+                "massdry" : 25,
                 "country" : "Lunaria",
                 "description" : "An RCS quad that ended up being useful even though it accidentally got bent",
-                "manufacturer" : "Falling stack of crates",
-                "massdry" : 25,
+                "manufacturer" : "Aerorocket Inc; Falling stack of crates",
                 "name" : "Improvised 45deg RCS quad"
             },
-            "name" : "part_ph_rcs45"
+            "name" : "part_ph_rcs45",
+            "rotation" : [
+                -0.27059808373451233,
+                0.653281569480896,
+                0.27059808373451233,
+                0.6532815098762512
+            ],
+            "translation" : [
+                1.0799709558486938,
+                1.0799709558486938,
+                0.3187812864780426
+            ]
         }
     ],
     "materials" : [

@@ -254,11 +254,20 @@ Machine& SysMachineRocket::instantiate(ActiveEnt ent, PrototypeMachine config,
     auto& fuelIdent = std::get<std::vector<std::string>>(config.m_config["input_names"]);
     auto& massRates = std::get<std::vector<double>>(config.m_config["input_mass_rate_fractions"]);
     assert(fuelIdent.size() == massRates.size());
+
+    // Compute normalization coefficient for fuel ratios
+    double normalization = 0.0;
+    for (double rate : massRates)
+    {
+        normalization += (rate*rate);
+    }
+    normalization = 1.0 / sqrt(normalization);
+
     std::vector<MachineRocket::input_t> inputs;
     for (size_t i = 0; i < fuelIdent.size(); i++)
     {
         std::string_view identifier = fuelIdent[i];
-        double massRate = massRates[i];
+        double massRate = normalization * massRates[i];
 
         Path resPath = decompose_path(identifier);
         Package& pkg = m_scene.get_application().debug_find_package(resPath.prefix);

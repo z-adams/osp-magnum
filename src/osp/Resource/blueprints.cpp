@@ -53,6 +53,8 @@ BlueprintPart& BlueprintVehicle::add_part(
         // Add the unlisted prototype to the end
         m_prototypes.emplace_back(prototype);
     }
+    size_t blueprintPartIndex = m_blueprints.size();
+
 
     // now we have a part index.
 
@@ -64,6 +66,7 @@ BlueprintPart& BlueprintVehicle::add_part(
     BlueprintPart blueprint
     {
         partIndex,
+        blueprintPartIndex,
         translation,
         rotation,
         scale,

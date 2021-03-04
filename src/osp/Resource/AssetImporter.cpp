@@ -457,6 +457,13 @@ void AssetImporter::proto_add_obj_recurse(TinyGltfImporter& gltfImporter,
     obj.m_type = ObjectType::NONE;
     obj.m_name = name;
 
+    // Ignore transform for root
+    if (protoObjects.size() == 0)
+    {
+        obj.m_translation = Vector3{0.0f};
+        obj.m_rotation = Magnum::Quaternion{};
+    }
+
     std::cout << "Adding obj to Part: " << name << "\n";
     int meshID = childData->instance();
 

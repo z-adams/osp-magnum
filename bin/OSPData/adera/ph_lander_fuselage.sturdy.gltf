@@ -8,7 +8,7 @@
         {
             "name" : "Scene",
             "nodes" : [
-                14
+                15
             ]
         }
     ],
@@ -112,18 +112,24 @@
         },
         {
             "extras" : {
-                "shape" : "cylinder"
+                "shape" : "cylinder",
+                "machines" : [
+                    {
+                        "type" : "Container",
+                        "storagetype" : "liquid"
+                    }
+                ]
             },
-            "name" : "fueltank",
+            "name" : "fueltankFuel",
             "scale" : [
-                1.25,
-                1.25,
-                0.5
+                1.156000018119812,
+                1.156000018119812,
+                0.2150000035762787
             ],
             "translation" : [
                 0,
                 0,
-                -0.1506054401397705
+                0.027100205421447754
             ]
         },
         {
@@ -135,6 +141,22 @@
                         "storagetype" : "liquid"
                     }
                 ]
+            },
+            "name" : "fueltankOx",
+            "scale" : [
+                0.9120000004768372,
+                0.9120000004768372,
+                0.2150000035762787
+            ],
+            "translation" : [
+                0,
+                0,
+                0.4521986246109009
+            ]
+        },
+        {
+            "extras" : {
+                "shape" : "cylinder"
             },
             "name" : "lander_fuselagetank",
             "scale" : [
@@ -173,7 +195,8 @@
                 10,
                 11,
                 12,
-                13
+                13,
+                14
             ],
             "extras" : {
                 "country" : "Lunaria",
@@ -182,7 +205,12 @@
                 "name" : "Lander Fuselage Mk. I",
                 "massdry" : 1200
             },
-            "name" : "part_ph_landerFuselage"
+            "name" : "part_ph_landerFuselage",
+            "translation" : [
+                0,
+                0,
+                -1.2842159271240234
+            ]
         }
     ],
     "materials" : [

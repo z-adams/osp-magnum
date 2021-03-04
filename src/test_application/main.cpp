@@ -260,9 +260,19 @@ void load_a_bunch_of_stuff()
     {
         "aero50",
         "Aerozine 50",
-        1 << 16,
+        1 << 24,
         1.0f,
         903.0f
+    };
+
+    // Load MMH fuel
+    ShipResourceType mmh
+    {
+        "mmh",
+        "Monomethylhydrazine",
+        1 << 24,
+        1.0f,
+        880.0f
     };
 
     // Load N2O4 (Nitrogen Tetroxide) oxidizer
@@ -270,13 +280,14 @@ void load_a_bunch_of_stuff()
     {
         "nto",
         "Nitrogen Tetroxide",
-        1 << 16,
+        1 << 24,
         1.0f,
         1450.0f
     };
 
     lazyDebugPack.add<ShipResourceType>(fuel.m_identifier, std::move(fuel));
     lazyDebugPack.add<ShipResourceType>(aero50.m_identifier, std::move(aero50));
+    lazyDebugPack.add<ShipResourceType>(mmh.m_identifier, std::move(mmh));
     lazyDebugPack.add<ShipResourceType>(nto.m_identifier, std::move(nto));
 
     // Add package to the univere

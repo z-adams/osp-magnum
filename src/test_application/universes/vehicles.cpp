@@ -26,6 +26,7 @@
 #include "vehicles.h"
 
 #include <osp/Satellites/SatVehicle.h>
+#include <osp/string_concat.h>
 
 using namespace testapp;
 
@@ -58,6 +59,27 @@ using osp::PrototypePart;
 Vector3 part_offset(
     PrototypePart const& attachTo, std::string_view attachToName,
     PrototypePart const& toAttach, std::string_view toAttachName);
+
+size_t find_machine_index(BlueprintVehicle const& vehicle,
+    size_t partIndex, std::string_view objectName, std::string_view machineType);
+
+/**
+ * Utility: creates wire coonnections based on named part elements
+ * 
+ * @param fromPart [in] The source part
+ * @param fromObj [in] The name of the object which owns the source machine
+ * @param fromMachine [in] The type of machine to look for
+ * @param fromPort [in] The port from the selected machine to connect
+ * @param toPart [in] The sink part
+ * @param toObj [in] The name of the object which owns the sink machine
+ * @param toMachine [in] The type of machine to look for
+ * @param toPort [in] The port from the selected machine to connect
+ */
+void add_wire(osp::BlueprintVehicle const& vehicle,
+    osp::BlueprintPart const& fromPart,
+    std::string_view fromObj, std::string_view fromMachine, size_t fromPort,
+    osp::BlueprintPart const& toPart,
+    std::string_view toObj, std::string_view toMachine, size_t toPort);
 
 osp::universe::Satellite testapp::debug_add_deterministic_vehicle(
         Universe& uni, Package& pkg, std::string_view name)
@@ -185,6 +207,83 @@ Vector3 part_offset(PrototypePart const& attachTo,
     return oset1 - oset2;
 }
 
+size_t find_machine_index(BlueprintVehicle const& vehicle,
+    size_t partIndex, std::string_view objectName, std::string_view machineType)
+{
+    using osp::PrototypeMachine;
+    using osp::PrototypeObject;
+    using osp::PrototypePart;
+
+    PrototypePart const& part = *vehicle.get_prototypes()[partIndex];
+    std::vector<PrototypeObject> const& objects = part.get_objects();
+    auto foundObject = std::find_if(objects.begin(), objects.end(),
+        [objectName](std::vector<PrototypeObject>::iterator::value_type const& obj) -> bool
+        {
+            if (obj.m_name.compare(objectName) == 0) { return true; }
+            return false;
+        });
+
+    if (foundObject == objects.end())
+    {
+        throw std::exception("Couldn't find object");
+    }
+    
+    std::vector<PrototypeMachine> const& objMachines = part.get_machines();
+    auto foundMachine = std::find_if(
+        foundObject->m_machineIndices.begin(),
+        foundObject->m_machineIndices.end(),
+        [machineType, &part](auto const index) -> bool
+        {
+            if (part.get_machines()[index].m_type.compare(machineType) == 0)
+            {
+                return true;
+            }
+            return false;
+        });
+
+    if (foundMachine == foundObject->m_machineIndices.end())
+    {
+        throw std::exception("Couldn't find machine");
+    }
+    return *foundMachine;
+}
+
+void add_wire(osp::BlueprintVehicle& vehicle,
+    osp::BlueprintPart const& fromPartBlueprint,
+    std::string_view fromObjName, std::string_view fromMachineName, size_t fromPort,
+    osp::BlueprintPart const& toPartBlueprint,
+    std::string_view toObjName, std::string_view toMachineName, size_t toPort)
+{
+    using osp::BlueprintPart;
+    using osp::PrototypeObject;    
+    using osp::PrototypeMachine;
+
+    try
+    {
+        size_t fromPartBlueprintIndex = fromPartBlueprint.m_blueprintPartIndex;
+        size_t fromPartIndex = fromPartBlueprint.m_partIndex;
+        size_t fromMachineIndex =
+            find_machine_index(vehicle, fromPartIndex, fromObjName, fromMachineName);
+
+        size_t toPartBlueprintIndex = toPartBlueprint.m_blueprintPartIndex;
+        size_t toPartIndex = toPartBlueprint.m_partIndex;
+        size_t toMachineIndex =
+            find_machine_index(vehicle, toPartIndex, toObjName, toMachineName);
+
+        vehicle.add_wire(
+            fromPartBlueprintIndex, fromMachineIndex, fromPort,
+            toPartBlueprintIndex, toMachineIndex, toPort);
+
+    } catch (std::exception const& e)
+    {
+        std::cout << "ERROR connecting " << fromPartBlueprint.m_blueprintPartIndex
+            << ":" << fromObjName << ":" << fromMachineName << ":" << fromPort
+            << " to " << toPartBlueprint.m_blueprintPartIndex
+            << ":" << toObjName << ":" << toMachineName << ":" << toPort << "\n";
+        e.what();
+    }
+}
+
 osp::universe::Satellite testapp::debug_add_part_vehicle(
     osp::universe::Universe& uni, osp::Package& pkg,
     std::string_view name)
@@ -309,19 +408,20 @@ Satellite testapp::debug_add_lander(Universe& uni, Package& pkg, std::string_vie
     using namespace Magnum::Math::Literals;
 
     // Start making the blueprint
-    BlueprintVehicle blueprint;
+    BlueprintVehicle blueprint(11);
 
     // Parts
     DependRes<PrototypePart> capsule = pkg.get<PrototypePart>("part_ph_landerCapsule");
     DependRes<PrototypePart> fuselage = pkg.get<PrototypePart>("part_ph_landerFuselage");
     DependRes<PrototypePart> engine = pkg.get<PrototypePart>("part_ph_landerME");
     DependRes<PrototypePart> leg = pkg.get<PrototypePart>("part_ph_landerLeg");
-    //DependRes<PrototypePart> rcs = pkg.get<PrototypePart>("part_ph_rcs45");
+    DependRes<PrototypePart> rcs = pkg.get<PrototypePart>("part_ph_rcs45");
 
     Vector3 cfOset = part_offset(*capsule, "attach_bottom",
         *fuselage, "attach_top");
     Vector3 feOset = part_offset(*fuselage, "attach_eng",
         *engine, "attach_engPoint");
+
     Vector3 leg0 = part_offset(*fuselage, "attach_fuselageLeg0",
         *leg, "attach_leg");
     Vector3 leg90 = part_offset(*fuselage, "attach_fuselageLeg90",
@@ -330,95 +430,143 @@ Satellite testapp::debug_add_lander(Universe& uni, Package& pkg, std::string_vie
         *leg, "attach_leg");
     Vector3 leg270 = part_offset(*fuselage, "attach_fuselageLeg270",
         *leg, "attach_leg");
-    //Vector3 rcsOsetTop = cfOset + Vector3{1.0f, 0.0f, 2.0f};
-    //Vector3 rcsOsetBtm = cfOset + Vector3{1.0f, 0.0f, -2.0f};
+
+    Vector3 rcs045d = part_offset(*capsule, "attach_rcs45d",
+        *rcs, "attach_root");
+    Vector3 rcs135d = part_offset(*capsule, "attach_rcs135d",
+        *rcs, "attach_root");
+    Vector3 rcs225d = part_offset(*capsule, "attach_rcs225d",
+        *rcs, "attach_root");
+    Vector3 rcs315d = part_offset(*capsule, "attach_rcs315d",
+        *rcs, "attach_root");
 
     Quaternion idRot;
     Vector3 scl{1};
     Magnum::Rad qtrTurn(-90.0_degf);
+    Magnum::Rad turn45(-135.0_degf);
     Quaternion rotY_090 = Quaternion::rotation(qtrTurn, Vector3{0, 1, 0});
+    Quaternion rotZ_045 = Quaternion::rotation(turn45, Vector3{0, 0, 1});
     Quaternion rotZ_090 = Quaternion::rotation(qtrTurn, Vector3{0, 0, 1});
     Quaternion rotZ_180 = Quaternion::rotation(2 * qtrTurn, Vector3{0, 0, 1});
     Quaternion rotZ_270 = Quaternion::rotation(3 * qtrTurn, Vector3{0, 0, 1});
 
-    blueprint.add_part(capsule, Vector3{0}, idRot, scl);
+    auto& capsuleBP = blueprint.add_part(capsule, Vector3{0}, idRot, scl);
+    capsuleBP.m_machines[1].m_config.emplace("resource_name", "lzdb:mmh");
+    capsuleBP.m_machines[1].m_config.emplace("fuel_level", 1.0);
+    capsuleBP.m_machines[2].m_config.emplace("resource_name", "lzdb:nto");
+    capsuleBP.m_machines[2].m_config.emplace("fuel_level", 1.0);
 
     auto& fuselageBP = blueprint.add_part(fuselage, cfOset, idRot, scl);
-    fuselageBP.m_machines[0].m_config.emplace("resourcename", "lzdb:fuel");
-    fuselageBP.m_machines[0].m_config.emplace("fuellevel", 0.5);
+    fuselageBP.m_machines[0].m_config.emplace("resource_name", "lzdb:nto");
+    fuselageBP.m_machines[0].m_config.emplace("fuel_level", 1.0);
+    fuselageBP.m_machines[1].m_config.emplace("resource_name", "lzdb:aero50");
+    fuselageBP.m_machines[1].m_config.emplace("fuel_level", 1.0);
 
     auto& engBP = blueprint.add_part(engine, cfOset + feOset, idRot, scl);
 
-    blueprint.add_part(leg, cfOset + leg0, rotZ_090, scl);
-    blueprint.add_part(leg, cfOset + leg90, idRot, scl);
-    blueprint.add_part(leg, cfOset + leg180, rotZ_270, scl);
-    blueprint.add_part(leg, cfOset + leg270, rotZ_180, scl);
+    Quaternion yz045 = rotZ_045 * rotY_090;
+    Quaternion yz135 = rotZ_045 * rotZ_270 * rotY_090;
+    Quaternion yz225 = rotZ_045 * rotZ_180 * rotY_090;
+    Quaternion yz315 = rotZ_045 * rotZ_090 * rotY_090;
 
-    Quaternion yz090 = rotZ_090 * rotY_090;
-    Quaternion yz180 = rotZ_180 * rotY_090;
-    Quaternion yz270 = rotZ_270 * rotY_090;
+    auto& rcs1 = blueprint.add_part(rcs, rcs045d, yz045, scl);
+    auto& rcs2 = blueprint.add_part(rcs, rcs135d, yz135, scl);
+    auto& rcs3 = blueprint.add_part(rcs, rcs225d, yz225, scl);
+    auto& rcs4 = blueprint.add_part(rcs, rcs315d, yz315, scl);
 
-    // Top RCS ring
-    /*blueprint.add_part(rcs, rcsOsetTop, rotY_090, scl);
-    blueprint.add_part(rcs, rotZ_090.transformVector(rcsOsetTop), yz090, scl);
-    blueprint.add_part(rcs, rotZ_180.transformVector(rcsOsetTop), yz180, scl);
-    blueprint.add_part(rcs, rotZ_270.transformVector(rcsOsetTop), yz270, scl);
-
-    // Top RCS ring
-    blueprint.add_part(rcs, rcsOsetBtm, rotY_090, scl);
-    blueprint.add_part(rcs, rotZ_090.transformVector(rcsOsetBtm), yz090, scl);
-    blueprint.add_part(rcs, rotZ_180.transformVector(rcsOsetBtm), yz180, scl);
-    blueprint.add_part(rcs, rotZ_270.transformVector(rcsOsetBtm), yz270, scl);*/
-
-    enum Parts
+    std::vector<std::reference_wrapper<osp::BlueprintPart>> rcsThrusters
     {
-        CAPSULE = 0,
-        FUSELAGE = 1,
-        ENGINE = 2,
-        RCS1 = 3,
-        RCS2 = 4,
-        RCS3 = 5,
-        RCS4 = 6,
-        RCS5 = 7,
-        RCS6 = 8,
-        RCS7 = 9,
-        RCS8 = 10
+        rcs1, rcs2, rcs3, rcs4
     };
 
-    std::vector<int> rcsPorts = {RCS1, RCS2, RCS3, RCS4, RCS5, RCS6, RCS7, RCS8};
+    blueprint.add_part(leg, cfOset + leg0, idRot, scl);
+    blueprint.add_part(leg, cfOset + leg90, rotZ_270, scl);
+    blueprint.add_part(leg, cfOset + leg180, rotZ_180, scl);
+    blueprint.add_part(leg, cfOset + leg270, rotZ_090, scl);
 
     // Wire throttle control
     // from (output): a MachineUserControl m_woThrottle
     // to    (input): a MachineRocket m_wiThrottle
-    blueprint.add_wire(
+    add_wire(blueprint,
+        capsuleBP, "part_ph_landerCapsule", "UserControl", 1,
+        engBP, "part_ph_landerME", "Rocket", 2);
+    /*blueprint.add_wire(
         Parts::CAPSULE, 0, 1,
-        Parts::ENGINE, 0, 2);
+        Parts::ENGINE, 0, 2);*/
 
     // Wire attitude contrl to gimbal
     // from (output): a MachineUserControl m_woAttitude
     // to    (input): a MachineRocket m_wiGimbal
-    blueprint.add_wire(
+    add_wire(blueprint,
+        capsuleBP, "part_ph_landerCapsule", "UserControl", 0,
+        engBP, "part_ph_landerME", "Rocket", 0);
+    /*blueprint.add_wire(
         Parts::CAPSULE, 0, 0,
-        Parts::ENGINE, 0, 0);
+        Parts::ENGINE, 0, 0);*/
 
     // Pipe fuel tank to rocket engine
     // from (output): fuselage MachineContainer m_outputs;
-    // to    (input): entine MachineRocket m_resourcesLines[0]
-    blueprint.add_wire(Parts::FUSELAGE, 0, 0,
+    // to    (input): engine MachineRocket m_resourcesLines[0]
+    add_wire(blueprint,
+        fuselageBP, "fueltankFuel", "Container", 0,
+        engBP, "part_ph_landerME", "Rocket", 3);
+    add_wire(blueprint,
+        fuselageBP, "fueltankOx", "Container", 0,
+        engBP, "part_ph_landerME", "Rocket", 4);
+    /*blueprint.add_wire(Parts::FUSELAGE, 0, 0,
         Parts::ENGINE, 0, 3);
+    blueprint.add_wire(Parts::FUSELAGE, 1, 0,
+        Parts::ENGINE, 0, 4);*/
 
-    /*for (auto port : rcsPorts)
+    for (auto const& port : rcsThrusters)
     {
-        // Attitude control -> RCS Control
-        blueprint.add_wire(Parts::CAPSULE, 0, 0,
-            port, 0, 0);
-        // RCS Control -> RCS Rocket
-        blueprint.add_wire(port, 0, 0,
-            port, 1, 2);
-        // Fuselage tank -> RCS Rocket
-        blueprint.add_wire(Parts::FUSELAGE, 0, 0,
-            port, 1, 3);
-    }*/
+        constexpr std::string_view nozzleBase = "rcs45thruster_";
+        std::vector<std::string_view> nozzleNames
+        {
+            "+x",
+            "+y",
+            "-x",
+            "-y"
+        };
+        for (std::string_view direction : nozzleNames)
+        {
+            std::string objName = osp::string_concat(nozzleBase, direction);
+
+            // Attitude control -> RCS Control
+            add_wire(blueprint,
+                capsuleBP, "part_ph_landerCapsule", "UserControl", 0,
+                port, objName, "RCSController", 0);
+            // RCS Control -> RCS Rocket
+            add_wire(blueprint,
+                port, objName, "RCSController", 0,
+                port, objName, "Rocket", 2);
+            // Capsule tanks -> RCS Rocket
+            add_wire(blueprint,
+                capsuleBP, "MMH_tank", "Container", 0,
+                port, objName, "Rocket", 3);
+            add_wire(blueprint,
+                capsuleBP, "NTO_tank", "Container", 0,
+                port, objName, "Rocket", 4);
+        }
+        //for (size_t i = 0; i < 4; i++)
+        //{
+        //    size_t rcsCtrlIdx = 2 * i;
+        //    size_t rcsRocketIdx = 2 * i + 1;
+
+        //    // Attitude control -> RCS Control
+        //    
+        //    blueprint.add_wire(Parts::CAPSULE, 0, 0,
+        //        port, rcsCtrlIdx, 0);
+        //    // RCS Control -> RCS Rocket
+        //    blueprint.add_wire(port, rcsCtrlIdx, 0,
+        //        port, rcsRocketIdx, 2);
+        //    // Capsule tank -> RCS Rocket
+        //    blueprint.add_wire(Parts::CAPSULE, 1, 0,
+        //        port, rcsRocketIdx, 3);
+        //    blueprint.add_wire(Parts::CAPSULE, 2, 0,
+        //        port, rcsRocketIdx, 4);
+        //}
+    }
 
     // Put blueprint in package
     auto depend = pkg.add<BlueprintVehicle>(std::string{name}, std::move(blueprint));

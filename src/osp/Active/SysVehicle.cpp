@@ -103,7 +103,7 @@ ActiveEnt SysVehicle::activate(ActiveScene &rScene, universe::Universe &rUni,
 
     // Unique part prototypes used in the vehicle
     // Access with [blueprintParts.m_partIndex]
-    std::vector<DependRes<PrototypePart> >& partsUsed =
+    std::vector<DependRes<PrototypePart>>& partsUsed =
             vehicleData.get_prototypes();
 
     // All the parts in the vehicle

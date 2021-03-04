@@ -100,22 +100,33 @@
                 5
             ],
             "extras" : {
+                "massdry" : 500,
                 "country" : "Lunaria",
                 "description" : "A hole through which to vent mass at (hopefully) high velocity",
                 "manufacturer" : "Discount tools depot",
+                "name" : "Lunar descent engine",
                 "machines" : [
                     {
                         "type" : "Rocket",
-                        "thrust" : 40000.0,
+                        "thrust" : 100000.0,
                         "Isp" : 310.0,
-                        "input_names" : ["lzdb:aero50", "lzdb:nto"],
-                        "input_mass_rate_fractions" : [1.0, 1.0]
+                        "input_names" : [
+                            "lzdb:aero50",
+                            "lzdb:nto"
+                        ],
+                        "input_mass_rate_fractions" : [
+                            1.0,
+                            1.0
+                        ]
                     }
-                ],
-                "name" : "Lunar descent engine",
-                "massdry" : 500
+                ]
             },
-            "name" : "part_ph_landerME"
+            "name" : "part_ph_landerME",
+            "translation" : [
+                0,
+                0,
+                -1.6094152927398682
+            ]
         }
     ],
     "materials" : [

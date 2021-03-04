@@ -38,7 +38,7 @@
             ]
         },
         {
-            "name" : "attach_rcs270d",
+            "name" : "attach_rcs315d",
             "translation" : [
                 1.0566200017929077,
                 -1.0566200017929077,
@@ -304,7 +304,13 @@
         },
         {
             "extras" : {
-                "shape" : "sphere"
+                "shape" : "sphere",
+                "machines" : [
+                    {
+                        "type" : "Container",
+                        "storagetype" : "liquid"
+                    }
+                ]
             },
             "name" : "MMH_tank",
             "scale" : [
@@ -320,7 +326,13 @@
         },
         {
             "extras" : {
-                "shape" : "sphere"
+                "shape" : "sphere",
+                "machines" : [
+                    {
+                        "type" : "Container",
+                        "storagetype" : "liquid"
+                    }
+                ]
             },
             "name" : "NTO_tank",
             "scale" : [

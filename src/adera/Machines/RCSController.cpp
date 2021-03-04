@@ -123,15 +123,19 @@ void SysMachineRCSController::update_controls(ActiveScene& rScene)
         using wiretype::AttitudeControl;
         using Magnum::Vector3;
 
-        // Get rigidbody ancestor and its transformation component
-        auto const* pRbAncestor =
-            SysPhysics_t::try_get_or_find_rigidbody_ancestor(rScene, ent);
-        auto const& rCompRb = rScene.reg_get<ACompRigidBody_t>(pRbAncestor->m_ancestor);
-        auto const& rCompTf = rScene.reg_get<ACompTransform>(pRbAncestor->m_ancestor);
-
         if (WireData *gimbal = machine.m_wiCommandOrient.connected_value())
         {
             AttitudeControl *attCtrl = std::get_if<AttitudeControl>(gimbal);
+            /*if (attCtrl->m_attitude.length() < 0.00001f)
+            {
+                continue;
+            }*/
+
+            // Get rigidbody ancestor and its transformation component
+            auto const* pRbAncestor =
+                SysPhysics_t::try_get_or_find_rigidbody_ancestor(rScene, ent);
+            auto const& rCompRb = rScene.reg_get<ACompRigidBody_t>(pRbAncestor->m_ancestor);
+            auto const& rCompTf = rScene.reg_get<ACompTransform>(pRbAncestor->m_ancestor);
 
             Matrix4 transform = pRbAncestor->m_relTransform;
 

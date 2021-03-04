@@ -50,7 +50,8 @@ struct BlueprintMachine
 struct BlueprintPart
 { 
 
-    unsigned m_partIndex; // index to BlueprintVehicle's m_partsUsed
+    size_t m_partIndex; // index to BlueprintVehicle's m_partsUsed
+    size_t m_blueprintPartIndex;
 
     Vector3 m_translation;
     Quaternion m_rotation;
@@ -100,6 +101,8 @@ class BlueprintVehicle
 public:
 
     BlueprintVehicle() = default;
+    BlueprintVehicle(size_t numParts)
+        : BlueprintVehicle() { reserve_parts(numParts); }
     BlueprintVehicle(BlueprintVehicle&& move) = default;
 
     /**
@@ -130,12 +133,16 @@ public:
 
     constexpr std::vector<DependRes<PrototypePart>>& get_prototypes()
     { return m_prototypes; }
+    constexpr std::vector<DependRes<PrototypePart>> const& get_prototypes() const
+    { return m_prototypes; }
 
     constexpr std::vector<BlueprintPart>& get_blueprints()
     { return m_blueprints; }
 
     constexpr std::vector<BlueprintWire>& get_wires()
     { return m_wires; }
+
+    void reserve_parts(size_t numParts) { m_blueprints.reserve(numParts); }
 
 private:
     // Unique part Resources used

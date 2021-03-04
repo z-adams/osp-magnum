@@ -29,7 +29,8 @@
         },
         {
             "extras" : {
-                "plumename" : "plume_rcs45"
+                "PlumeName" : "plume_rcs45",
+                "RocketName" : "rcs45thruster_+x"
             },
             "name" : "fx_plume_rcs45_+x",
             "rotation" : [
@@ -46,7 +47,8 @@
         },
         {
             "extras" : {
-                "plumename" : "plume_rcs45"
+                "PlumeName" : "plume_rcs45",
+                "RocketName" : "rcs45thruster_+y"
             },
             "name" : "fx_plume_rcs45_+y",
             "rotation" : [
@@ -63,7 +65,8 @@
         },
         {
             "extras" : {
-                "plumename" : "plume_rcs45"
+                "PlumeName" : "plume_rcs45",
+                "RocketName" : "rcs45thruster_-x"
             },
             "name" : "fx_plume_rcs45_-x",
             "rotation" : [
@@ -80,7 +83,8 @@
         },
         {
             "extras" : {
-                "plumename" : "plume_rcs45"
+                "PlumeName" : "plume_rcs45",
+                "RocketName" : "rcs45thruster_-y"
             },
             "name" : "fx_plume_rcs45_-y",
             "rotation" : [

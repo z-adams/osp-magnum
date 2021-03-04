@@ -283,7 +283,6 @@ void osp::AssetImporter::load_sturdy(TinyGltfImporter& gltfImporter,
     }
 
     // Loop over and discriminate all top-level nodes
-    // Currently, part_* are the only nodes that necessitate special handling
     for (UnsignedInt childID : sceneData->children3D())
     {
         const std::string& nodeName = gltfImporter.object3DName(childID);
@@ -487,6 +486,25 @@ void AssetImporter::proto_add_obj_recurse(TinyGltfImporter& gltfImporter,
         obj.m_objectData = ColliderData{shape};
 
         std::cout << "obj: " << name << " is a \"" << shapeName << "\" collider\n";
+    }
+    else if (name.compare(0, 9, "fx_plume_") == 0)
+    {
+        // It's a plume anchor
+        obj.m_type = ObjectType::PLUME_ANCHOR;
+
+        tinygltf::Value const& extras =
+            static_cast<tinygltf::Node const*>(childData->importerState())->extras;
+
+        std::string const& plumeType = extras.Get("PlumeName").Get<std::string>();
+        std::string const& rocketName = extras.Get("RocketName").Get<std::string>();
+
+        size_t typeIdx = part.get_strings().size();
+        part.get_strings().push_back(plumeType);
+
+        size_t rocketNameIdx = part.get_strings().size();
+        part.get_strings().push_back(rocketName);
+
+        obj.m_objectData = PlumeData{typeIdx, rocketNameIdx};
     }
     else if (hasMesh)
     {

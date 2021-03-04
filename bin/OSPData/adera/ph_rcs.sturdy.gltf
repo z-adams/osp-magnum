@@ -30,6 +30,10 @@
             ]
         },
         {
+            "extras" : {
+                "PlumeName" : "plume_phRCSplume",
+                "RocketName" : "part_phLinRCS"
+            },
             "name" : "fx_plume_phRCSplume",
             "translation" : [
                 0,

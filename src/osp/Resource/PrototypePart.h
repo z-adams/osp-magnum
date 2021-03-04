@@ -39,7 +39,8 @@ enum class ObjectType
 {
     NONE,       // Normal old object
     MESH,       // It has a mesh
-    COLLIDER//,   // It's a collider
+    COLLIDER,   // It's a collider
+    PLUME_ANCHOR// It's a plume anchor
     //ATTACHMENT  //
 };
 
@@ -64,6 +65,12 @@ struct ColliderData
     unsigned m_meshData;
 };
 
+struct PlumeData
+{
+    size_t m_plumeName;
+    size_t m_rocketName;
+};
+
 struct PrototypeObject
 {
     unsigned m_parentIndex;
@@ -84,7 +91,7 @@ struct PrototypeObject
 
     ObjectType m_type;
 
-    std::variant<DrawableData, ColliderData> m_objectData;
+    std::variant<DrawableData, ColliderData, PlumeData> m_objectData;
 
     // Put more OSP-specific data in here
 

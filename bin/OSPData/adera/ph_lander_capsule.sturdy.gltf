@@ -70,6 +70,10 @@
             ]
         },
         {
+            "extras" : {
+                "PlumeName" : "plume_rcs45",
+                "RocketName" : "ithruster_+x_-"
+            },
             "name" : "fx_plume_ithruster_+x_-",
             "rotation" : [
                 -0.6532815098762512,
@@ -84,6 +88,10 @@
             ]
         },
         {
+            "extras" : {
+                "PlumeName" : "plume_rcs45",
+                "RocketName" : "ithruster_+y_+"
+            },
             "name" : "fx_plume_ithruster_+y_+",
             "rotation" : [
                 -0.27059805393218994,
@@ -98,6 +106,10 @@
             ]
         },
         {
+            "extras" : {
+                "PlumeName" : "plume_rcs45",
+                "RocketName" : "ithruster_+y_-"
+            },
             "name" : "fx_plume_ithruster_+y_-",
             "rotation" : [
                 0.2705981135368347,
@@ -112,6 +124,10 @@
             ]
         },
         {
+            "extras" : {
+                "PlumeName" : "plume_rcs45",
+                "RocketName" : "ithruster_-x_+"
+            },
             "name" : "fx_plume_ithruster_-x_+",
             "rotation" : [
                 0.6532815098762512,
@@ -126,6 +142,10 @@
             ]
         },
         {
+            "extras" : {
+                "PlumeName" : "plume_rcs45",
+                "RocketName" : "ithruster_-x_-"
+            },
             "name" : "fx_plume_ithruster_-x_-",
             "rotation" : [
                 0.6532815098762512,
@@ -140,6 +160,10 @@
             ]
         },
         {
+            "extras" : {
+                "PlumeName" : "plume_rcs45",
+                "RocketName" : "ithruster_-y_+"
+            },
             "name" : "fx_plume_ithruster_-y_+",
             "rotation" : [
                 0.27059805393218994,
@@ -154,6 +178,10 @@
             ]
         },
         {
+            "extras" : {
+                "PlumeName" : "plume_rcs45",
+                "RocketName" : "ithruster_-y_-"
+            },
             "name" : "fx_plume_ithruster_-y_-",
             "rotation" : [
                 -0.2705981135368347,
@@ -168,7 +196,11 @@
             ]
         },
         {
-            "name" : "fx_plume_ithruster__+x_+",
+            "extras" : {
+                "PlumeName" : "plume_rcs45",
+                "RocketName" : "ithruster_+x_+"
+            },
+            "name" : "fx_plume_ithruster_+x_+",
             "rotation" : [
                 -0.6532815098762512,
                 0.27059802412986755,
@@ -182,6 +214,26 @@
             ]
         },
         {
+            "extras" : {
+                "machines" : [
+                    {
+                        "type" : "RCSController"
+                    },
+                    {
+                        "type" : "Rocket",
+                        "thrust" : 1000.0,
+                        "Isp" : 310.0,
+                        "input_names" : [
+                            "lzdb:mmh",
+                            "lzdb:nto"
+                        ],
+                        "input_mass_rate_fractions" : [
+                            1.0,
+                            2.16
+                        ]
+                    }
+                ]
+            },
             "name" : "ithruster_+y_+",
             "rotation" : [
                 -0.6532815098762512,
@@ -196,6 +248,26 @@
             ]
         },
         {
+            "extras" : {
+                "machines" : [
+                    {
+                        "type" : "RCSController"
+                    },
+                    {
+                        "type" : "Rocket",
+                        "thrust" : 1000.0,
+                        "Isp" : 310.0,
+                        "input_names" : [
+                            "lzdb:mmh",
+                            "lzdb:nto"
+                        ],
+                        "input_mass_rate_fractions" : [
+                            1.0,
+                            2.16
+                        ]
+                    }
+                ]
+            },
             "name" : "ithruster_+y_-",
             "rotation" : [
                 -0.6532815098762512,
@@ -210,6 +282,26 @@
             ]
         },
         {
+            "extras" : {
+                "machines" : [
+                    {
+                        "type" : "RCSController"
+                    },
+                    {
+                        "type" : "Rocket",
+                        "thrust" : 1000.0,
+                        "Isp" : 310.0,
+                        "input_names" : [
+                            "lzdb:mmh",
+                            "lzdb:nto"
+                        ],
+                        "input_mass_rate_fractions" : [
+                            1.0,
+                            2.16
+                        ]
+                    }
+                ]
+            },
             "name" : "ithruster_-x_+",
             "rotation" : [
                 -0.27059805393218994,
@@ -224,6 +316,26 @@
             ]
         },
         {
+            "extras" : {
+                "machines" : [
+                    {
+                        "type" : "RCSController"
+                    },
+                    {
+                        "type" : "Rocket",
+                        "thrust" : 1000.0,
+                        "Isp" : 310.0,
+                        "input_names" : [
+                            "lzdb:mmh",
+                            "lzdb:nto"
+                        ],
+                        "input_mass_rate_fractions" : [
+                            1.0,
+                            2.16
+                        ]
+                    }
+                ]
+            },
             "name" : "ithruster_+x_-",
             "rotation" : [
                 -0.27059805393218994,
@@ -238,6 +350,26 @@
             ]
         },
         {
+            "extras" : {
+                "machines" : [
+                    {
+                        "type" : "RCSController"
+                    },
+                    {
+                        "type" : "Rocket",
+                        "thrust" : 1000.0,
+                        "Isp" : 310.0,
+                        "input_names" : [
+                            "lzdb:mmh",
+                            "lzdb:nto"
+                        ],
+                        "input_mass_rate_fractions" : [
+                            1.0,
+                            2.16
+                        ]
+                    }
+                ]
+            },
             "name" : "ithruster_-x_-",
             "rotation" : [
                 0.27059805393218994,
@@ -252,6 +384,26 @@
             ]
         },
         {
+            "extras" : {
+                "machines" : [
+                    {
+                        "type" : "RCSController"
+                    },
+                    {
+                        "type" : "Rocket",
+                        "thrust" : 1000.0,
+                        "Isp" : 310.0,
+                        "input_names" : [
+                            "lzdb:mmh",
+                            "lzdb:nto"
+                        ],
+                        "input_mass_rate_fractions" : [
+                            1.0,
+                            2.16
+                        ]
+                    }
+                ]
+            },
             "name" : "ithruster_-y_+",
             "rotation" : [
                 0.6532815098762512,
@@ -266,6 +418,26 @@
             ]
         },
         {
+            "extras" : {
+                "machines" : [
+                    {
+                        "type" : "RCSController"
+                    },
+                    {
+                        "type" : "Rocket",
+                        "thrust" : 1000.0,
+                        "Isp" : 310.0,
+                        "input_names" : [
+                            "lzdb:mmh",
+                            "lzdb:nto"
+                        ],
+                        "input_mass_rate_fractions" : [
+                            1.0,
+                            2.16
+                        ]
+                    }
+                ]
+            },
             "name" : "ithruster_-y_-",
             "rotation" : [
                 0.6532815098762512,
@@ -280,7 +452,27 @@
             ]
         },
         {
-            "name" : "ithruster__+x_+",
+            "extras" : {
+                "machines" : [
+                    {
+                        "type" : "RCSController"
+                    },
+                    {
+                        "type" : "Rocket",
+                        "thrust" : 1000.0,
+                        "Isp" : 310.0,
+                        "input_names" : [
+                            "lzdb:mmh",
+                            "lzdb:nto"
+                        ],
+                        "input_mass_rate_fractions" : [
+                            1.0,
+                            2.16
+                        ]
+                    }
+                ]
+            },
+            "name" : "ithruster_+x_+",
             "rotation" : [
                 0.27059805393218994,
                 0.6532814502716064,

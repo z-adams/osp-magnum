@@ -63,6 +63,10 @@ Vector3 part_offset(
 size_t find_machine_index(BlueprintVehicle const& vehicle,
     size_t partIndex, std::string_view objectName, std::string_view machineType);
 
+std::map<std::string, osp::config_node_t>& get_config(
+    osp::BlueprintVehicle const& vehicle, osp::BlueprintPart& part,
+    std::string_view object, std::string_view machineType);
+
 /**
  * Utility: creates wire coonnections based on named part elements
  * 
@@ -246,6 +250,14 @@ size_t find_machine_index(BlueprintVehicle const& vehicle,
         throw std::exception("Couldn't find machine");
     }
     return *foundMachine;
+}
+
+std::map<std::string, osp::config_node_t>& get_config(
+    osp::BlueprintVehicle const& vehicle, osp::BlueprintPart& part,
+    std::string_view object, std::string_view machineType)
+{
+    size_t machineIndex = find_machine_index(vehicle, part.m_partIndex, object, machineType);
+    return part.m_machines[machineIndex].m_config;
 }
 
 void add_wire(osp::BlueprintVehicle& vehicle,
@@ -451,16 +463,20 @@ Satellite testapp::debug_add_lander(Universe& uni, Package& pkg, std::string_vie
     Quaternion rotZ_270 = Quaternion::rotation(3 * qtrTurn, Vector3{0, 0, 1});
 
     auto& capsuleBP = blueprint.add_part(capsule, Vector3{0}, idRot, scl);
-    capsuleBP.m_machines[1].m_config.emplace("resource_name", "lzdb:mmh");
-    capsuleBP.m_machines[1].m_config.emplace("fuel_level", 1.0);
-    capsuleBP.m_machines[2].m_config.emplace("resource_name", "lzdb:nto");
-    capsuleBP.m_machines[2].m_config.emplace("fuel_level", 1.0);
+    auto& capMmhCfg = get_config(blueprint, capsuleBP, "MMH_tank", "Container");
+    capMmhCfg.emplace("resource_name", "lzdb:mmh");
+    capMmhCfg.emplace("fuel_level", 1.0);
+    auto& capNtoCfg = get_config(blueprint, capsuleBP, "NTO_tank", "Container");
+    capNtoCfg.emplace("resource_name", "lzdb:nto");
+    capNtoCfg.emplace("fuel_level", 1.0);
 
     auto& fuselageBP = blueprint.add_part(fuselage, cfOset, idRot, scl);
-    fuselageBP.m_machines[0].m_config.emplace("resource_name", "lzdb:nto");
-    fuselageBP.m_machines[0].m_config.emplace("fuel_level", 1.0);
-    fuselageBP.m_machines[1].m_config.emplace("resource_name", "lzdb:aero50");
-    fuselageBP.m_machines[1].m_config.emplace("fuel_level", 1.0);
+    auto& fusNtoCfg = get_config(blueprint, fuselageBP, "fueltankOx", "Container");
+    fusNtoCfg.emplace("resource_name", "lzdb:nto");
+    fusNtoCfg.emplace("fuel_level", 1.0);
+    auto& fusA50Cfg = get_config(blueprint, fuselageBP, "fueltankFuel", "Container");
+    fusA50Cfg.emplace("resource_name", "lzdb:aero50");
+    fusA50Cfg.emplace("fuel_level", 1.0);
 
     auto& engBP = blueprint.add_part(engine, cfOset + feOset, idRot, scl);
 

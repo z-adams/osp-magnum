@@ -31,6 +31,12 @@
 namespace osp::active
 {
 
+struct ACompPlumePrecursor
+{
+    std::string m_plumeEffectName;
+    std::string m_rocketName;
+};
+
 struct ACompExhaustPlume
 {
     ActiveEnt m_parentMachineRocket{entt::null};
@@ -45,6 +51,8 @@ public:
     SysExhaustPlume(ActiveScene& rScene);
     ~SysExhaustPlume() = default;
 
+    void create_plumes(ActiveScene& rScene);
+
     /**
      * Initialize plume graphics
      * 
@@ -52,7 +60,7 @@ public:
      * this function takes such entities, retrieves the appropriate graphics
      * resources, and configures the graphical components
      */
-    void initialize_plume(ActiveEnt e);
+    void initialize_plume(ActiveScene& rScene, ActiveEnt e);
 
     void update_plumes(ActiveScene& rScene);
 

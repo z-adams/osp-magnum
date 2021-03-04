@@ -46,7 +46,95 @@ SysExhaustPlume::SysExhaustPlume(ActiveScene& rScene)
         [this](ActiveScene& rScene){this->update_plumes(rScene);})
 {}
 
-void SysExhaustPlume::initialize_plume(ActiveEnt node)
+/*void attach_plume_effect(ActiveEnt partRoot, ActiveEnt ent)
+{
+    ActiveEnt plumeNode = entt::null;
+
+    auto findPlumeHandle = [this, &plumeNode](ActiveEnt ent)
+    {
+        auto const& node = m_scene.reg_get<ACompHierarchy>(ent);
+        static constexpr std::string_view nodePrefix = "fx_plume_";
+        if (0 == node.m_name.compare(0, nodePrefix.size(), nodePrefix))
+        {
+            plumeNode = ent;
+            return EHierarchyTraverseStatus::Stop;  // terminate search
+        }
+        return EHierarchyTraverseStatus::Continue;
+    };
+
+    m_scene.hierarchy_traverse(ent, findPlumeHandle);
+
+    if (plumeNode == entt::null)
+    {
+        std::cout << "ERROR: could not find plume anchor for MachineRocket "
+            << ent << "\n";
+        return;
+    }
+    std::cout << "MachineRocket " << ent << "'s associated plume: "
+        << plumeNode << "\n";
+
+    // Get plume effect
+    Package& pkg = m_scene.get_application().debug_find_package("lzdb");
+    std::string_view plumeAnchorName = m_scene.reg_get<ACompHierarchy>(plumeNode).m_name;
+    std::string_view effectName = plumeAnchorName.substr(3, plumeAnchorName.length() - 3);
+    DependRes<PlumeEffectData> plumeEffect = pkg.get<PlumeEffectData>(effectName);
+    if (plumeEffect.empty())
+    {
+        std::cout << "ERROR: couldn't find plume effect " << effectName << "!\n";
+        return;
+    }
+
+    m_scene.reg_emplace<ACompExhaustPlume>(plumeNode, ent, plumeEffect);
+}*/
+
+void SysExhaustPlume::create_plumes(ActiveScene& rScene)
+{
+    for (auto [ent, precursor] : rScene.get_registry().view<ACompPlumePrecursor>().each())
+    {
+        ActiveEnt rocket = entt::null;
+        std::string_view rocketName = precursor.m_rocketName;
+        auto findPlumeRocket = [&rScene, &rocket, rocketName](ActiveEnt ent)
+        {
+            auto const& node = rScene.reg_get<ACompHierarchy>(ent);
+            if (0 == node.m_name.compare(0, rocketName.size(), rocketName))
+            {
+                rocket = ent;
+                return EHierarchyTraverseStatus::Stop;  // terminate search
+            }
+            return EHierarchyTraverseStatus::Continue;
+        };
+
+        // Parts are only 1 level deep for now
+        ActiveEnt partRoot = rScene.reg_get<ACompHierarchy>(ent).m_parent;
+        rScene.hierarchy_traverse(partRoot, findPlumeRocket);
+
+        if (rocket == entt::null)
+        {
+            std::cout << "ERROR: could not find rocket named " << rocketName
+                << " for plume " << ent << "\n";
+            continue;
+        }
+        std::cout << "Plume " << ent << " created and associated with rocket "
+            << rocket << "\n";
+
+        // Get plume effect
+        Package& pkg = m_scene.get_application().debug_find_package("lzdb");
+        DependRes<PlumeEffectData> plumeEffect =
+            pkg.get<PlumeEffectData>(precursor.m_plumeEffectName);
+        if (plumeEffect.empty())
+        {
+            std::cout << "ERROR: couldn't find plume effect "
+                << precursor.m_plumeEffectName << "!\n";
+            return;
+        }
+
+        // Create ACompExhaustPlume
+        rScene.reg_emplace<ACompExhaustPlume>(ent, rocket, plumeEffect);
+        rScene.get_registry().remove<ACompPlumePrecursor>(ent);
+    }
+}
+
+void SysExhaustPlume::initialize_plume(ActiveScene& rScene, ActiveEnt node)
 {
     using Magnum::GL::Mesh;
     using Magnum::GL::Texture2D;
@@ -104,12 +192,15 @@ void SysExhaustPlume::update_plumes(ActiveScene& rScene)
 
     auto& reg = m_scene.get_registry();
 
+    // Create plumes that were initialized by SysVehicle
+    create_plumes(rScene);
+
     // Initialize any uninitialized plumes
     auto uninitializedComps =
         reg.view<ACompExhaustPlume>(entt::exclude<ShaderInstance_t>);
     for (ActiveEnt plumeEnt : uninitializedComps)
     {
-        initialize_plume(plumeEnt);
+        initialize_plume(rScene, plumeEnt);
     }
 
     // Process plumes

@@ -42,6 +42,10 @@
             "name" : "engine"
         },
         {
+            "extras" : {
+                "PlumeName" : "plume_phPlume",
+                "RocketName" : "part_phEngine"
+            },
             "name" : "fx_plume_phPlume",
             "translation" : [
                 0,

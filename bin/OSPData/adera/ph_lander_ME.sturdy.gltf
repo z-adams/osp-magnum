@@ -58,7 +58,8 @@
         },
         {
             "extras" : {
-                "plumename" : "plume_landerME"
+                "PlumeName" : "plume_landerME",
+                "RocketName" : "part_ph_landerME"
             },
             "name" : "fx_plume_landerME",
             "translation" : [

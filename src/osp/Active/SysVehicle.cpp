@@ -392,6 +392,15 @@ std::pair<ActiveEnt, std::vector<SysVehicle::MachineDef>> SysVehicle::part_insta
             const ColliderData& cd = std::get<ColliderData>(currentPrototype.m_objectData);
             collision.m_shape = cd.m_type;
         }
+        else if (currentPrototype.m_type == ObjectType::PLUME_ANCHOR)
+        {
+            PlumeData const& pd = std::get<PlumeData>(currentPrototype.m_objectData);
+            std::string plumeEffectName = part.get_strings()[pd.m_plumeName];
+            std::string rocketName = part.get_strings()[pd.m_rocketName];
+
+            rScene.reg_emplace<ACompPlumePrecursor>(currentEnt,
+                std::move(plumeEffectName), std::move(rocketName));
+        }
 
         // Save the list of machines this object owns
         machineMapping.emplace_back(currentEnt, currentPrototype.m_machineIndices);

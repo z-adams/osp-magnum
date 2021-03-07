@@ -1,0 +1,159 @@
+/**
+ * Open Space Program
+ * Copyright © 2019-2020 Open Space Program Project
+ *
+ * MIT License
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+//#version 430 core
+
+//#define FLOAT32_IMG
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+/*#ifdef FLOAT32_IMG
+#define VALUE_TYPE vec4
+layout(location = 0, r32f) uniform readonly image2D equirectangular;
+layout(location = 1, r32f) uniform writeonly imageCube cube;
+#else
+#define VALUE_TYPE uvec4*/
+layout(location = 0, rgba8ui) uniform readonly uimage2D equirectangular;
+layout(location = 1, rgba8ui) uniform writeonly uimageCube cube;
+//#endif
+
+const float PI = 3.14159265359;
+
+vec3 cube_uv_to_xyz(in uint faceID, in vec2 uv)
+{
+    float uc = 2.0*uv.x - 1.0;
+    float vc = 2.0*uv.y - 1.0;
+
+    float posX = float(faceID == 0);
+    float negX = float(faceID == 1);
+    float posY = float(faceID == 2);
+    float negY = float(faceID == 3);
+    float posZ = float(faceID == 4);
+    float negZ = float(faceID == 5);
+
+    float x = 1.0    *posX
+            + (-1.0) *negX
+            + uc     *posY
+            + uc     *negY
+            + uc     *posZ
+            + (-uc)  *negZ;
+
+    float y = vc     *posX
+            + vc     *negX
+            + 1.0    *posY
+            + (-1.0) *negY
+            + vc     *posZ
+            + vc     *negZ;
+
+    float z = -uc    *posX
+            + uc     *negX
+            + (-vc)  *posY
+            + vc     *negY
+            + 1.0    *posZ
+            + (-1.0) *negZ;
+
+    return normalize(vec3(x, y, z));
+}
+
+vec2 xyz_to_sphere_angles(vec3 xyz)
+{
+    float r = length(xyz);
+    float theta = acos(xyz.z / r);
+    float phi = atan(xyz.y, xyz.x);
+
+    return vec2(theta, phi);
+}
+
+vec2 spherical_to_equirectangular_uv(vec2 thetaPhi)
+{
+    float phi = thetaPhi.y;
+    float theta = thetaPhi.x;
+
+    float u = phi / (2*PI) + 0.5;
+    float v = 1.0 - (theta / PI);
+
+    return vec2(u, v);
+}
+
+uvec3 debug_color(uint face)
+{
+    uint isPosX = uint(face == 0);
+    uint isNegX = uint(face == 1);
+    uint isPosY = uint(face == 2);
+    uint isNegY = uint(face == 3);
+    uint isPosZ = uint(face == 4);
+    uint isNegZ = uint(face == 5);
+
+    uvec3 posX = {255, 0, 0};
+    uvec3 negX = {0, 255, 255};
+    uvec3 posY = {0, 255, 0};
+    uvec3 negY = {255, 0, 255};
+    uvec3 posZ = {0, 0, 255};
+    uvec3 negZ = {255, 255, 0};
+
+    return isPosX*posX
+         + isNegX*negX
+         + isPosY*posY
+         + isNegY*negY
+         + isPosZ*posZ
+         + isNegZ*negZ;
+}
+
+void main()
+{
+    uvec2 outputDims = imageSize(cube);
+    uvec2 inputDims = imageSize(equirectangular);
+
+    uvec2 start = {
+        gl_WorkGroupID.x * gl_WorkGroupSize.x,
+        gl_WorkGroupID.y * gl_WorkGroupSize.y};
+    uint u = start.x + gl_LocalInvocationID.x;
+    uint v = start.y + gl_LocalInvocationID.y;
+    uint cubeFace = gl_WorkGroupID.z;
+
+    if (u > outputDims.x || v > outputDims.y)
+    {
+        return;
+    }
+
+    //tmp
+    /*float pos = float(u) / outputDims.x;
+    float diagPos = float(gl_LocalInvocationID.x*gl_LocalInvocationID.y) * 3.0;
+    float zPos = float(gl_WorkGroupID.z) * 50.0;
+    uvec4 color = uvec4(uvec3(diagPos), 255);
+    //uvec4 color = uvec4(debug_color(cubeFace), 255);
+    imageStore(cube, dest, color);
+    return;*/
+    ivec3 dest = ivec3(u, v, cubeFace);
+
+    vec2 cubeUV = (vec2(u, v) + vec2(0.5)) / float(outputDims.x);
+    vec3 vector = cube_uv_to_xyz(cubeFace, cubeUV);
+    vec2 angles = xyz_to_sphere_angles(vector);
+    vec2 eqNorm = spherical_to_equirectangular_uv(angles);
+    ivec2 src = ivec2(inputDims.x*eqNorm.x, inputDims.y*eqNorm.y);
+    uvec4 px = uvec4(imageLoad(equirectangular, src).rgb, 255);
+    //float col = float(255)*angles.x/PI; //acos(vector.z)/PI;
+    //uvec4 px = uvec4(col, 0, 0, 255);
+    imageStore(cube, dest, px);
+}

@@ -25,6 +25,7 @@
 
 #include "OSPMagnum.h"
 #include "osp/types.h"
+#include <osp/CubemapUtils.h>
 
 #include <Magnum/Math/Color.h>
 #include <Magnum/PixelFormat.h>
@@ -101,13 +102,17 @@ void OSPMagnum::drawEvent()
 
 
     // TODO: GUI and stuff
+    
+    // Run temporary stuff
+    /*using osp::math::cubemap::CubemapComputeShader;
+    auto compute = std::make_unique<CubemapComputeShader>();
+    compute->process("lroc_color_poles_4k.png", "cubeoutput/");*/
+    //compute.reset();
 
     swapBuffers();
     m_timeline.nextFrame();
     redraw();
 }
-
-
 
 void OSPMagnum::keyPressEvent(KeyEvent& event)
 {

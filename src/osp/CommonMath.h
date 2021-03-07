@@ -45,4 +45,54 @@ constexpr bool is_power_of_2(UINT_T value)
     return !(value == 0) && !(value & (value - 1));
 }
 
+/**
+ * Convert cartesian coordinates to spherical coordinates
+ *
+ * Takes a cartesian vector (X, Y, Z) and transforms it into spherical
+ * coordinates (radius, theta, phi), where theta is the inclination angle, and
+ * phi is the azimuthal angle.
+ * NOTE: despite residing in "CommonMath.h", these functions are based on the
+ * physics convention for spherical coordinate naming conventions, not the
+ * math convention (where theta is the azimuthal angle).
+ *
+ * @param xyz [in] A cartesian vector
+ * @return The vector in spherical coordinates {radius, theta, phi}
+ */
+template <typename T>
+inline Vector3 cartesian_to_spherical(Magnum::Math::Vector3<T> xyz)
+{
+    T r = xyz.length();
+    T theta = acos(xyz.z() / r);
+    T phi = atan2(xyz.y(), xyz.x());
+
+    return {r, theta, phi};
+}
+
+/**
+ * Convert spherical coordinates to cartesian coordinates
+ *
+ * Takes a vector in spherical coordinates (radius, theta, phi), where theta
+ * is the inclination angle and phi is the azimuthal angle, and transforms it
+ * into cartesian (X, Y, Z) coordiantes
+ * NOTE: despite residing in "CommonMath.h", these functions are based on the
+ * physics convention for spherical coordinate naming conventions, not the
+ * math convention (where theta is the azimuthal angle).
+ *
+ * @param xyz [in] A spherical vector
+ * @return The vector in cartesian coordinates
+ */
+template <typename T>
+inline Vector3 spherical_to_cartesian(Magnum::Math::Vector3<T> rtp)
+{
+    T r = rtp.x();
+    T theta = rtp.y();
+    T phi = rtp.z();
+
+    T x = r * cos(theta) * cos(phi);
+    T y = r * sin(theta) * sin(phi);
+    T z = r * cos(theta);
+
+    return {x, y, z};
+}
+
 } // namespace osp::math

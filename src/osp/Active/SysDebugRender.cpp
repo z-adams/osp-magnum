@@ -24,6 +24,7 @@
  */
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
+#include <Magnum/GL/DebugOutput.h>
 
 #include "SysDebugRender.h"
 #include "ActiveScene.h"
@@ -58,6 +59,11 @@ void SysDebugRender::add_functions(ActiveScene &rScene)
     glResources.add<PlumeShader>("plume_shader");
 
     glResources.add<PlanetShader>("planet_shader");
+
+    /*using namespace Magnum;
+    GL::Renderer::enable(GL::Renderer::Feature::DebugOutput);
+    GL::Renderer::enable(GL::Renderer::Feature::DebugOutputSynchronous);
+    GL::DebugOutput::setDefaultCallback();*/
 }
 
 void SysDebugRender::draw(ActiveScene &rScene, ACompCamera const& camera)

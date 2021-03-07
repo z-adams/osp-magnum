@@ -43,6 +43,9 @@
 #include <planet-a/Active/SysPlanetA.h>
 #include <planet-a/Satellites/SatPlanet.h>
 
+//tmp
+#include <osp/CubemapUtils.h>
+
 using namespace testapp;
 
 using osp::Vector2;
@@ -84,6 +87,14 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
 
     // Create the application
     pMagnumApp = std::make_unique<OSPMagnum>(args, rOspApp);
+
+    // Run temporary stuff
+    using osp::math::cubemap::CubemapComputeShader;
+    auto compute = std::make_unique<CubemapComputeShader>();
+    compute->process("lroc_color_poles_4k.png", "cubeoutput/");
+    compute.reset();
+    pMagnumApp.reset();
+    return;
 
     // Configure the controls
     config_controls(*pMagnumApp);
@@ -155,7 +166,7 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
     // Close button has been pressed
 
     std::cout << "Magnum Application closed\n";
-
+    
     // Disconnect ActiveArea
     osp::active::SysAreaAssociate::disconnect(rScene);
 

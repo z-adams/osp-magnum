@@ -33,11 +33,13 @@ find_package(Magnum REQUIRED
     Trade
     Sdl2Application
     AnyImageImporter
+    AnyImageConverter
     )
 
 find_package(MagnumPlugins REQUIRED
     TinyGltfImporter
-    StbImageImporter)
+    StbImageImporter
+    StbImageConverter)
 
 find_package(Threads)
 
@@ -109,8 +111,10 @@ target_link_libraries(osp-magnum PRIVATE
     Magnum::Shaders
     Magnum::Trade
     Magnum::AnyImageImporter
+    Magnum::AnyImageConverter
     MagnumPlugins::TinyGltfImporter
     MagnumPlugins::StbImageImporter
+    MagnumPlugins::StbImageConverter
     dNewton dScene dModel dVehicle
     toml11
     )

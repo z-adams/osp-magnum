@@ -40,6 +40,55 @@ layout(location = 1, rgba8ui) uniform writeonly uimageCube cube;
 
 const float PI = 3.14159265359;
 
+vec3 cube_uv_to_xyz_slow(in uint faceID, in vec2 uv)
+{
+    float uc = 2.0*uv.x - 1.0;
+    float vc = 2.0*uv.y - 1.0;
+
+    float x = 0.0;
+    float y = 0.0;
+    float z = 0.0;
+    if (faceID == 0)
+    {  // posX (RH +X)
+        x = 1.0;
+        y = -uc;
+        z = vc;
+    }
+    else if (faceID == 1)
+    {  // negX (RH -X)
+        x = -1.0;
+        y = uc;
+        z = vc;
+    }
+    else if (faceID == 2)
+    {  // posY (RH +Z)
+        x = uc;
+        y = -vc;
+        z = 1.0;
+    }
+    else if (faceID == 3)
+    {  // negY (RH -Z)
+        x = uc;
+        y = vc;
+        z = -1.0;
+    }
+    else if (faceID == 4)
+    {  // posZ (RH +Y)
+        x = uc;
+        y = 1.0;
+        z = -vc;
+
+    }
+    else if (faceID == 5)
+    {  // negZ (RH -Y)
+        x = -uc;
+        y = -1.0;
+        z = -vc;
+    }
+
+    return normalize(vec3(x, y, z));
+}
+
 vec3 cube_uv_to_xyz(in uint faceID, in vec2 uv)
 {
     float uc = 2.0*uv.x - 1.0;
@@ -148,7 +197,7 @@ void main()
     ivec3 dest = ivec3(u, v, cubeFace);
 
     vec2 cubeUV = (vec2(u, v) + vec2(0.5)) / float(outputDims.x);
-    vec3 vector = cube_uv_to_xyz(cubeFace, cubeUV);
+    vec3 vector = cube_uv_to_xyz_slow(cubeFace, cubeUV);
     vec2 angles = xyz_to_sphere_angles(vector);
     vec2 eqNorm = spherical_to_equirectangular_uv(angles);
     ivec2 src = ivec2(inputDims.x*eqNorm.x, inputDims.y*eqNorm.y);

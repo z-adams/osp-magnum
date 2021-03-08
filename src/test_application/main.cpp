@@ -275,12 +275,12 @@ void load_a_bunch_of_stuff()
     // Load cubesphere placeholders
     constexpr std::array<std::string_view, 6> cubeTexs =
     {
-        "OSPData/adera/Planet1/surface_diff_pos_x.png",
-        "OSPData/adera/Planet1/surface_diff_neg_x.png",
-        "OSPData/adera/Planet1/surface_diff_pos_y.png",
-        "OSPData/adera/Planet1/surface_diff_neg_y.png",
-        "OSPData/adera/Planet1/surface_diff_pos_z.png",
-        "OSPData/adera/Planet1/surface_diff_neg_z.png",
+        "OSPData/adera/Moon/posX.png",
+        "OSPData/adera/Moon/negX.png",
+        "OSPData/adera/Moon/posY.png",
+        "OSPData/adera/Moon/negY.png",
+        "OSPData/adera/Moon/posZ.png",
+        "OSPData/adera/Moon/negZ.png"
     };
     for (auto& t : cubeTexs)
     {

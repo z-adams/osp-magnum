@@ -91,7 +91,7 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
     // Run temporary stuff
     using osp::math::cubemap::CubemapComputeShader;
     auto compute = std::make_unique<CubemapComputeShader>();
-    compute->process("lroc_color_poles_4k.png", "cubeoutput/");
+    compute->process("lroc_color_poles_4k.png", "cubeoutput/", 2048);
     compute.reset();
     pMagnumApp.reset();
     return;

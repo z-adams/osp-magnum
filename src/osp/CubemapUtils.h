@@ -293,7 +293,7 @@ class CubemapComputeShader : public Magnum::GL::AbstractShaderProgram
 public:
     CubemapComputeShader();
 
-    void process(std::string_view input, std::string_view outputPath);
+    void process(std::string_view input, std::string_view outputPath, size_t outputSize);
 private:
     // GL init
     void init();

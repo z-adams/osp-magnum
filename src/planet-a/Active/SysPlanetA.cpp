@@ -237,14 +237,29 @@ void SysPlanetA::update_geometry(ActiveScene& rScene)
             if (mapRes.empty())
             {
                 // Compile cubemap
+                /* moon
+                    "OSPData/adera/Moon/posX.png",
+                    "OSPData/adera/Moon/negX.png",
+                    "OSPData/adera/Moon/posY.png",
+                    "OSPData/adera/Moon/negY.png",
+                    "OSPData/adera/Moon/posZ.png",
+                    "OSPData/adera/Moon/negZ.png"
+
+                    "OSPData/adera/TestPlanet/posX.png",
+                    "OSPData/adera/TestPlanet/negX.png",
+                    "OSPData/adera/TestPlanet/posY.png",
+                    "OSPData/adera/TestPlanet/negY.png",
+                    "OSPData/adera/TestPlanet/posZ.png",
+                    "OSPData/adera/TestPlanet/negZ.png"
+                */
                 constexpr std::array<std::string_view, 6> cubeTexs =
                 {
-                    "OSPData/adera/Planet1/surface_diff_pos_x.png",
-                    "OSPData/adera/Planet1/surface_diff_neg_x.png",
-                    "OSPData/adera/Planet1/surface_diff_pos_y.png",
-                    "OSPData/adera/Planet1/surface_diff_neg_y.png",
-                    "OSPData/adera/Planet1/surface_diff_pos_z.png",
-                    "OSPData/adera/Planet1/surface_diff_neg_z.png",
+                    "OSPData/adera/Moon/posX.png",
+                    "OSPData/adera/Moon/negX.png",
+                    "OSPData/adera/Moon/posY.png",
+                    "OSPData/adera/Moon/negY.png",
+                    "OSPData/adera/Moon/posZ.png",
+                    "OSPData/adera/Moon/negZ.png"
                 };
                 osp::Package& pkg = rScene.get_application().debug_find_package("lzdb");
                 mapRes = osp::AssetImporter::compile_cubemap("testCubemap", cubeTexs, pkg, glResources);

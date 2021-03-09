@@ -1,0 +1,61 @@
+/**
+ * Open Space Program
+ * Copyright © 2019-2020 Open Space Program Project
+ *
+ * MIT License
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+#version 430 core
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(location = 0, r32f) uniform readonly image2D heightmap;
+layout(location = 1, rg32f) uniform writeonly image2D gradientField;
+
+float read_in(ivec2 uv, ivec2 oset)
+{
+    return imageLoad(heightmap, uv + oset).r;
+}
+
+mat3 read_neighborhood(ivec2 uv)
+{
+    mat3 data = 
+    mat3(
+        read_in(uv, ivec2(-1, 1)), read_in(uv, ivec2(0, 1)), read_in(uv, ivec2(1, 1)),
+        read_in(uv, ivec2(-1, 0)), read_in(uv, ivec2(0, 0)), read_in(uv, ivec2(1, 0)),
+        read_in(uv, ivec2(-1, -1)), read_in(uv, ivec2(0, -1)), read_in(uv, ivec2(1, -1))
+    );
+
+    return data;
+}
+
+vec3 gradient(ivec2 uv)
+{
+    mat3 neighborhood = read_neighborhood(ivec2(uv));
+    //???
+    return vec3(0, 0, 1);
+}
+
+void main()
+{
+    uvec2 start = gl_WorkGroupID.xy * gl_WorkGroupSize.xy;
+    uvec2 uv = start + gl_LocalInvocationID.xy;
+
+}

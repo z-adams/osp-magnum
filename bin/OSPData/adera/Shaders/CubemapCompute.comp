@@ -40,6 +40,26 @@ layout(location = 1, rgba8ui) uniform writeonly uimageCube cube;
 
 const float PI = 3.14159265359;
 
+/**
+ * Converts a Cubemap face ID and texture coordinate to 3D vector
+ *
+ * BLACK MAGIC WARNING
+ * OpenGL's cubemap coordinates are wack (that's a technical term). The
+ * specification describes them as left-handed, Y-up coordinates, but my
+ * experiments seem to indicate that they're right-handed coordinates rotated
+ * 90 degrees about X. In any case, to complicate matters further, planet
+ * textures are cubemaps viewed from the outside, whereas normal cubemaps are
+ * meant to be viewed from the inside.
+ * Long story short, I have no theoretical explanation for the coordinate
+ * transformation below. It was obtained empirically and seems to work, so
+ * edit at your own peril.
+ *
+ * @param faceID [in] An index to a CubeMap face, according to the OpenGL spec
+ * @param uv     [in] A UV coordinate of the given face
+ *
+ * @return A 3-vector in right-handed Z-up cartesian coordinates pointing
+           towards the specified cubemap pixel
+ */
 vec3 cube_uv_to_xyz_slow(in uint faceID, in vec2 uv)
 {
     float uc = 2.0*uv.x - 1.0;
@@ -51,14 +71,14 @@ vec3 cube_uv_to_xyz_slow(in uint faceID, in vec2 uv)
     if (faceID == 0)
     {  // posX (RH +X)
         x = 1.0;
-        y = -uc;
-        z = vc;
+        y = uc;
+        z = -vc;
     }
     else if (faceID == 1)
     {  // negX (RH -X)
         x = -1.0;
-        y = uc;
-        z = vc;
+        y = -uc;
+        z = -vc;
     }
     else if (faceID == 2)
     {  // posY (RH +Z)
@@ -73,22 +93,25 @@ vec3 cube_uv_to_xyz_slow(in uint faceID, in vec2 uv)
         z = -1.0;
     }
     else if (faceID == 4)
-    {  // posZ (RH +Y)
+    {  // posZ (RH -Y)
         x = uc;
-        y = 1.0;
+        y = -1.0;
         z = -vc;
 
     }
     else if (faceID == 5)
-    {  // negZ (RH -Y)
+    {  // negZ (RH +Y)
         x = -uc;
-        y = -1.0;
+        y = 1.0;
         z = -vc;
     }
 
     return normalize(vec3(x, y, z));
 }
 
+/**
+ * A branch-free version of cube_uv_to_xyz_slow()
+ */
 vec3 cube_uv_to_xyz(in uint faceID, in vec2 uv)
 {
     float uc = 2.0*uv.x - 1.0;
@@ -108,23 +131,26 @@ vec3 cube_uv_to_xyz(in uint faceID, in vec2 uv)
             + uc     *posZ
             + (-uc)  *negZ;
 
-    float y = vc     *posX
-            + vc     *negX
-            + 1.0    *posY
-            + (-1.0) *negY
-            + vc     *posZ
-            + vc     *negZ;
-
-    float z = -uc    *posX
-            + uc     *negX
+    float y = uc     *posX
+            + (-uc)  *negX
             + (-vc)  *posY
             + vc     *negY
-            + 1.0    *posZ
-            + (-1.0) *negZ;
+            + (-1.0) *posZ
+            + 1.0    *negZ;
+
+    float z = -vc    *posX
+            + (-vc)  *negX
+            + 1.0    *posY
+            + (-1.0) *negY
+            + (-vc)  *posZ
+            + (-vc)  *negZ;
 
     return normalize(vec3(x, y, z));
 }
 
+/**
+ * Converts cartesian vector XYZ to spherical surface (theta, phi) coordinates
+ */
 vec2 xyz_to_sphere_angles(vec3 xyz)
 {
     float r = length(xyz);
@@ -134,6 +160,18 @@ vec2 xyz_to_sphere_angles(vec3 xyz)
     return vec2(theta, phi);
 }
 
+/**
+ * Coverts spherical angles to flat UV map coordinates
+ *
+ * This function maps geographic coordinates to simple UV coordinates that are
+ * used to index the equirectangular map texture.
+ *
+ * Equirectangular maps are simple projections that are indexed by spherical
+ * angles. The center of the map represents (0, 0) lat/long, the horizontal (U)
+ * direction maps to longitudes beloging to (-pi, pi), and the vertical
+ * direction (V) maps to latitudes belonging to (0, pi) (where 0 degrees
+ * latitude is the top of the image)
+ */
 vec2 spherical_to_equirectangular_uv(vec2 thetaPhi)
 {
     float phi = thetaPhi.y;
@@ -145,6 +183,19 @@ vec2 spherical_to_equirectangular_uv(vec2 thetaPhi)
     return vec2(u, v);
 }
 
+/**
+ * Generate a debug cubemap
+ *
+ * Given a cubemap face ID, generates a color according to the following table:
+
+   FACE ID |   COLOR   |  VALUE
+    0 (+X) | RED       | (255, 0, 0)
+    1 (+Y) | GREEN     | (0, 255, 0)
+    2 (+Z) | BLUE      | (0, 0, 255)
+    3 (-X) | 1 - RED   | (0, 255, 255)
+    4 (-Y) | 1 - GREEN | (255, 0, 255)
+    5 (-Z) | 1 - BLUE  | (255, 255, 0)
+ */
 uvec3 debug_color(uint face)
 {
     uint isPosX = uint(face == 0);
@@ -186,23 +237,17 @@ void main()
         return;
     }
 
-    //tmp
-    /*float pos = float(u) / outputDims.x;
-    float diagPos = float(gl_LocalInvocationID.x*gl_LocalInvocationID.y) * 3.0;
-    float zPos = float(gl_WorkGroupID.z) * 50.0;
-    uvec4 color = uvec4(uvec3(diagPos), 255);
-    //uvec4 color = uvec4(debug_color(cubeFace), 255);
-    imageStore(cube, dest, color);
-    return;*/
+    // Destination cubemap pixel coordinate
     ivec3 dest = ivec3(u, v, cubeFace);
 
     vec2 cubeUV = (vec2(u, v) + vec2(0.5)) / float(outputDims.x);
-    vec3 vector = cube_uv_to_xyz_slow(cubeFace, cubeUV);
+    vec3 vector = cube_uv_to_xyz(cubeFace, cubeUV);
     vec2 angles = xyz_to_sphere_angles(vector);
     vec2 eqNorm = spherical_to_equirectangular_uv(angles);
+
+    // Source equirectangular map pixel coordinate
     ivec2 src = ivec2(inputDims.x*eqNorm.x, inputDims.y*eqNorm.y);
+
     uvec4 px = uvec4(imageLoad(equirectangular, src).rgb, 255);
-    //float col = float(255)*angles.x/PI; //acos(vector.z)/PI;
-    //uvec4 px = uvec4(col, 0, 0, 255);
     imageStore(cube, dest, px);
 }

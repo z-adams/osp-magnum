@@ -48,6 +48,8 @@
 namespace osp::math::cubemap
 {
 
+Corrade::Optional<Magnum::ImageData2D> load_image(std::string_view filename);
+
 // Source: https://en.wikipedia.org/wiki/Cube_mapping
 inline Vector3 convert_cube_uv_to_xyz(Magnum::GL::CubeMapCoordinate index, Vector2 uv)
 {
@@ -318,6 +320,38 @@ private:
 
     CubemapComputeShader& bind_input_map(Magnum::GL::Texture2D& rTex);
     CubemapComputeShader& bind_output_cube(Magnum::GL::CubeMapTexture& rTex);
+};
+
+class NormalMapGenerator : public Magnum::GL::AbstractShaderProgram
+{
+public:
+    NormalMapGenerator();
+
+    void process(std::string_view input, std::string_view output);
+private:
+    // GL init
+    void init();
+
+    // Uniforms
+    enum class UniformPos : Magnum::Int
+    {
+        InputMap = 0,
+        OutputMap = 1
+    };
+
+    // ImageSlots
+    enum clas ImageSlots : Magnum::Int
+    {
+        InputMap = 0,
+        OutputMap = 1
+    };
+
+    // Hide irrelevant calls
+    using Magnum::GL::AbstractShaderProgram::drawTransformFeedback;
+    using Magnum::GL::AbstractShaderProgram::draw;
+
+    NormalMapGenerator& bind_input_map(Magnum::GL::Texture2D& rTex);
+    NormalMapGenerator& bind_output_map(Magnum::GL::Texture2D& rTex);
 };
 
 }

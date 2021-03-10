@@ -35,6 +35,12 @@
 using namespace osp::math::cubemap;
 using namespace Magnum;
 
+
+Corrade::Optional<Magnum::ImageData2D> load_image(std::string_view filename)
+{
+    
+}
+
 CubemapComputeShader::CubemapComputeShader()
 {
     init();
@@ -161,3 +167,31 @@ CubemapComputeShader& CubemapComputeShader::bind_output_cube(GL::CubeMapTexture&
         GL::ImageAccess::WriteOnly, GL::ImageFormat::RGBA8UI);
     return *this;
 }
+
+NormalMapGenerator()
+{
+    init();
+}
+
+void NormalMapGenerator::init()
+{
+    GL::Shader prog{GL::Version::GL430, GL::Shader::Type::Compute};
+    prog.addFile("OSPData/adera/Shaders/BumpToNormal.comp");
+
+    CORRADE_INTERNAL_ASSERT_OUTPUT(prog.compile());
+    attachShader(prog);
+    CORRADE_INTERNAL_ASSERT_OUTPUT(link());
+
+    setUniform(
+        static_cast<Int>(UniformPos::InputMap),
+        static_cast<Int>(ImageSlots::InputMap));
+    setUniform(
+        static_cast<Int>(UniformPos::OutputMap),
+        static_cast<Int>(ImageSlots::OutputMap));
+}
+
+void NormalMapGenerator::process(std::string_view input, std::string_view output)
+{
+    
+}
+

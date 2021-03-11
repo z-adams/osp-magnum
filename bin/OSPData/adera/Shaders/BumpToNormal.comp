@@ -48,24 +48,12 @@ float read_in(int xOset, int yOset)
     return imageLoad(heightmap, UV + ivec2(xOset, yOset)).r;
 }
 
-mat3 read_neighborhood()
-{
-    mat3 data = 
-    mat3(
-        read_in(-1, 1), read_in(0, 1), read_in(1, 1),
-        read_in(1, 0), read_in(0, 0), read_in(1, 0),
-        read_in(1, -1), read_in(0, -1), read_in(1, -1)
-    );
-
-    return data;
-}
-
 vec3 compute_normal()
 {
-    float north = read_in(0, 1);
-    float south = read_in(0, -1);
-    float east = read_in(1, 0);
-    float west = read_in(-1, 0);
+    float north = 2000.0 * read_in(0, 1);
+    float south = 2000.0 * read_in(0, -1);
+    float east = 2000.0 * read_in(1, 0);
+    float west = 2000.0 * read_in(-1, 0);
 
     float dEdU = (east - west)/(2.0*dLong);
     float dNdV = (north - south)/(2.0*dLat);

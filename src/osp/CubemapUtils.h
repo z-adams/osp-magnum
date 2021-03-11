@@ -43,6 +43,7 @@
 #include <Magnum/GL/AbstractShaderProgram.h>
 #include <Magnum/GL/Attribute.h>
 #include <Magnum/GL/Texture.h>
+#include <Magnum/GL/TextureFormat.h>
 #include <Magnum/GL/Shader.h>
 
 namespace osp::math::cubemap
@@ -67,39 +68,40 @@ inline Vector3 convert_cube_uv_to_xyz(Magnum::GL::CubeMapCoordinate index, Vecto
     {
     case CubeMapCoordinate::PositiveX:
         x = 1.0f;
-        y = vc;
-        z = -uc;
+        y = uc;
+        z = -vc;
         break;
     case CubeMapCoordinate::NegativeX:
         x = -1.0f;
-        y = vc;
-        z = uc;
+        y = -uc;
+        z = -vc;
         break;
     case CubeMapCoordinate::PositiveY:
         x = uc;
-        y = 1.0f;
-        z = -vc;
+        y = -vc;
+        z = 1.0f;
         break;
     case CubeMapCoordinate::NegativeY:
         x = uc;
-        y = -1.0f;
-        z = vc;
+        y = vc;
+        z = -1.0f;
         break;
     case CubeMapCoordinate::PositiveZ:
         x = uc;
-        y = vc;
-        z = 1.0f;
+        y = -1.0f;
+        z = -vc;
         break;
     case CubeMapCoordinate::NegativeZ:
         x = -uc;
-        y = vc;
-        z = -1.0f;
+        y = 1.0f;
+        z = -vc;
         break;
     }
 
     return Vector3{x, y, z};
 }
 
+// OUTDATED: WRONG COORDINATES
 inline std::pair<Magnum::GL::CubeMapCoordinate, Magnum::Vector2>
 convert_xyz_to_cube_uv(Magnum::Vector3 r)
 {
@@ -298,6 +300,9 @@ class CubemapComputeShader : public Magnum::GL::AbstractShaderProgram
 public:
     CubemapComputeShader();
 
+    template <Magnum::GL::TextureFormat INPUT_FMT_T = Magnum::GL::TextureFormat::RGBA8,
+        Magnum::PixelFormat CUBE_FMT_T = Magnum::PixelFormat::RGBA8UI,
+        Magnum::PixelFormat OUTPUT_FMT_T = Magnum::PixelFormat::RGBA8Unorm>
     void process(std::string_view input, std::string_view outputPath, size_t outputSize);
 private:
     // GL init
@@ -320,6 +325,8 @@ private:
     // Hide irrelevant calls
     using Magnum::GL::AbstractShaderProgram::drawTransformFeedback;
     using Magnum::GL::AbstractShaderProgram::draw;
+
+    static inline Magnum::Vector2ui sm_blockSize{8, 8};
 
     CubemapComputeShader& bind_input_map(Magnum::GL::Texture2D& rTex);
     CubemapComputeShader& bind_output_cube(Magnum::GL::CubeMapTexture& rTex);

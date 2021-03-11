@@ -28,6 +28,8 @@
 #include <Magnum/ImageView.h>
 #include <Magnum/Image.h>
 #include <Magnum/GL/TextureFormat.h>
+#include <Magnum/GL/PixelFormat.h>
+#include <Magnum/GL/BufferImage.h>
 #include <Magnum/GL/ImageFormat.h>
 #include <Magnum/Math/Swizzle.h>
 #include <osp/string_concat.h>
@@ -89,46 +91,33 @@ void CubemapComputeShader::init()
         static_cast<Int>(TextureSlots::OutputCubemapSlot));
 }
 
-void CubemapComputeShader::process(std::string_view input, std::string_view outputPath, size_t outputSize)
+template <GL::TextureFormat INPUT_FMT_T, PixelFormat CUBE_FMT_T, PixelFormat OUTPUT_FMT_T>
+void CubemapComputeShader::process(
+    std::string_view input, std::string_view outputPath, size_t outputSize)
 {
-    size_t cubemapWidth = outputSize;
-
-    using Corrade::PluginManager::Manager;
     using Magnum::Trade::ImageData2D;
     using Magnum::ImageView2D;
     using Magnum::PixelFormat;
+    using GL::TextureFormat;
     using GL::CubeMapCoordinate;
     using Corrade::Containers::Array;
     using Corrade::Containers::Optional;
 
+    /*constexpr TextureFormat input_t = TextureFormat::RGBA8;
+    constexpr PixelFormat cube_t = PixelFormat::RGBA8UI;
+    constexpr PixelFormat output_t = PixelFormat::RGBA8Unorm;*/
+
+    // ======== INPUT MAP ======== //
     Optional<ImageData2D> imageInput = load_image(input);
 
     GL::Texture2D inputTex;
     inputTex.setWrapping(SamplerWrapping::ClampToEdge)
-        .setStorage(1, GL::TextureFormat::RGBA8, imageInput->size())
+        .setStorage(1, INPUT_FMT_T, imageInput->size())
         .setSubImage(0, {}, *imageInput);
 
-    int uRes = cubemapWidth, vRes = cubemapWidth;
-    std::array<Array<Magnum::Color4ub>, 6> arrayData
-    {
-        Array<Magnum::Color4ub>(Corrade::Containers::ValueInit, uRes * vRes),
-        Array<Magnum::Color4ub>(Corrade::Containers::ValueInit, uRes * vRes),
-        Array<Magnum::Color4ub>(Corrade::Containers::ValueInit, uRes * vRes),
-        Array<Magnum::Color4ub>(Corrade::Containers::ValueInit, uRes * vRes),
-        Array<Magnum::Color4ub>(Corrade::Containers::ValueInit, uRes * vRes),
-        Array<Magnum::Color4ub>(Corrade::Containers::ValueInit, uRes * vRes)
-    };
-    std::vector<ImageData2D> cubemapOutput;
-    cubemapOutput.reserve(6);
-    for (size_t i = 0; i < 6; i++)
-    {
-        cubemapOutput.emplace_back(
-            PixelFormat::RGB8UI,
-            Vector2i{uRes, vRes},
-            Magnum::Trade::DataFlag::Mutable,
-            arrayData[i]);
-    }
-
+    // ======== OUTPUT MAP ======== //
+    int uRes = outputSize, vRes = outputSize;
+    Vector2i faceDims{uRes, vRes};
     constexpr std::array<std::tuple<CubeMapCoordinate, std::string_view, size_t>, 6> faces
     {
         std::make_tuple(CubeMapCoordinate::PositiveX, "posX.png", 0),
@@ -140,31 +129,32 @@ void CubemapComputeShader::process(std::string_view input, std::string_view outp
     };
 
     GL::CubeMapTexture outputCube;
-    outputCube
-        .setStorage(1, GL::TextureFormat::RGBA8UI, Vector2i{static_cast<int>(cubemapWidth)});
+    outputCube.setStorage(1, GL::textureFormat(CUBE_FMT_T), faceDims);
     for (auto const [direction, filename, index] : faces)
     {
-        outputCube.setSubImage(direction, 0, {}, cubemapOutput[index]);
+        Magnum::UnsignedInt faceSizeBytes = uRes * vRes * pixelSize(CUBE_FMT_T);
+        Array<UnsignedByte> data{Corrade::Containers::ValueInit, faceSizeBytes};
+        GL::BufferImage2D bufImg(CUBE_FMT_T, faceDims,
+            std::move(data), GL::BufferUsage::StaticRead);
+        outputCube.setSubImage(direction, 0, {}, std::move(bufImg));
     }
 
+    // ======== COMPUTE ======== //
     bind_input_map(inputTex);
     bind_output_cube(outputCube);
 
-    constexpr Magnum::Vector2ui blockSize{8, 8};
-
-    Magnum::Vector3ui dispatch{uRes / blockSize.x(), vRes / blockSize.y(), 6};
-
-    dispatchCompute(dispatch);
+    dispatchCompute({uRes / sm_blockSize.x(), vRes / sm_blockSize.y(), 6});
     glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 
+    // ======== SAVE OUTPUT ======== //
     for (size_t i = 0; i < 6; i++)
     {
         auto const [direction, filename, index] = faces[i];
         std::string outputFilepath = osp::string_concat(outputPath, filename);
-        Image2D outputImg{PixelFormat::RGBA8UI};
+        Image2D outputImg{CUBE_FMT_T};
         outputCube.image(direction, 0, outputImg);
 
-        ImageView2D img(PixelFormat::RGBA8Unorm, outputImg.size(), outputImg.data());
+        ImageView2D img(OUTPUT_FMT_T, outputImg.size(), outputImg.data());
         save_image(img, outputFilepath);
     }
 }
@@ -247,7 +237,6 @@ void NormalMapGenerator::process(std::string_view input,
     outputTex.image(0, outputImg);
 
     save_image(outputImg, output);
-    //return 
 }
 
 NormalMapGenerator& NormalMapGenerator::bind_input_map(Magnum::GL::Texture2D& rTex)

@@ -91,10 +91,13 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
     // Run temporary stuff
     /*using osp::math::cubemap::CubemapComputeShader;
     auto compute = std::make_unique<CubemapComputeShader>();
-    compute->process("lroc_color_poles_4k.png", "OSPData/adera/Moon/", 2048);
+    compute->process("lroc_color_poles_4k.png", "OSPData/adera/Moon/", 2048);*/
+    using osp::math::cubemap::NormalMapGenerator;
+    auto compute = std::make_unique<NormalMapGenerator>();
+    compute->process("ldem_16.tif", 10921.0f, 0.001f, "testnormals.hdr");
     compute.reset();
     pMagnumApp.reset();
-    return;*/
+    return;
 
     // Configure the controls
     config_controls(*pMagnumApp);

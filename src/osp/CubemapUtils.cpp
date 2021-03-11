@@ -34,11 +34,37 @@
 
 using namespace osp::math::cubemap;
 using namespace Magnum;
+using namespace Corrade;
 
-
-Corrade::Optional<Magnum::ImageData2D> load_image(std::string_view filename)
+Containers::Optional<Trade::ImageData2D> osp::math::cubemap::load_image(std::string_view filename)
 {
-    
+    using Corrade::PluginManager::Manager;
+    using Corrade::Containers::Optional;
+    using Magnum::Trade::ImageData2D;
+    using Magnum::Trade::AbstractImporter;
+    using Magnum::Trade::AnyImageImporter;
+
+    Manager<AbstractImporter> importManager;
+    AnyImageImporter importer(importManager);
+    if (!importer.openFile(std::string{filename}))
+    {
+        std::cout << "ERROR opening input file " << filename << std::endl;
+        return {};
+    }
+
+    Optional<ImageData2D> image = importer.image2D(0);
+    return image;
+}
+
+void osp::math::cubemap::save_image(Magnum::ImageView2D image, std::string_view filepath)
+{
+    using Corrade::PluginManager::Manager;
+    using Magnum::Trade::AbstractImageConverter;
+    using Magnum::Trade::AnyImageConverter;
+
+    Manager<AbstractImageConverter> convertManager;
+    AnyImageConverter converter(convertManager);
+    converter.exportToFile(image, std::string{filepath});
 }
 
 CubemapComputeShader::CubemapComputeShader()
@@ -73,20 +99,9 @@ void CubemapComputeShader::process(std::string_view input, std::string_view outp
     using Magnum::PixelFormat;
     using GL::CubeMapCoordinate;
     using Corrade::Containers::Array;
+    using Corrade::Containers::Optional;
 
-    Manager<Magnum::Trade::AbstractImporter> importManager;
-    Manager<Magnum::Trade::AbstractImageConverter> convertManager;
-
-    Magnum::Trade::AnyImageImporter importer(importManager);
-    Magnum::Trade::AnyImageConverter converter(convertManager);
-
-    if (!importer.openFile(std::string{input}))
-    {
-        std::cout << "ERROR opening input file " << input << std::endl;
-        return;
-    }
-
-    Corrade::Containers::Optional<ImageData2D> imageInput = importer.image2D(0);
+    Optional<ImageData2D> imageInput = load_image(input);
 
     GL::Texture2D inputTex;
     inputTex.setWrapping(SamplerWrapping::ClampToEdge)
@@ -150,7 +165,7 @@ void CubemapComputeShader::process(std::string_view input, std::string_view outp
         outputCube.image(direction, 0, outputImg);
 
         ImageView2D img(PixelFormat::RGBA8Unorm, outputImg.size(), outputImg.data());
-        converter.exportToFile(img, outputFilepath);
+        save_image(img, outputFilepath);
     }
 }
 
@@ -168,7 +183,7 @@ CubemapComputeShader& CubemapComputeShader::bind_output_cube(GL::CubeMapTexture&
     return *this;
 }
 
-NormalMapGenerator()
+NormalMapGenerator::NormalMapGenerator()
 {
     init();
 }
@@ -190,8 +205,73 @@ void NormalMapGenerator::init()
         static_cast<Int>(ImageSlots::OutputMap));
 }
 
-void NormalMapGenerator::process(std::string_view input, std::string_view output)
+void NormalMapGenerator::process(std::string_view input,
+    float circumference, float oblateness, std::string_view output)
 {
-    
+    using Corrade::Containers::Optional;
+    using Corrade::Containers::Array;
+    using Magnum::Trade::ImageData2D;
+
+    Optional<ImageData2D> inputImage = load_image(input);
+
+    int uRes = inputImage->size().x();
+    int vRes = inputImage->size().y();
+
+    GL::Texture2D inputTex;
+    inputTex.setWrapping(SamplerWrapping::Repeat)
+        .setStorage(1, GL::TextureFormat::R32F, inputImage->size())
+        .setSubImage(0, {}, std::move(*inputImage));
+
+    Array<Vector4> imageData(Corrade::Containers::ValueInit, uRes*vRes);
+    ImageData2D outputImgData(PixelFormat::RGBA32F, inputImage->size(),
+        Magnum::Trade::DataFlag::Mutable, std::move(imageData));
+
+    GL::Texture2D outputTex;
+    outputTex.setWrapping(SamplerWrapping::Repeat)
+        .setStorage(1, GL::TextureFormat::RGBA32F, inputImage->size())
+        .setSubImage(0, {}, std::move(outputImgData));
+
+    bind_input_map(inputTex);
+    bind_output_map(outputTex);
+    set_circumference(circumference);
+    set_oblateness(oblateness);
+
+    constexpr Magnum::Vector2ui blockSize{8, 8};
+
+    Magnum::Vector3ui dispatch{uRes / blockSize.x(), vRes / blockSize.y(), 1};
+
+    dispatchCompute(dispatch);
+    glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
+
+    Image2D outputImg{PixelFormat::RGBA32F};
+    outputTex.image(0, outputImg);
+
+    save_image(outputImg, output);
+    //return 
 }
 
+NormalMapGenerator& NormalMapGenerator::bind_input_map(Magnum::GL::Texture2D& rTex)
+{
+    rTex.bindImage(static_cast<Int>(ImageSlots::InputMap), 0,
+        GL::ImageAccess::ReadOnly, GL::ImageFormat::R32F);
+    return *this;
+}
+
+NormalMapGenerator& NormalMapGenerator::bind_output_map(Magnum::GL::Texture2D& rTex)
+{
+    rTex.bindImage(static_cast<Int>(ImageSlots::OutputMap), 0,
+        GL::ImageAccess::WriteOnly, GL::ImageFormat::RGBA32F);
+    return *this;
+}
+
+NormalMapGenerator& NormalMapGenerator::set_circumference(float circ)
+{
+    setUniform(static_cast<Int>(UniformPos::Circumference), circ);
+    return *this;
+}
+
+NormalMapGenerator& NormalMapGenerator::set_oblateness(float obl)
+{
+    setUniform(static_cast<Int>(UniformPos::Oblateness), obl);
+    return *this;
+}

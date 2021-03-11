@@ -48,7 +48,10 @@
 namespace osp::math::cubemap
 {
 
-Corrade::Optional<Magnum::ImageData2D> load_image(std::string_view filename);
+Corrade::Containers::Optional<Magnum::Trade::ImageData2D>
+load_image(std::string_view filename);
+
+void save_image(Magnum::ImageView2D image, std::string_view filepath);
 
 // Source: https://en.wikipedia.org/wiki/Cube_mapping
 inline Vector3 convert_cube_uv_to_xyz(Magnum::GL::CubeMapCoordinate index, Vector2 uv)
@@ -327,7 +330,8 @@ class NormalMapGenerator : public Magnum::GL::AbstractShaderProgram
 public:
     NormalMapGenerator();
 
-    void process(std::string_view input, std::string_view output);
+    void process(std::string_view input, float circumference, float oblateness,
+        std::string_view output);
 private:
     // GL init
     void init();
@@ -336,11 +340,13 @@ private:
     enum class UniformPos : Magnum::Int
     {
         InputMap = 0,
-        OutputMap = 1
+        OutputMap = 1,
+        Circumference = 2,
+        Oblateness = 3
     };
 
     // ImageSlots
-    enum clas ImageSlots : Magnum::Int
+    enum class ImageSlots : Magnum::Int
     {
         InputMap = 0,
         OutputMap = 1
@@ -352,6 +358,8 @@ private:
 
     NormalMapGenerator& bind_input_map(Magnum::GL::Texture2D& rTex);
     NormalMapGenerator& bind_output_map(Magnum::GL::Texture2D& rTex);
+    NormalMapGenerator& set_circumference(float circ);
+    NormalMapGenerator& set_oblateness(float obl);
 };
 
 }

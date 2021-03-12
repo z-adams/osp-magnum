@@ -24,10 +24,17 @@
  */
 //#version 430 core
 
-// Options: FLOAT (vec4, image*); UINT (uvec4, uimage*); INT (ivec4, iimage*)
-#define DATATYPE UINT
-// Layout format qualifier (r32f, rg32f, rgba8ui, etc)
-#define FORMAT_QUAL rgba8ui
+/**
+ * Compile-time parameters:
+
+ * DATATYPE
+    - FLOAT (vec4, image*)
+    - UINT (uvec4, uimage*)
+    - INT (ivec4, iimage*)
+
+ * FORMAT_QUAL
+    - r32f, rg32f, rgba8ui, etc
+*/
 
 // ==== Don't touch these ====
 #define FLOAT 1
@@ -35,17 +42,17 @@
 #define INT 3
 
 #if DATATYPE == FLOAT
-    #define GIMAGE_INPUT image2D
-    #define GIMAGE_OUTPUT imageCube
-    #define VALUE_TYPE vec4
+#define GIMAGE_INPUT image2D
+#define GIMAGE_OUTPUT imageCube
+#define VALUE_TYPE vec4
 #elif DATATYPE == UINT
-    #define GIMAGE_INPUT uimage2D
-    #define GIMAGE_OUTPUT uimageCube
-    #define VALUE_TYPE uvec4
+#define GIMAGE_INPUT uimage2D
+#define GIMAGE_OUTPUT uimageCube
+#define VALUE_TYPE uvec4
 #elif DATATYPE == INT
-    #define GIMAGE_INPUT iimage2D
-    #define GIMAGE_OUTPUT iimageCube
-    #define VALUE_TYPE ivec4
+#define GIMAGE_INPUT iimage2D
+#define GIMAGE_OUTPUT iimageCube
+#define VALUE_TYPE ivec4
 #endif
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;

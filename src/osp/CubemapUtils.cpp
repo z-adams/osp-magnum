@@ -99,13 +99,14 @@ void NormalMapGenerator::process(std::string_view input,
     using Magnum::Trade::ImageData2D;
 
     Optional<ImageData2D> inputImage = load_image(input);
+    Magnum::PixelFormat inputFmt = Magnum::PixelFormat::R16UI;
 
     int uRes = inputImage->size().x();
     int vRes = inputImage->size().y();
 
     GL::Texture2D inputTex;
     inputTex.setWrapping(SamplerWrapping::Repeat)
-        .setStorage(1, GL::TextureFormat::R32F, inputImage->size())
+        .setStorage(1, GL::textureFormat(inputFmt), inputImage->size())
         .setSubImage(0, {}, std::move(*inputImage));
 
     Array<Vector4> imageData(Corrade::Containers::ValueInit, uRes*vRes);
@@ -138,7 +139,7 @@ void NormalMapGenerator::process(std::string_view input,
 NormalMapGenerator& NormalMapGenerator::bind_input_map(Magnum::GL::Texture2D& rTex)
 {
     rTex.bindImage(static_cast<Int>(ImageSlots::InputMap), 0,
-        GL::ImageAccess::ReadOnly, GL::ImageFormat::R32F);
+        GL::ImageAccess::ReadOnly, GL::ImageFormat::R16UI);
     return *this;
 }
 

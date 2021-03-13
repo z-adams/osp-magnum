@@ -26,8 +26,8 @@
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
-layout(location = 0, r32f) uniform readonly image2D heightmap;
-layout(location = 1, rgba32f) uniform writeonly image2D normalField;
+layout(location = 0, r8) uniform readonly image2D heightmap;
+layout(location = 1, rgba8) uniform writeonly image2D normalField;
 
 layout(location = 2) uniform float circumference;
 layout(location = 3) uniform float oblateness;
@@ -43,17 +43,27 @@ float circAtLatitude = circumference*sin((1.0 - trueV) * PI);
 float dLat = circumference / float(DIMS.y);
 float dLong = circAtLatitude / (DIMS.x);
 
+/**
+ * NASA LOLA data is converted to 16-bit unsigned ints
+ *
+ * Each unit corresponds to a half meter relative to a radius of
+ * 1737.4km. Thus, the values may be converted to kilometers by
+ * dividing by 2*1000
+ */
 float read_in(int xOset, int yOset)
 {
-    return imageLoad(heightmap, UV + ivec2(xOset, yOset)).r;
+    uint shortMax = 0xFFFF;
+    float normValue = imageLoad(heightmap, UV + ivec2(xOset, yOset)).r;
+    float altitudeKm = (normValue*shortMax) / 2000.0;
+    return altitudeKm;
 }
 
 vec3 compute_normal()
 {
-    float north = 2000.0 * read_in(0, 1);
-    float south = 2000.0 * read_in(0, -1);
-    float east = 2000.0 * read_in(1, 0);
-    float west = 2000.0 * read_in(-1, 0);
+    float north = read_in(0, 1);
+    float south = read_in(0, -1);
+    float east = read_in(1, 0);
+    float west = read_in(-1, 0);
 
     float dEdU = (east - west)/(2.0*dLong);
     float dNdV = (north - south)/(2.0*dLat);
@@ -61,8 +71,16 @@ vec3 compute_normal()
     return normalize(grad);
 }
 
+/**
+ * Convert range [-1, 1] to [0, 1]
+ */
+vec4 encode_normal(vec3 tangentSpace)
+{
+    return vec4((tangentSpace + vec3(1.0)) * vec3(0.5), 1.0);
+}
+
 void main()
 {
-    vec4 normalXYZ = vec4(compute_normal(), 1);
-    imageStore(normalField, UV, normalXYZ);
+    vec3 normalXYZ = compute_normal();
+    imageStore(normalField, UV, encode_normal(normalXYZ));
 }

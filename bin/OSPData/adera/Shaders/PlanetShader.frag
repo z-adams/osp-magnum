@@ -27,13 +27,28 @@
 
 in vec3 normal;
 in vec3 radialOut;
+in vec3 lightPos;
 
 layout(location = 0, index = 0) out vec3 color;
 
-layout(location = 3) uniform samplerCube diffuse;
+layout(location = 3) uniform samplerCube diffuseMap;
+layout(location = 4) uniform samplerCube normalMap;
+layout(location = 5) uniform samplerCube displacementMap;
+
+float depth(vec3 r)
+{
+    return 1.0 - texture(displacementMap, r).r;
+}
+
+float lighting(vec3 normalWorld)
+{
+    vec3 normalVal = texture(normalMap, radialOut).xyz;
+    return clamp(dot(normalVal, lightPos), 0, 1);
+}
 
 void main()
 {
-    color = texture(diffuse, radialOut).rgb;
-    //color = vec3(1.0);
+    //color = texture(normalMap, radialOut).rgb;//*lighting(normalize(radialOut));
+    //color = vec3(1.0)*lighting(normalize(radialOut));
+    color = vec3(depth(radialOut));
 }

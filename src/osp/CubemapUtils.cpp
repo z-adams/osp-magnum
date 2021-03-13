@@ -99,7 +99,7 @@ void NormalMapGenerator::process(std::string_view input,
     using Magnum::Trade::ImageData2D;
 
     Optional<ImageData2D> inputImage = load_image(input);
-    Magnum::PixelFormat inputFmt = Magnum::PixelFormat::R16UI;
+    Magnum::PixelFormat inputFmt = Magnum::PixelFormat::R8Unorm;
 
     int uRes = inputImage->size().x();
     int vRes = inputImage->size().y();
@@ -110,12 +110,12 @@ void NormalMapGenerator::process(std::string_view input,
         .setSubImage(0, {}, std::move(*inputImage));
 
     Array<Vector4> imageData(Corrade::Containers::ValueInit, uRes*vRes);
-    ImageData2D outputImgData(PixelFormat::RGBA32F, inputImage->size(),
+    ImageData2D outputImgData(PixelFormat::RGBA8Unorm, inputImage->size(),
         Magnum::Trade::DataFlag::Mutable, std::move(imageData));
 
     GL::Texture2D outputTex;
     outputTex.setWrapping(SamplerWrapping::Repeat)
-        .setStorage(1, GL::TextureFormat::RGBA32F, inputImage->size())
+        .setStorage(1, GL::TextureFormat::RGBA8, inputImage->size())
         .setSubImage(0, {}, std::move(outputImgData));
 
     bind_input_map(inputTex);
@@ -130,7 +130,7 @@ void NormalMapGenerator::process(std::string_view input,
     dispatchCompute(dispatch);
     glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 
-    Image2D outputImg{PixelFormat::RGBA32F};
+    Image2D outputImg{PixelFormat::RGBA8Unorm};
     outputTex.image(0, outputImg);
 
     save_image(outputImg, output);
@@ -139,14 +139,14 @@ void NormalMapGenerator::process(std::string_view input,
 NormalMapGenerator& NormalMapGenerator::bind_input_map(Magnum::GL::Texture2D& rTex)
 {
     rTex.bindImage(static_cast<Int>(ImageSlots::InputMap), 0,
-        GL::ImageAccess::ReadOnly, GL::ImageFormat::R16UI);
+        GL::ImageAccess::ReadOnly, GL::ImageFormat::R8);
     return *this;
 }
 
 NormalMapGenerator& NormalMapGenerator::bind_output_map(Magnum::GL::Texture2D& rTex)
 {
     rTex.bindImage(static_cast<Int>(ImageSlots::OutputMap), 0,
-        GL::ImageAccess::WriteOnly, GL::ImageFormat::RGBA32F);
+        GL::ImageAccess::WriteOnly, GL::ImageFormat::RGBA8);
     return *this;
 }
 

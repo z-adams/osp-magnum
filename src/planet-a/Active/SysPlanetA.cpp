@@ -230,11 +230,15 @@ void SysPlanetA::update_geometry(ActiveScene& rScene)
                 std::to_string(static_cast<int>(ent)));
             planet.m_mesh = glResources.add<Magnum::GL::Mesh>(name);
 
-            // Generate cubemap
-            osp::DependRes<Magnum::GL::CubeMapTexture> mapRes
-                = glResources.get<Magnum::GL::CubeMapTexture>("testCubemap");
+            // Generate cubemaps
+            osp::DependRes<Magnum::GL::CubeMapTexture> diffRes
+                = glResources.get<Magnum::GL::CubeMapTexture>("testDiffuseCubemap");
+            osp::DependRes<Magnum::GL::CubeMapTexture> normRes
+                = glResources.get<Magnum::GL::CubeMapTexture>("testNormalCubemap");
+            osp::DependRes<Magnum::GL::CubeMapTexture> displRes
+                = glResources.get<Magnum::GL::CubeMapTexture>("testDisplCubemap");
 
-            if (mapRes.empty())
+            if (diffRes.empty())
             {
                 // Compile cubemap
                 /* moon
@@ -252,17 +256,50 @@ void SysPlanetA::update_geometry(ActiveScene& rScene)
                     "OSPData/adera/TestPlanet/posZ.png",
                     "OSPData/adera/TestPlanet/negZ.png"
                 */
-                constexpr std::array<std::string_view, 6> cubeTexs =
+                constexpr std::array<std::string_view, 6> cubeTextures =
                 {
-                    "OSPData/adera/Moon/posX.png",
-                    "OSPData/adera/Moon/negX.png",
-                    "OSPData/adera/Moon/posY.png",
-                    "OSPData/adera/Moon/negY.png",
-                    "OSPData/adera/Moon/posZ.png",
-                    "OSPData/adera/Moon/negZ.png"
+                    "OSPData/adera/Moon/Diffuse/posX.png",
+                    "OSPData/adera/Moon/Diffuse/negX.png",
+                    "OSPData/adera/Moon/Diffuse/posY.png",
+                    "OSPData/adera/Moon/Diffuse/negY.png",
+                    "OSPData/adera/Moon/Diffuse/posZ.png",
+                    "OSPData/adera/Moon/Diffuse/negZ.png"
                 };
+                
                 osp::Package& pkg = rScene.get_application().debug_find_package("lzdb");
-                mapRes = osp::AssetImporter::compile_cubemap("testCubemap", cubeTexs, pkg, glResources);
+                diffRes = osp::AssetImporter::compile_cubemap("testDiffuseCubemap", cubeTextures, pkg, glResources);
+            }
+
+            if (normRes.empty())
+            {
+                constexpr std::array<std::string_view, 6> cubeTextures =
+                {
+                    "OSPData/adera/Moon/Normals/posX.png",
+                    "OSPData/adera/Moon/Normals/negX.png",
+                    "OSPData/adera/Moon/Normals/posY.png",
+                    "OSPData/adera/Moon/Normals/negY.png",
+                    "OSPData/adera/Moon/Normals/posZ.png",
+                    "OSPData/adera/Moon/Normals/negZ.png"
+                };
+
+                osp::Package& pkg = rScene.get_application().debug_find_package("lzdb");
+                normRes = osp::AssetImporter::compile_cubemap("testNormalCubemap", cubeTextures, pkg, glResources);
+            }
+
+            if (displRes.empty())
+            {
+                constexpr std::array<std::string_view, 6> cubeTextures =
+                {
+                    "OSPData/adera/Moon/Displacement/posX.png",
+                    "OSPData/adera/Moon/Displacement/negX.png",
+                    "OSPData/adera/Moon/Displacement/posY.png",
+                    "OSPData/adera/Moon/Displacement/negY.png",
+                    "OSPData/adera/Moon/Displacement/posZ.png",
+                    "OSPData/adera/Moon/Displacement/negZ.png"
+                };
+
+                osp::Package& pkg = rScene.get_application().debug_find_package("lzdb");
+                displRes = osp::AssetImporter::compile_cubemap("testDisplCubemap", cubeTextures, pkg, glResources);
             }
 
             // Emplace renderable
@@ -270,7 +307,7 @@ void SysPlanetA::update_geometry(ActiveScene& rScene)
 
             rScene.reg_emplace<ShaderInstance_t>(ent,
                 glResources.get<adera::shader::PlanetShader>("planet_shader"),
-                mapRes);
+                diffRes, normRes, displRes);
             rScene.reg_emplace<osp::active::CompDrawableDebug>(ent,
                 planet.m_mesh, &adera::shader::PlanetShader::draw_planet);
 

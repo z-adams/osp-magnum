@@ -28,11 +28,16 @@ layout(location = 0) in vec4 vertPosition;
 layout(location = 1) in vec2 vertTexCoords;
 layout(location = 5) in vec3 vertNormal;
 
+vec3 sunDirection = {1, 0, 0};
+
 // Surface normal
 out vec3 normal;
 
 // Sphere normal (center to edge)
 out vec3 radialOut;
+
+// Light pos
+out vec3 lightPos;
 
 layout(location = 0) uniform mat4 projMat;
 layout(location = 1) uniform mat4 modelTransformMat;
@@ -43,5 +48,6 @@ void main()
     gl_Position = projMat * modelTransformMat * vertPosition;
     normal = normalMat * vertNormal;
     radialOut = vertPosition.xyz;
+    lightPos = normalMat * sunDirection;
 }
 

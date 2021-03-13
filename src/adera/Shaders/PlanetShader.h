@@ -65,12 +65,18 @@ public:
 
         // Uniform values
         osp::DependRes<Magnum::GL::CubeMapTexture> m_diffuseTex;
+        osp::DependRes<Magnum::GL::CubeMapTexture> m_normalTex;
+        osp::DependRes<Magnum::GL::CubeMapTexture> m_displTex;
 
         ACompPlanetShaderInstance(
             osp::DependRes<PlanetShader> parent,
-            osp::DependRes<Magnum::GL::CubeMapTexture> texture)
+            osp::DependRes<Magnum::GL::CubeMapTexture> diffuseTexture,
+            osp::DependRes<Magnum::GL::CubeMapTexture> normalTexture,
+            osp::DependRes<Magnum::GL::CubeMapTexture> displacementTexture)
             : m_shaderProgram(parent)
-            , m_diffuseTex(texture)
+            , m_diffuseTex(diffuseTexture)
+            , m_normalTex(normalTexture)
+            , m_displTex(displacementTexture)
         {}
     };
 
@@ -90,13 +96,17 @@ private:
         ProjMat = 0,
         ModelTransformMat = 1,
         NormalMat = 2,
-        DiffuseTex = 3
+        DiffuseCube = 3,
+        NormalCube = 4,
+        DisplacementCube = 5
     };
 
     // Cubemap slots
     enum class TextureSlots : Magnum::Int
     {
-        DiffuseCMUnit = 0
+        DiffuseCMUnit = 0,
+        NormalCMUnit = 1,
+        DisplCMUnit = 2
     };
 
     // Hide irrelevant calls
@@ -109,6 +119,8 @@ private:
     PlanetShader& set_normal_matrix(Magnum::Matrix3 const& matrix);
 
     PlanetShader& bind_diffuse_cubemap(Magnum::GL::CubeMapTexture& rTex);
+    PlanetShader& bind_normal_cubemap(Magnum::GL::CubeMapTexture& rTex);
+    PlanetShader& bind_displacement_cubemap(Magnum::GL::CubeMapTexture& rTex);
 };
 
 } // namespace adera::shader

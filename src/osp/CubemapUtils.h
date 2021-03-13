@@ -388,7 +388,7 @@ void CubemapComputeShader<IMG_FMT>::init()
     GL::Shader prog{GL::Version::GL430, GL::Shader::Type::Compute};
 
     prog.addSource("#define DATATYPE FLOAT\n");
-    prog.addSource("#define FORMAT_QUAL r8_snorm\n");
+    prog.addSource("#define FORMAT_QUAL r8\n");
 
     prog.addFile("OSPData/adera/Shaders/CubemapCompute.comp");
 

@@ -87,7 +87,7 @@ void testapp::create_simple_solar_system(osp::OSPApplication& ospApp)
 
     for (int x = -0; x < 1; x ++)
     {
-        for (int z = -1; z < 1; z ++)
+        for (int z = -0; z < 1; z ++)
         {
             Satellite sat = rUni.sat_create();
 

@@ -90,15 +90,15 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
 
     // Run temporary stuff
     /*using osp::math::cubemap::CubemapComputeShader;
-    auto compute = std::make_unique<CubemapComputeShader<Magnum::GL::ImageFormat::R8Snorm>>();
-    compute->process("ldem_16.tga", "OSPData/adera/Moon/", 2048);*/
-    using osp::math::cubemap::NormalMapGenerator;
+    auto compute = std::make_unique<CubemapComputeShader<Magnum::GL::ImageFormat::R8>>();
+    compute->process("ldem_16.tga", "OSPData/adera/Moon/Displacement/", 2048);*/
+    /*using osp::math::cubemap::NormalMapGenerator;
     auto compute = std::make_unique<NormalMapGenerator>();
-    compute->process("ldem_16.tga", 10916.4f, 0.001f, "testnormals.dds");
+    compute->process("ldem_16.tga", 10916.4f, 0.001f, "testnormals.tga");*/
 
-    compute.reset();
+    /*compute.reset();
     pMagnumApp.reset();
-    return;
+    return;*/
 
     // Configure the controls
     config_controls(*pMagnumApp);

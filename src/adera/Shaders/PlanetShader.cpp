@@ -43,6 +43,8 @@ void PlanetShader::draw_planet(ActiveEnt e, ActiveScene& rScene,
 
     shader
         .bind_diffuse_cubemap(*shaderInstance.m_diffuseTex)
+        .bind_normal_cubemap(*shaderInstance.m_normalTex)
+        .bind_displacement_cubemap(*shaderInstance.m_displTex)
         .set_transform_matrix(entRelative)
         .set_proj_matrix(camera.m_projection)
         .set_normal_matrix(entRelative.normalMatrix())
@@ -64,8 +66,14 @@ void PlanetShader::init()
 
     // Set TexSampler2D uniforms
     setUniform(
-        static_cast<Int>(UniformPos::DiffuseTex),
+        static_cast<Int>(UniformPos::DiffuseCube),
         static_cast<Int>(TextureSlots::DiffuseCMUnit));
+    setUniform(
+        static_cast<Int>(UniformPos::NormalCube),
+        static_cast<Int>(TextureSlots::NormalCMUnit));
+    setUniform(
+        static_cast<Int>(UniformPos::DisplacementCube),
+        static_cast<Int>(TextureSlots::DisplCMUnit));
 }
 
 PlanetShader::PlanetShader()
@@ -94,5 +102,17 @@ PlanetShader& PlanetShader::set_normal_matrix(Magnum::Matrix3 const& matrix)
 PlanetShader& PlanetShader::bind_diffuse_cubemap(Magnum::GL::CubeMapTexture & rTex)
 {
     rTex.bind(static_cast<Int>(TextureSlots::DiffuseCMUnit));
+    return *this;
+}
+
+PlanetShader& PlanetShader::bind_normal_cubemap(Magnum::GL::CubeMapTexture& rTex)
+{
+    rTex.bind(static_cast<Int>(TextureSlots::NormalCMUnit));
+    return *this;
+}
+
+PlanetShader& PlanetShader::bind_displacement_cubemap(Magnum::GL::CubeMapTexture& rTex)
+{
+    rTex.bind(static_cast<Int>(TextureSlots::DisplCMUnit));
     return *this;
 }

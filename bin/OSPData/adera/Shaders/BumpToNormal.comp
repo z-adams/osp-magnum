@@ -42,7 +42,7 @@ float trueV = float(UV.y) / float(gl_NumWorkGroups.y*gl_WorkGroupSize.y);
 vec2 trueUV = vec2(UV) / vec2(DIMS);
 float circAtLatitude = circumference*sin((1.0 - trueV) * PI);
 float dLat = circumference / float(DIMS.y);
-float dLong = circAtLatitude / (DIMS.x);
+float dLong = circAtLatitude / float(DIMS.x);
 
 /**
  * NASA LOLA data is converted to 16-bit unsigned ints
@@ -54,19 +54,70 @@ float dLong = circAtLatitude / (DIMS.x);
 float read_in(int xOset, int yOset)
 {
     uint shortMax = 0xFFFF;
-    float normValue = imageLoad(heightmap, UV + ivec2(xOset, yOset)).r;
+
+    ivec2 uv0 = UV + ivec2(xOset, yOset);
+
+    if (uv0.x >= int(DIMS.x))
+    {
+        uv0.x -= int(DIMS.x);
+    }
+    else if (uv0.x < 0)
+    {
+        uv0.x += int(DIMS.x);
+    }
+
+    if (uv0.y >= int(DIMS.y))
+    {
+        uv0.y -= int(DIMS.y);
+    }
+    else if (uv0.y < 0)
+    {
+        uv0.y += int(DIMS.y);
+    }
+
+//    int xWrapPos = int(uv0.x >= DIMS.x);
+//    int yWrapPos = int(uv0.y >= DIMS.y);
+//    int xWrapNeg = int(uv0.x < 0);
+//    int yWrapNeg = int(uv0.y < 0);
+//    ivec2 uvWrap = ivec2(
+//        uv0.x*(1 - xWrapPos - xWrapNeg) + (uv0.x - DIMS.x)*xWrapPos + (uv0.x + DIMS.x)*xWrapNeg,
+//        uv0.y*(1 - yWrapPos - yWrapNeg) + (uv0.y - DIMS.y)*yWrapPos + (uv0.y + DIMS.y)*yWrapNeg
+//    );
+
+    float normValue = imageLoad(heightmap, uv0).r;
     float altitudeKm = (normValue*shortMax) / 2000.0;
     return altitudeKm;
 }
 
+float quadstep(float edge0, float edge1, float x)
+{
+    if (x < edge0) { return 0.0; }
+    if (x > edge1) { return 1.0; }
+
+    float v = (x - edge0) / (edge1 - edge0);
+    return v*v;
+}
+
+float polestep(float edge0, float edge1, float v)
+{
+    return quadstep(edge0, edge1, v) + quadstep(edge0, edge1, 1.0 - v);
+}
+
 vec3 compute_normal()
 {
+    // Temporary fix for imprecision at poles
+    int mult = 1;
+    if (trueV < 0.1 || trueV > 0.9)
+    {
+        mult = 1 + int(5.0*polestep(0.9, 1.0, trueV));
+    }
+
     float north = read_in(0, 1);
     float south = read_in(0, -1);
-    float east = read_in(1, 0);
-    float west = read_in(-1, 0);
+    float east = read_in(1*mult, 0);
+    float west = read_in(-1*mult, 0);
 
-    float dEdU = (east - west)/(2.0*dLong);
+    float dEdU = (east - west)/(2.0*dLong*mult);
     float dNdV = (north - south)/(2.0*dLat);
     vec3 grad = vec3(1.0, -dEdU, -dNdV);
     return normalize(grad);

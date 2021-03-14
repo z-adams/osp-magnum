@@ -71,10 +71,9 @@ void SysDebugRender::draw(ACompCamera const& camera)
 
     auto& reg = m_scene.get_registry();
 
+    Renderer::enable(Renderer::Feature::SeamlessCubeMapTexture);
     Renderer::enable(Renderer::Feature::DepthTest);
     Renderer::enable(Renderer::Feature::FaceCulling);
-
-
 
     // Get opaque objects
     auto opaqueObjects = reg.view<CompDrawableDebug, ACompTransform>(

@@ -139,8 +139,8 @@ convert_xyz_to_cube_uv(Magnum::Vector3 r)
         // u (0 to 1) goes from +z to -z
         // v (0 to 1) goes from -y to +y
         maxAxis = absX;
-        uc = -z;
-        vc = y;
+        uc = z;
+        vc = -y;
         index = CubeMapCoordinate::PositiveX;
     }
     // NEGATIVE X
@@ -150,7 +150,7 @@ convert_xyz_to_cube_uv(Magnum::Vector3 r)
         // v (0 to 1) goes from -y to +y
         maxAxis = absX;
         uc = z;
-        vc = y;
+        vc = -y;
         index = CubeMapCoordinate::NegativeX;
     }
     // POSITIVE Y
@@ -160,7 +160,7 @@ convert_xyz_to_cube_uv(Magnum::Vector3 r)
         // v (0 to 1) goes from +z to -z
         maxAxis = absY;
         uc = x;
-        vc = -z;
+        vc = z;
         index = CubeMapCoordinate::PositiveY;
     }
     // NEGATIVE Y
@@ -170,7 +170,7 @@ convert_xyz_to_cube_uv(Magnum::Vector3 r)
         // v (0 to 1) goes from -z to +z
         maxAxis = absY;
         uc = x;
-        vc = z;
+        vc = -z;
         index = CubeMapCoordinate::NegativeY;
     }
     // POSITIVE Z
@@ -180,7 +180,7 @@ convert_xyz_to_cube_uv(Magnum::Vector3 r)
         // v (0 to 1) goes from -y to +y
         maxAxis = absZ;
         uc = x;
-        vc = y;
+        vc = -y;
         index = CubeMapCoordinate::PositiveZ;
     }
     // NEGATIVE Z
@@ -190,7 +190,7 @@ convert_xyz_to_cube_uv(Magnum::Vector3 r)
         // v (0 to 1) goes from -y to +y
         maxAxis = absZ;
         uc = -x;
-        vc = y;
+        vc = -y;
         index = CubeMapCoordinate::NegativeZ;
     }
 
@@ -336,6 +336,8 @@ private:
 
     static inline Magnum::Vector2ui sm_blockSize{8, 8};
 
+    void configure_shader_types(Magnum::GL::Shader& shader);
+
     CubemapComputeShader& bind_input_map(Magnum::GL::Texture2D& rTex);
     CubemapComputeShader& bind_output_cube(Magnum::GL::CubeMapTexture& rTex);
 };
@@ -377,6 +379,27 @@ private:
     NormalMapGenerator& set_oblateness(float obl);
 };
 
+template<Magnum::GL::ImageFormat IMG_FMT>
+void CubemapComputeShader<IMG_FMT>::configure_shader_types(Magnum::GL::Shader& shader)
+{
+    using Magnum::GL::ImageFormat;
+
+    if constexpr (IMG_FMT == ImageFormat::RGBA8)
+    {
+        shader.addSource("#define DATATYPE FLOAT\n");
+        shader.addSource("#define FORMAT_QUAL rgba8\n");
+    }
+    else if constexpr (IMG_FMT == ImageFormat::R8)
+    {
+        shader.addSource("#define DATATYPE FLOAT\n");
+        shader.addSource("#define FORMAT_QUAL r8\n");
+    }
+    else
+    {
+        static_assert(false, "Invalid image format!");
+    }
+}
+
 template <Magnum::GL::ImageFormat IMG_FMT>
 void CubemapComputeShader<IMG_FMT>::init()
 {
@@ -387,8 +410,7 @@ void CubemapComputeShader<IMG_FMT>::init()
 
     GL::Shader prog{GL::Version::GL430, GL::Shader::Type::Compute};
 
-    prog.addSource("#define DATATYPE FLOAT\n");
-    prog.addSource("#define FORMAT_QUAL r8\n");
+    configure_shader_types(prog);
 
     prog.addFile("OSPData/adera/Shaders/CubemapCompute.comp");
 

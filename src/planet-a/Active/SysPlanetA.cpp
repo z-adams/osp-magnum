@@ -242,12 +242,12 @@ void SysPlanetA::update_geometry(ActiveScene& rScene)
             {
                 // Compile cubemap
                 /* moon
-                    "OSPData/adera/Moon/posX.png",
-                    "OSPData/adera/Moon/negX.png",
-                    "OSPData/adera/Moon/posY.png",
-                    "OSPData/adera/Moon/negY.png",
-                    "OSPData/adera/Moon/posZ.png",
-                    "OSPData/adera/Moon/negZ.png"
+                    "OSPData/adera/Moon/Diffuse/posX.png",
+                    "OSPData/adera/Moon/Diffuse/negX.png",
+                    "OSPData/adera/Moon/Diffuse/posY.png",
+                    "OSPData/adera/Moon/Diffuse/negY.png",
+                    "OSPData/adera/Moon/Diffuse/posZ.png",
+                    "OSPData/adera/Moon/Diffuse/negZ.png"
 
                     "OSPData/adera/TestPlanet/posX.png",
                     "OSPData/adera/TestPlanet/negX.png",

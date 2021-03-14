@@ -39,6 +39,7 @@ const float PI = 3.14159265359;
 
 // TODO oblateness
 float trueV = float(UV.y) / float(gl_NumWorkGroups.y*gl_WorkGroupSize.y);
+vec2 trueUV = vec2(UV) / vec2(DIMS);
 float circAtLatitude = circumference*sin((1.0 - trueV) * PI);
 float dLat = circumference / float(DIMS.y);
 float dLong = circAtLatitude / (DIMS.x);
@@ -67,20 +68,46 @@ vec3 compute_normal()
 
     float dEdU = (east - west)/(2.0*dLong);
     float dNdV = (north - south)/(2.0*dLat);
-    vec3 grad = vec3(-dEdU, -dNdV, 1.0);
+    vec3 grad = vec3(1.0, -dEdU, -dNdV);
     return normalize(grad);
+}
+
+vec3 transform_normal(vec3 normal)
+{
+    float longitude = float(UV.x)/float(DIMS.x) - 0.5;
+    float latitude = float(UV.y)/float(DIMS.y) - 0.5;
+    float phi = longitude * 2.0*PI;
+    float theta = (-latitude) * PI;
+
+    mat3 transform =  
+        mat3(
+            cos(phi), sin(phi), 0.0,
+            -sin(phi), cos(phi),  0.0,
+            0.0,      0.0,       1.0)
+      * mat3(
+            cos(theta),  0.0, -sin(theta),
+            0.0,         1.0, 0.0,
+            sin(theta), 0.0, cos(theta));
+
+    return transform * normal;
+}
+
+vec3 bias_vec3_rgb(vec3 xyz)
+{
+    return (xyz + vec3(1.0)) / 2.0;
 }
 
 /**
  * Convert range [-1, 1] to [0, 1]
  */
-vec4 encode_normal(vec3 tangentSpace)
+void write_normal(vec3 tangentSpace)
 {
-    return vec4((tangentSpace + vec3(1.0)) * vec3(0.5), 1.0);
+    vec3 biased = bias_vec3_rgb(tangentSpace);
+    imageStore(normalField, UV, vec4(biased, 1.0));
 }
 
 void main()
 {
-    vec3 normalXYZ = compute_normal();
-    imageStore(normalField, UV, encode_normal(normalXYZ));
+    vec3 normalWorld = transform_normal(compute_normal());
+    write_normal(normalWorld);
 }

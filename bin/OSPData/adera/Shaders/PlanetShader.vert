@@ -36,8 +36,8 @@ out vec3 normal;
 // Sphere normal (center to edge)
 out vec3 radialOut;
 
-// Light pos
-out vec3 lightPos;
+// Model transformation
+out mat3 modelTransform;
 
 layout(location = 0) uniform mat4 projMat;
 layout(location = 1) uniform mat4 modelTransformMat;
@@ -48,6 +48,6 @@ void main()
     gl_Position = projMat * modelTransformMat * vertPosition;
     normal = normalMat * vertNormal;
     radialOut = vertPosition.xyz;
-    lightPos = normalMat * sunDirection;
+    modelTransform = mat3(modelTransformMat);
 }
 

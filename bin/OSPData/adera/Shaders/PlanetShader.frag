@@ -27,7 +27,7 @@
 
 in vec3 normal;
 in vec3 radialOut;
-in vec3 lightPos;
+in mat3 modelTransform;
 
 layout(location = 0, index = 0) out vec3 color;
 
@@ -39,7 +39,7 @@ const float PI = 3.14159265359;
 const float PI_2 = PI/2.0;
 const float PI_4 = PI/4.0;
 
-
+vec3 sunDirection = vec3(1.0, 0.0, 0.0);
 
 /**
  * Converts cartesian vector XYZ to spherical surface (theta, phi) coordinates
@@ -118,22 +118,19 @@ vec3 TBN()
     }
 }
 
-float depth(vec3 r)
+vec3 bias_vec3_rgba8(vec3 vector)
 {
-    return 1.0 - texture(displacementMap, r).r;
+    return 2.0*vector - vec3(1.0);
 }
 
-float lighting(vec3 normalWorld)
+float lighting()
 {
-    vec3 normalVal = texture(normalMap, radialOut).xyz;
-    return clamp(dot(normalVal, lightPos), 0, 1);
+    vec3 normalVal = bias_vec3_rgba8(texture(normalMap, radialOut).xyz);
+    float sphereNormal = clamp(dot(normalize(radialOut), sunDirection), 0, 1);
+    return clamp(dot(normalVal, sunDirection), 0, 1);
 }
 
 void main()
 {
-    //color = texture(normalMap, radialOut).rgb;//*lighting(normalize(radialOut));
-    //color = vec3(1.0)*lighting(normalize(radialOut));
-    //color = vec3(depth(radialOut));
-    //color = vec3(radialOut.x); //vec3(xyz_to_sphere_angles(radialOut).y);
-    color = texture(diffuseMap, radialOut).rgb;
+    color = texture(diffuseMap, radialOut).rgb*lighting();
 }

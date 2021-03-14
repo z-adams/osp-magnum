@@ -105,40 +105,40 @@ vec3 cube_uv_to_xyz_slow(in uint faceID, in vec2 uv)
     float y = 0.0;
     float z = 0.0;
     if (faceID == 0)
-    {  // posX (RH +X)
+    {  // posX
         x = 1.0;
-        y = uc;
-        z = -vc;
+        y = -vc;
+        z = -uc;
     }
     else if (faceID == 1)
-    {  // negX (RH -X)
+    {  // negX
         x = -1.0;
-        y = -uc;
-        z = -vc;
+        y = -vc;
+        z = uc;
     }
     else if (faceID == 2)
-    {  // posY (RH +Z)
+    {  // posY
         x = uc;
-        y = -vc;
-        z = 1.0;
+        y = 1.0;
+        z = vc;
     }
     else if (faceID == 3)
-    {  // negY (RH -Z)
-        x = uc;
-        y = vc;
-        z = -1.0;
-    }
-    else if (faceID == 4)
-    {  // posZ (RH -Y)
+    {  // negY
         x = uc;
         y = -1.0;
         z = -vc;
     }
+    else if (faceID == 4)
+    {  // posZ
+        x = uc;
+        y = -vc;
+        z = 1.0;
+    }
     else if (faceID == 5)
-    {  // negZ (RH +Y)
+    {  // negZ
         x = -uc;
-        y = 1.0;
-        z = -vc;
+        y = -vc;
+        z = -1.0;
     }
 
     return normalize(vec3(x, y, z));
@@ -166,19 +166,19 @@ vec3 cube_uv_to_xyz(in uint faceID, in vec2 uv)
             + uc     *posZ
             + (-uc)  *negZ;
 
-    float y = uc     *posX
-            + (-uc)  *negX
-            + (-vc)  *posY
-            + vc     *negY
-            + (-1.0) *posZ
-            + 1.0    *negZ;
-
-    float z = -vc    *posX
+    float y = (-vc)  *posX
             + (-vc)  *negX
             + 1.0    *posY
             + (-1.0) *negY
-            + (-vc)  *posZ
-            + (-vc)  *negZ;
+            + -vc    *posZ
+            + -vc    *negZ;
+
+    float z = -uc    *posX
+            + uc     *negX
+            + vc     *posY
+            + -vc    *negY
+            + 1.0    *posZ
+            + (-1.0) *negZ;
 
     return normalize(vec3(x, y, z));
 }

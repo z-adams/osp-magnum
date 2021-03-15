@@ -91,6 +91,8 @@ public:
     std::vector<osp::active::WireInput*> existing_inputs() override;
     std::vector<osp::active::WireOutput*> existing_outputs() override;
 
+    bool is_enabled() const { return m_enable; }
+
 private:
     osp::active::WireInput  m_wiTest          { this, "Test"              };
     osp::active::WireOutput m_woAttitude      { this, "AttitudeControl"   };

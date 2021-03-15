@@ -31,6 +31,7 @@
 #include "adera/Shaders/Phong.h"
 #include "adera/Shaders/PlumeShader.h"
 #include "adera/Shaders/PlanetShader.h"
+#include <osp/Active/SysSkybox.h>
 
 
 using namespace osp::active;
@@ -60,6 +61,8 @@ void SysDebugRender::add_functions(ActiveScene &rScene)
 
     glResources.add<PlanetShader>("planet_shader");
 
+    glResources.add<SkyboxShader>("skybox_shader");
+
     /*using namespace Magnum;
     GL::Renderer::enable(GL::Renderer::Feature::DebugOutput);
     GL::Renderer::enable(GL::Renderer::Feature::DebugOutputSynchronous);
@@ -73,12 +76,27 @@ void SysDebugRender::draw(ActiveScene &rScene, ACompCamera const& camera)
     auto& reg = rScene.get_registry();
 
     Renderer::enable(Renderer::Feature::SeamlessCubeMapTexture);
-    Renderer::enable(Renderer::Feature::DepthTest);
+
+    // Get skybox
+    using Skybox_t = SkyboxShader::ACompSkyboxShaderInstance;
+    auto boxview = reg.view<CompDrawableDebug, ACompTransform, Skybox_t>();
+    // Disable depth test
+    Renderer::disable(Renderer::Feature::Blending);
+    Renderer::disable(Renderer::Feature::DepthTest);
+    //Renderer::enable(Renderer::Feature::DepthClamp);
     Renderer::enable(Renderer::Feature::FaceCulling);
+    Renderer::setFaceCullingMode(Renderer::PolygonFacing::Front);
+    // Draw skybox
+    draw_group(boxview, camera);
+
+    Renderer::enable(Renderer::Feature::DepthTest);
+    Renderer::disable(Renderer::Feature::DepthClamp);
+    Renderer::enable(Renderer::Feature::FaceCulling);
+    Renderer::setFaceCullingMode(Renderer::PolygonFacing::Back);
 
     // Get opaque objects
     auto opaqueObjects = reg.view<CompDrawableDebug, ACompTransform>(
-        entt::exclude<CompTransparentDebug>);
+        entt::exclude<CompTransparentDebug, Skybox_t>);
     // Configure blend mode for opaque rendering
     Renderer::disable(Renderer::Feature::Blending);
     // Draw opaque objects

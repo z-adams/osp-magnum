@@ -273,11 +273,13 @@ void load_a_bunch_of_stuff()
     osp::AssetImporter::load_image(n1024path, lazyDebugPack);
 
     // Load cubemaps
-    constexpr std::array<std::string_view, 3> cubemaps =
+    constexpr std::array<std::string_view, 5> cubemaps =
     {
         "Moon/Diffuse/cubemap.toml",
         "Moon/Normals/cubemap.toml",
-        "Moon/Displacement/cubemap.toml"
+        "Moon/Displacement/cubemap.toml",
+        "Skybox/cubemap.toml",
+        "TestPlanet/cubemap.toml"
     };
     for (auto& cm : cubemaps)
     {

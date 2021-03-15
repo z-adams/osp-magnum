@@ -32,6 +32,7 @@
 #include <osp/Active/SysVehicle.h>
 #include <osp/Active/SysForceFields.h>
 #include <osp/Active/SysAreaAssociate.h>
+#include <osp/Active/SysSkybox.h>
 
 #include <osp/Satellites/SatVehicle.h>
 
@@ -91,13 +92,12 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
     // Run temporary stuff
     /*using osp::math::cubemap::NormalMapGenerator;
     auto compute = std::make_unique<NormalMapGenerator>();
-    compute->process("ldem_16.tga", 10916.4f, 0.001f, "testnormals.tga");*/
+    compute->process("ldem_16.tga", 10916.4f, 0.001f, "normalmap.tga");*/
     /*using osp::math::cubemap::CubemapComputeShader;
-    auto compute = std::make_unique<CubemapComputeShader<Magnum::GL::ImageFormat::R8>>();
-    compute->process("ldem_16.tga", "OSPData/adera/Moon/Displacement/", 2048);
+    auto compute = std::make_unique<CubemapComputeShader<Magnum::GL::ImageFormat::RGBA8>>();
+    compute->process("lroc_color_poles_4k.png", "OSPData/adera/Moon/Diffuse/", 2048);*/
 
-
-    compute.reset();
+    /*compute.reset();
     pMagnumApp.reset();
     return;*/
 
@@ -116,6 +116,9 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
     osp::active::SysExhaustPlume::add_functions(rScene);
     planeta::active::SysPlanetA::add_functions(rScene);
     osp::active::SysFFGravity::add_functions(rScene);
+    osp::active::SysSkybox::add_functions(rScene);
+
+    osp::active::SysSkybox::set_skybox(scene, "WWWTyroSkybox");
 
     // Register machines for that scene
     rScene.system_machine_create<SysMachineUserControl>(pMagnumApp->get_input_handler());

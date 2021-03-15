@@ -1,0 +1,19 @@
+# Skybox shader
+
+#name = "SESkybox"
+name = "WWWTyroSkybox"
+
+[textures]
+#POS_X = "sky_pos_x.jpg"
+#NEG_X = "sky_neg_x.jpg"
+#POS_Y = "sky_pos_y.jpg"
+#NEG_Y = "sky_neg_y.jpg"
+#POS_Z = "sky_pos_z.jpg"
+#NEG_Z = "sky_neg_z.jpg"
+
+POS_X = "right.png"
+NEG_X = "left.png"
+POS_Y = "top.png"
+NEG_Y = "bottom.png"
+POS_Z = "front.png"
+NEG_Z = "back.png"

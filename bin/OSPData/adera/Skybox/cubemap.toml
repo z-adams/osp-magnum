@@ -1,5 +1,7 @@
 # Skybox shader
 
+# Courtesy https://wwwtyro.github.io/
+
 #name = "SESkybox"
 name = "WWWTyroSkybox"
 

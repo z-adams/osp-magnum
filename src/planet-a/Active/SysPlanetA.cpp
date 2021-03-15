@@ -232,74 +232,34 @@ void SysPlanetA::update_geometry(ActiveScene& rScene)
 
             // Generate cubemaps
             osp::DependRes<Magnum::GL::CubeMapTexture> diffRes
-                = glResources.get<Magnum::GL::CubeMapTexture>("testDiffuseCubemap");
+                = glResources.get<Magnum::GL::CubeMapTexture>("MoonDiffuseCubemap");
             osp::DependRes<Magnum::GL::CubeMapTexture> normRes
-                = glResources.get<Magnum::GL::CubeMapTexture>("testNormalCubemap");
+                = glResources.get<Magnum::GL::CubeMapTexture>("MoonNormalCubemap");
             osp::DependRes<Magnum::GL::CubeMapTexture> displRes
-                = glResources.get<Magnum::GL::CubeMapTexture>("testDisplCubemap");
+                = glResources.get<Magnum::GL::CubeMapTexture>("MoonDisplacementCubemap");
 
             if (diffRes.empty())
             {
                 // Compile cubemap
-                /* moon
-                    "OSPData/adera/Moon/Diffuse/posX.png",
-                    "OSPData/adera/Moon/Diffuse/negX.png",
-                    "OSPData/adera/Moon/Diffuse/posY.png",
-                    "OSPData/adera/Moon/Diffuse/negY.png",
-                    "OSPData/adera/Moon/Diffuse/posZ.png",
-                    "OSPData/adera/Moon/Diffuse/negZ.png"
-
-                    "OSPData/adera/TestPlanet/posX.png",
-                    "OSPData/adera/TestPlanet/negX.png",
-                    "OSPData/adera/TestPlanet/posY.png",
-                    "OSPData/adera/TestPlanet/negY.png",
-                    "OSPData/adera/TestPlanet/posZ.png",
-                    "OSPData/adera/TestPlanet/negZ.png"
-                */
-                constexpr std::array<std::string_view, 6> cubeTextures =
-                {
-                    "OSPData/adera/Moon/Diffuse/posX.png",
-                    "OSPData/adera/Moon/Diffuse/negX.png",
-                    "OSPData/adera/Moon/Diffuse/posY.png",
-                    "OSPData/adera/Moon/Diffuse/negY.png",
-                    "OSPData/adera/Moon/Diffuse/posZ.png",
-                    "OSPData/adera/Moon/Diffuse/negZ.png"
-                };
-                
                 osp::Package& pkg = rScene.get_application().debug_find_package("lzdb");
-                diffRes = osp::AssetImporter::compile_cubemap("testDiffuseCubemap", cubeTextures, pkg, glResources);
+                diffRes = osp::AssetImporter::compile_cubemap(
+                    "MoonDiffuseCubemap", pkg, glResources);
             }
 
             if (normRes.empty())
             {
-                constexpr std::array<std::string_view, 6> cubeTextures =
-                {
-                    "OSPData/adera/Moon/Normals/posX.png",
-                    "OSPData/adera/Moon/Normals/negX.png",
-                    "OSPData/adera/Moon/Normals/posY.png",
-                    "OSPData/adera/Moon/Normals/negY.png",
-                    "OSPData/adera/Moon/Normals/posZ.png",
-                    "OSPData/adera/Moon/Normals/negZ.png"
-                };
-
+                // Compile cubemap
                 osp::Package& pkg = rScene.get_application().debug_find_package("lzdb");
-                normRes = osp::AssetImporter::compile_cubemap("testNormalCubemap", cubeTextures, pkg, glResources);
+                normRes = osp::AssetImporter::compile_cubemap(
+                    "MoonNormalCubemap", pkg, glResources);
             }
 
             if (displRes.empty())
             {
-                constexpr std::array<std::string_view, 6> cubeTextures =
-                {
-                    "OSPData/adera/Moon/Displacement/posX.png",
-                    "OSPData/adera/Moon/Displacement/negX.png",
-                    "OSPData/adera/Moon/Displacement/posY.png",
-                    "OSPData/adera/Moon/Displacement/negY.png",
-                    "OSPData/adera/Moon/Displacement/posZ.png",
-                    "OSPData/adera/Moon/Displacement/negZ.png"
-                };
-
+                // Compile cubemap
                 osp::Package& pkg = rScene.get_application().debug_find_package("lzdb");
-                displRes = osp::AssetImporter::compile_cubemap("testDisplCubemap", cubeTextures, pkg, glResources);
+                displRes = osp::AssetImporter::compile_cubemap(
+                    "MoonDisplacementCubemap", pkg, glResources);
             }
 
             // Emplace renderable

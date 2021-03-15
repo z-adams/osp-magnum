@@ -37,6 +37,7 @@
 
 #include "Package.h"
 #include "PrototypePart.h"
+#include "Cubemap.h"
 
 #include "../types.h"
 //#include "../scene.h"
@@ -54,6 +55,14 @@ public:
     AssetImporter() {}
 
     static void load_sturdy_file(std::string_view filepath, Package& package);
+
+    /**
+     * Loads a cubemap config at the specified filepath
+     */
+    static DependRes<osp::Cubemap> load_cubemap_config(
+        std::string_view filepath, Package& package);
+
+    static void load_cubemap_images(osp::Cubemap& cubemapCfg, Package& package);
 
     /**
      * Load an image from disk at the specified filepath
@@ -124,6 +133,8 @@ public:
         std::string_view resname,
         std::array<std::string_view, 6> imgDataNames,
         Package& srcPackage, Package& dstPackage);
+    static DependRes<Magnum::GL::CubeMapTexture> compile_cubemap(
+        std::string_view cubeResourceName, Package& srcPackage, Package& dstPackage);
 private:
 
     /**

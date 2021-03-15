@@ -272,31 +272,19 @@ void load_a_bunch_of_stuff()
     osp::AssetImporter::load_image(n256path, lazyDebugPack);
     osp::AssetImporter::load_image(n1024path, lazyDebugPack);
 
-    // Load cubesphere placeholders
-    constexpr std::array<std::string_view, 18> cubeTexs =
+    // Load cubemaps
+    constexpr std::array<std::string_view, 3> cubemaps =
     {
-        "OSPData/adera/Moon/Diffuse/posX.png",
-        "OSPData/adera/Moon/Diffuse/negX.png",
-        "OSPData/adera/Moon/Diffuse/posY.png",
-        "OSPData/adera/Moon/Diffuse/negY.png",
-        "OSPData/adera/Moon/Diffuse/posZ.png",
-        "OSPData/adera/Moon/Diffuse/negZ.png",
-        "OSPData/adera/Moon/Normals/posX.png",
-        "OSPData/adera/Moon/Normals/negX.png",
-        "OSPData/adera/Moon/Normals/posY.png",
-        "OSPData/adera/Moon/Normals/negY.png",
-        "OSPData/adera/Moon/Normals/posZ.png",
-        "OSPData/adera/Moon/Normals/negZ.png",
-        "OSPData/adera/Moon/Displacement/posX.png",
-        "OSPData/adera/Moon/Displacement/negX.png",
-        "OSPData/adera/Moon/Displacement/posY.png",
-        "OSPData/adera/Moon/Displacement/negY.png",
-        "OSPData/adera/Moon/Displacement/posZ.png",
-        "OSPData/adera/Moon/Displacement/negZ.png"
+        "Moon/Diffuse/cubemap.toml",
+        "Moon/Normals/cubemap.toml",
+        "Moon/Displacement/cubemap.toml"
     };
-    for (auto& t : cubeTexs)
+    for (auto& cm : cubemaps)
     {
-        osp::AssetImporter::load_image(t, lazyDebugPack);
+        std::string path = osp::string_concat(datapath, cm);
+        osp::DependRes<osp::Cubemap> cfg
+            = osp::AssetImporter::load_cubemap_config(path, lazyDebugPack);
+        osp::AssetImporter::load_cubemap_images(*cfg, lazyDebugPack);
     }
 
     // Load placeholder fuel type

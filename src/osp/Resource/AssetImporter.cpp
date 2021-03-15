@@ -40,6 +40,7 @@
 #include <Magnum/MeshTools/Compile.h>
 #include <Magnum/GL/Mesh.h>
 
+#include <toml.hpp>
 
 #include <MagnumExternal/TinyGltf/tiny_gltf.h>
 
@@ -300,6 +301,38 @@ void osp::AssetImporter::load_sturdy(TinyGltfImporter& gltfImporter,
     }
 }
 
+DependRes<Cubemap> AssetImporter::load_cubemap_config(std::string_view filepath,
+    Package& package)
+{
+    auto config = toml::parse(filepath);
+
+    std::string_view dir = filepath.substr(0, filepath.rfind("/") + 1);
+
+    Cubemap cubemap;
+    cubemap.m_name = config["name"].as_string();
+    cubemap.m_textures[0] = config["textures"]["POS_X"].as_string();
+    cubemap.m_textures[1] = config["textures"]["NEG_X"].as_string();
+    cubemap.m_textures[2] = config["textures"]["POS_Y"].as_string();
+    cubemap.m_textures[3] = config["textures"]["NEG_Y"].as_string();
+    cubemap.m_textures[4] = config["textures"]["POS_Z"].as_string();
+    cubemap.m_textures[5] = config["textures"]["NEG_Z"].as_string();
+
+    for (int i = 0; i < 6; i++)
+    {
+        cubemap.m_textures[i] = osp::string_concat(dir, cubemap.m_textures[i]);
+    }
+
+    return package.add<Cubemap>(cubemap.m_name, std::move(cubemap));
+}
+
+void AssetImporter::load_cubemap_images(Cubemap& cubemapCfg, Package& package)
+{
+    for (std::string_view imgPath : cubemapCfg.m_textures)
+    {
+        load_image(imgPath, package);
+    }
+}
+
 DependRes<ImageData2D> osp::AssetImporter::load_image(
     std::string_view filepath, Package& pkg)
 {
@@ -443,6 +476,21 @@ DependRes<Magnum::GL::CubeMapTexture> AssetImporter::compile_cubemap(
     }
 
     return compile_cubemap(resname, imgData, dstPackage);
+}
+
+DependRes<Magnum::GL::CubeMapTexture> AssetImporter::compile_cubemap(
+    std::string_view cubeResourceName, Package& srcPackage, Package& dstPackage)
+{
+    DependRes<Cubemap> cubeConf = srcPackage.get<Cubemap>(cubeResourceName);
+
+    std::array<std::string_view, 6> imgDataNames;
+
+    for (int i = 0; i < 6; i++)
+    {
+        imgDataNames[i] = cubeConf->m_textures[i];
+    }
+
+    return compile_cubemap(cubeConf->m_name, imgDataNames, srcPackage, dstPackage);
 }
 
 //either an appendable package, or

@@ -1,0 +1,11 @@
+# Random planet diffuse cubemap
+
+name = "Planet1DiffuseCubemap"
+
+[textures]
+POS_X = "surface_diff_pos_x.png"
+NEG_X = "surface_diff_neg_x.png"
+POS_Y = "surface_diff_pos_y.png"
+NEG_Y = "surface_diff_neg_y.png"
+POS_Z = "surface_diff_pos_z.png"
+NEG_Z = "surface_diff_neg_z.png"

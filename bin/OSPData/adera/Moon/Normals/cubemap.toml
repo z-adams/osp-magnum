@@ -1,0 +1,11 @@
+# Moon normal texture cubemap
+
+name = "MoonNormalCubemap"
+
+[textures]
+POS_X = "posX.png"
+NEG_X = "negX.png"
+POS_Y = "posY.png"
+NEG_Y = "negY.png"
+POS_Z = "posZ.png"
+NEG_Z = "negZ.png"

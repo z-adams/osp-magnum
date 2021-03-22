@@ -216,38 +216,5 @@ void SysSkybox::set_skybox(ActiveScene& rScene, std::string_view skyboxResName)
 
 void SysSkybox::update(ActiveScene& rScene)
 {
-    using ShaderInstance_t = SkyboxShader::ACompSkyboxShaderInstance;
-    auto view = rScene.get_registry().view<ShaderInstance_t, ACompTransform, ACompHierarchy>();
 
-    //bool empty = true;
-    for (auto [e, shader, tf, hier] : view.each())
-    {
-        //empty = false;
-
-        ActiveEnt activeShip{entt::null};
-        for (auto [ent, muc] : rScene.get_registry().view<adera::active::machines::MachineUserControl>().each())
-        {
-            if (muc.is_enabled())
-            {
-                activeShip = ent;
-                break;
-            }
-        }
-
-        ActiveEnt activeCamera{entt::null};
-        for (auto [ent, cam] : rScene.get_registry().view<ACompCamera>().each())
-        {
-            activeCamera = ent;
-            break;
-        }
-
-        if (activeShip == entt::null) { continue; }
-        if (activeCamera == entt::null) { continue; }
-        ACompTransform& shipTF = rScene.reg_get<ACompTransform>(activeShip);
-        ACompTransform& camTF = rScene.reg_get<ACompTransform>(activeCamera);
-
-        //tf.m_transform = shipTF.m_transformWorld;
-        //tf.m_transform = Matrix4{Matrix3{camTF.m_transformWorld}};
-        //tf.m_transformDirty = true;
-    }
 }

@@ -79,11 +79,6 @@ void SysDebugRender::add_functions(ActiveScene &rScene)
     if (glResources.get<GL::Mesh>("billboard_quad").empty())
     {
         using namespace osp::active::shader;
-
-        Vector2 screenSize = Vector2{GL::defaultFramebuffer.viewport().size()};
-
-        float aspectRatio = screenSize.x() / screenSize.y();
-
         std::array<float, 30> surfData
         {
             // Vert position        // UV coordinate
@@ -104,6 +99,24 @@ void SysDebugRender::add_functions(ActiveScene &rScene)
             .addVertexBuffer(std::move(surface), 0,
                 BillboardShader::Position{}, BillboardShader::TextureCoordinate{});
         glResources.add<GL::Mesh>("billboard_quad", std::move(surfaceMesh));
+    }
+
+    // Generate single-vertex mesh for point rendering
+    using namespace Magnum;
+    if (glResources.get<GL::Mesh>("point").empty())
+    {
+        std::array<float, 3> point
+        {
+            0.0f, 0.0f, 0.0f
+        };
+
+        GL::Buffer buf(std::move(point), GL::BufferUsage::StaticDraw);
+        GL::Mesh pointMesh;
+        pointMesh
+            .setPrimitive(Magnum::MeshPrimitive::Points)
+            .setCount(6)
+            .addVertexBuffer(std::move(buf), 0, GL::Attribute<0, Vector3>{});
+        glResources.add<GL::Mesh>("point", std::move(pointMesh));
     }
 }
 

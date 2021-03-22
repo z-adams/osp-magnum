@@ -22,30 +22,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-//#version 430 core
+#pragma once
 
-layout(location = 0) in vec3 vertPosition;
-layout(location = 1) in vec2 vertTexCoords;
+#include <osp/Active/ActiveScene.h>
 
-layout(location = 0) uniform mat4 projMat;
-layout(location = 1) uniform mat4 viewMat;
-layout(location = 2) uniform vec3 worldPos;
-
-out vec2 uv;
-
-vec3 camera_up = {viewMat[0][1], viewMat[1][1], viewMat[2][1]};
-vec3 camera_right = {viewMat[0][0], viewMat[1][0], viewMat[2][0]};
-
-vec3 direction = {1.0, 0.0, 0.0};
-float size = 150.0;
-
-void main()
+namespace adera::active
 {
-    vec3 pos_world = worldPos
-        + camera_right * vertPosition.x * size
-        + camera_up * vertPosition.y * size;
+class SysSunflare : public osp::active::IDynamicSystem
+{
+public:
+    static inline std::string smc_name = "Sunflare";
 
-    gl_Position = projMat * viewMat * vec4(pos_world, 1.0);
-    uv  = vertTexCoords;
-}
+    SysSunflare(osp::active::ActiveScene& rScene);
+    SysSunflare(SysSunflare const& copy) = delete;
+    SysSunflare(SysSunflare&& move) = delete;
+    ~SysSunflare() = default;
 
+    static void update(osp::active::ActiveScene& rScene);
+    static void add_flare(osp::active::ActiveScene& rScene, osp::active::ActiveEnt e,
+        std::string_view textureName);
+private:
+    osp::active::UpdateOrderHandle_t m_updateOrder;
+};
+
+} // namespace adera::active

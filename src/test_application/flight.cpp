@@ -34,17 +34,13 @@
 #include <osp/Active/SysAreaAssociate.h>
 #include <osp/Active/SysSkybox.h>
 
-// TMP
-#include <osp/Shaders/BillboardShader.h>
-#include <osp/Resource/AssetImporter.h>
-#include <Magnum/Trade/ImageData.h>
-
 #include <osp/Satellites/SatVehicle.h>
 
 #include <adera/Machines/UserControl.h>
 #include <adera/Machines/Rocket.h>
 #include <adera/Machines/RCSController.h>
 #include <adera/ShipResources.h>
+#include <adera/SysSunflare.h>
 
 #include <planet-a/Active/SysPlanetA.h>
 #include <planet-a/Satellites/SatPlanet.h>
@@ -132,29 +128,11 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
     scene.system_machine_create<SysMachineRCSController>();
     scene.system_machine_create<SysMachineContainer>();
 
-    // TMP sun flare
+    // Add sun flare
     {
-        auto& ctxRess = scene.get_context_resources();
         ActiveEnt sunFlare = scene.hier_create_child(scene.hier_get_root(), "sunflare");
-        osp::DependRes<Magnum::GL::Mesh> sunMesh = ctxRess.get<Magnum::GL::Mesh>("billboard_quad");
 
-        using osp::active::shader::BillboardShader;
-        osp::DependRes<BillboardShader> sunShader = ctxRess.get<BillboardShader>("billboard_shader");
-
-        osp::DependRes<Magnum::GL::Texture2D> sunTex =
-            ctxRess.get<Magnum::GL::Texture2D>("sunflare.png");
-        if (sunTex.empty())
-        {
-            auto sunImg = scene.get_application().debug_find_package("lzdb").get<Magnum::Trade::ImageData2D>("sunflare.png");
-            sunTex = osp::AssetImporter::compile_tex(sunImg, ctxRess);
-        }
-        scene.reg_emplace<BillboardShader::ACompBillboardShaderInstance>(sunFlare, sunShader, sunTex);
-        scene.reg_emplace<osp::active::CompDrawableDebug>(sunFlare, std::move(sunMesh), 
-            &BillboardShader::draw_billboard);
-        scene.reg_emplace<osp::active::CompTransparentDebug>(sunFlare, true);
-        scene.reg_emplace<osp::active::CompVisibleDebug>(sunFlare, true);
-        auto& xfm = scene.reg_emplace<ACompTransform>(sunFlare);
-        xfm.m_transform = Matrix4::from(Matrix3{}, Vector3{100.0f, 0.0f, 0.0f});
+        adera::active::SysSunflare::add_flare(scene, sunFlare, "sunflare.png");
     }
 
 

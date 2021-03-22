@@ -27,7 +27,7 @@
 layout(location = 3) uniform sampler2D billboardTexture;
 
 in vec2 uv;
-out vec4 color;
+out vec4 color; 
 
 void main()
 {

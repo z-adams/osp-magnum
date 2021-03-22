@@ -271,6 +271,7 @@ void load_a_bunch_of_stuff()
 
     osp::AssetImporter::load_image(n256path, lazyDebugPack);
     osp::AssetImporter::load_image(n1024path, lazyDebugPack);
+    osp::AssetImporter::load_image("sunflare.png", lazyDebugPack);
 
     // Load cubemaps
     constexpr std::array<std::string_view, 5> cubemaps =

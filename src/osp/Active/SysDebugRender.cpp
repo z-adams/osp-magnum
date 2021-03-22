@@ -24,7 +24,11 @@
  */
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
+#include <Magnum/GL/Buffer.h>
+#include <Magnum/GL/Mesh.h>
+#include <Magnum/Mesh.h>
 #include <Magnum/GL/DebugOutput.h>
+#include <Corrade/Containers/ArrayViewStl.h>
 
 #include "SysDebugRender.h"
 #include "ActiveScene.h"
@@ -32,6 +36,7 @@
 #include "adera/Shaders/PlumeShader.h"
 #include "adera/Shaders/PlanetShader.h"
 #include <osp/Active/SysSkybox.h>
+#include <osp/Shaders/BillboardShader.h>
 
 
 using namespace osp::active;
@@ -62,10 +67,43 @@ SysDebugRender::SysDebugRender(ActiveScene &rScene) :
 
     glResources.add<SkyboxShader>("skybox_shader");
 
+    glResources.add<osp::active::shader::BillboardShader>("billboard_shader");
     /*using namespace Magnum;
     GL::Renderer::enable(GL::Renderer::Feature::DebugOutput);
     GL::Renderer::enable(GL::Renderer::Feature::DebugOutputSynchronous);
     GL::DebugOutput::setDefaultCallback();*/
+
+    // Generate 1x1 quad for billboard rendering
+    using namespace Magnum;
+    if (glResources.get<GL::Mesh>("billboard_quad").empty())
+    {
+        using namespace osp::active::shader;
+
+        Vector2 screenSize = Vector2{GL::defaultFramebuffer.viewport().size()};
+
+        float aspectRatio = screenSize.x() / screenSize.y();
+
+        std::array<float, 30> surfData
+        {
+            // Vert position        // UV coordinate
+            -0.5f, -0.5f, 0.0f,     0.0f,  0.0f,
+             0.5f, -0.5f, 0.0f,     0.0f,  1.0f,
+             0.5f,  0.5f, 0.0f,     1.0f,  1.0f,
+
+            -0.5f, -0.5f, 0.0f,     0.0f,  0.0f,
+             0.5f,  0.5f, 0.0f,     1.0f,  1.0f,
+            -0.5f,  0.5f, 0.0f,     0.0f,  1.0f
+        };
+
+        GL::Buffer surface(std::move(surfData), GL::BufferUsage::StaticDraw);
+        GL::Mesh surfaceMesh;
+        surfaceMesh
+            .setPrimitive(Magnum::MeshPrimitive::Triangles)
+            .setCount(6)
+            .addVertexBuffer(std::move(surface), 0,
+                BillboardShader::Position{}, BillboardShader::TextureCoordinate{});
+        glResources.add<GL::Mesh>("billboard_quad", std::move(surfaceMesh));
+    }
 }
 
 void SysDebugRender::draw(ACompCamera const& camera)

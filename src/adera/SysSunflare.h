@@ -26,6 +26,11 @@
 
 #include <osp/Active/ActiveScene.h>
 
+struct ACompSunflare
+{
+    osp::active::ActiveEnt m_occlusionTest{entt::null};
+};
+
 namespace adera::active
 {
 class SysSunflare : public osp::active::IDynamicSystem

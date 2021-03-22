@@ -119,6 +119,7 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
     scene.dynamic_system_create<planeta::active::SysPlanetA>(pMagnumApp->get_input_handler());
     scene.dynamic_system_create<osp::active::SysFFGravity>();
     scene.dynamic_system_create<osp::active::SysSkybox>();
+    scene.dynamic_system_create<adera::active::SysSunflare>();
 
     osp::active::SysSkybox::set_skybox(scene, "WWWTyroSkybox");
 

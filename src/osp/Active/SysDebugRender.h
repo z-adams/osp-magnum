@@ -54,6 +54,39 @@ struct CompVisibleDebug
     bool m_state = true;
 };
 
+struct CompBackgroundDebug {};
+
+struct CompOverlayDebug {};
+
+struct CompQueryObj
+{
+    uint32_t m_id{0};
+
+    CompQueryObj()
+    {
+        glGenQueries(1, &m_id);
+    }
+
+    CompQueryObj(CompQueryObj const& copy) = delete;
+    CompQueryObj(CompQueryObj&& move)
+        : m_id(std::exchange(move.m_id, 0))
+    {}
+
+    CompQueryObj& operator=(CompQueryObj&& move)
+    {
+        m_id = std::exchange(move.m_id, 0);
+        return *this;
+    }
+
+    ~CompQueryObj()
+    {
+        if (m_id > 0)
+        {
+            glDeleteQueries(1, &m_id);
+        }
+    }
+};
+
 class SysDebugRender
 {
 public:

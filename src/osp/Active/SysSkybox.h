@@ -95,7 +95,7 @@ private:
 namespace osp::active
 {
 
-class SysSkybox : public IDynamicSystem
+class SysSkybox
 {
 public:
     static void add_functions(ActiveScene& rScene);

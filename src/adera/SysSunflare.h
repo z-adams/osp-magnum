@@ -26,17 +26,17 @@
 
 #include <osp/Active/ActiveScene.h>
 
+struct ACompSunflare
+{
+    osp::active::ActiveEnt m_occlusionTest{entt::null};
+};
+
 namespace adera::active
 {
-class SysSunflare : public osp::active::IDynamicSystem
+class SysSunflare
 {
 public:
-    static inline std::string smc_name = "Sunflare";
-
-    SysSunflare(osp::active::ActiveScene& rScene);
-    SysSunflare(SysSunflare const& copy) = delete;
-    SysSunflare(SysSunflare&& move) = delete;
-    ~SysSunflare() = default;
+    void add_functions(osp::active::ActiveScene& rScene);
 
     static void update(osp::active::ActiveScene& rScene);
     static void add_flare(osp::active::ActiveScene& rScene, osp::active::ActiveEnt e,

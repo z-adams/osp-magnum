@@ -37,6 +37,7 @@
 #include "adera/Shaders/PlanetShader.h"
 #include <osp/Active/SysSkybox.h>
 #include <osp/Shaders/BillboardShader.h>
+#include <Magnum/Shaders/VertexColor.h>
 
 
 using namespace osp::active;
@@ -67,6 +68,9 @@ void SysDebugRender::add_functions(ActiveScene &rScene)
     glResources.add<PlanetShader>("planet_shader");
 
     glResources.add<SkyboxShader>("skybox_shader");
+
+    // TMP: no shaderinstance
+    glResources.add<Magnum::Shaders::VertexColor3D>("vertexcolor_shader");
 
     glResources.add<osp::active::shader::BillboardShader>("billboard_shader");
     /*using namespace Magnum;
@@ -114,7 +118,7 @@ void SysDebugRender::add_functions(ActiveScene &rScene)
         GL::Mesh pointMesh;
         pointMesh
             .setPrimitive(Magnum::MeshPrimitive::Points)
-            .setCount(6)
+            .setCount(1)
             .addVertexBuffer(std::move(buf), 0, GL::Attribute<0, Vector3>{});
         glResources.add<GL::Mesh>("point", std::move(pointMesh));
     }
@@ -147,16 +151,28 @@ void SysDebugRender::draw(ActiveScene &rScene, ACompCamera const& camera)
 
     // Get opaque objects
     auto opaqueObjects = reg.view<CompDrawableDebug, ACompTransform>(
-        entt::exclude<CompTransparentDebug, Skybox_t>);
+        entt::exclude<CompTransparentDebug, Skybox_t, CompBackgroundDebug>);
     // Configure blend mode for opaque rendering
     Renderer::disable(Renderer::Feature::Blending);
     // Draw opaque objects
     draw_group(rScene, opaqueObjects, camera);
 
+    // Render sun test point
+    auto backgroundView =
+        reg.view<CompDrawableDebug, ACompTransform, CompBackgroundDebug, CompQueryObj>();
+    for (ActiveEnt e : backgroundView)
+    {
+        auto& q = backgroundView.get<CompQueryObj>(e);
+        glBeginQuery(GL_ANY_SAMPLES_PASSED, q.m_id);
+    }
+    draw_group(backgroundView, camera);
+    glEndQuery(GL_ANY_SAMPLES_PASSED);
+
+
     // Get transparent objects
     auto transparentObjects = rScene.get_registry()
         .view<CompDrawableDebug, CompVisibleDebug,
-        CompTransparentDebug, ACompTransform>();
+        CompTransparentDebug, ACompTransform>(entt::exclude<CompOverlayDebug>);
 
     // Configure blend mode for transparency
     Renderer::enable(Renderer::Feature::Blending);
@@ -171,5 +187,13 @@ void SysDebugRender::draw(ActiveScene &rScene, ACompCamera const& camera)
     // Then draw frontfaces
     Renderer::setFaceCullingMode(Renderer::PolygonFacing::Back);
     draw_group(rScene, transparentObjects, camera);
+
+    // Get overlays
+    auto overlayObjects = m_scene.get_registry()
+        .view<CompDrawableDebug, CompVisibleDebug,
+        CompTransparentDebug, ACompTransform, CompOverlayDebug>();
+
+    Magnum::GL::defaultFramebuffer.clear(Magnum::GL::FramebufferClear::Depth);
+    draw_group(rScene, overlayObjects, camera);
 }
 

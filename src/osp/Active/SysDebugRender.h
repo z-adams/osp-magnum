@@ -27,6 +27,7 @@
 #include <variant>
 #include <Magnum/Math/Color.h>
 #include <Magnum/GL/Mesh.h>
+#include <Magnum/GL/Framebuffer.h>
 
 #include "osp/Resource/Resource.h"
 #include "osp/Active/Shader.h"
@@ -98,6 +99,8 @@ public:
 
     void draw(ACompCamera const& camera);
 
+    static DependRes<Magnum::GL::Framebuffer> create_framebuffer(ActiveScene& rScene,
+        std::string_view name);
 private:
     template <typename T>
     void draw_group(T& rCollection, ACompCamera const& camera);

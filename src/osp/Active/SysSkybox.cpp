@@ -203,6 +203,7 @@ void SysSkybox::set_skybox(ActiveScene& rScene, std::string_view skyboxResName)
         DependRes<GL::Mesh> mesh = glResources.get<GL::Mesh>("skybox_mesh");
         rScene.reg_emplace<CompDrawableDebug>(boxEnt, mesh, SkyboxShader::draw_sky);
         rScene.reg_emplace<ACompTransform>(boxEnt);
+        rScene.reg_emplace<CompBackgroundDebug>(boxEnt);
     }
     else
     {

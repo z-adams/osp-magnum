@@ -41,7 +41,7 @@
 #include <adera/Machines/RCSController.h>
 #include <adera/ShipResources.h>
 #include <adera/SysSunflare.h>
-
+#include <osp/Active/SysPrepass.h>
 #include <planet-a/Active/SysPlanetA.h>
 #include <planet-a/Satellites/SatPlanet.h>
 
@@ -113,6 +113,7 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
     scene.dynamic_system_create<osp::active::SysPhysics_t>();
     scene.dynamic_system_create<osp::active::SysWire>();
     scene.dynamic_system_create<osp::active::SysDebugRender>();
+    scene.dynamic_system_create<osp::active::PrepassExecutor>();
     scene.dynamic_system_create<osp::active::SysAreaAssociate>();
     scene.dynamic_system_create<osp::active::SysVehicle>();
     scene.dynamic_system_create<osp::active::SysExhaustPlume>();

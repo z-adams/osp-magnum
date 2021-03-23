@@ -26,6 +26,9 @@
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/GL/Buffer.h>
 #include <Magnum/GL/Mesh.h>
+#include <Magnum/GL/TextureFormat.h>
+#include <Magnum/GL/Renderbuffer.h>
+#include <Magnum/GL/RenderbufferFormat.h>
 #include <Magnum/Mesh.h>
 #include <Magnum/GL/DebugOutput.h>
 #include <Corrade/Containers/ArrayViewStl.h>
@@ -37,9 +40,11 @@
 #include "adera/Shaders/PlanetShader.h"
 #include <osp/Active/SysSkybox.h>
 #include <osp/Shaders/BillboardShader.h>
+#include <osp/Shaders/RTPrepass.h>
 #include <Magnum/Shaders/VertexColor.h>
+#include <osp/string_concat.h>
 
-
+using namespace osp;
 using namespace osp::active;
 
 // for _1, _2, _3, ... std::bind arguments
@@ -47,6 +52,7 @@ using namespace std::placeholders;
 
 // for the 0xrrggbb_rgbf and _deg literals
 using namespace Magnum::Math::Literals;
+using namespace Magnum;
 
 const std::string SysDebugRender::smc_name = "DebugRender";
 
@@ -60,7 +66,7 @@ SysDebugRender::SysDebugRender(ActiveScene &rScene) :
     using namespace adera::shader;
 
     glResources.add<Phong>("phong_shader",
-        Phong{Magnum::Shaders::Phong::Flag::DiffuseTexture});
+        Phong{Shaders::Phong::Flag::DiffuseTexture});
 
     glResources.add<PlumeShader>("plume_shader");
 
@@ -68,8 +74,10 @@ SysDebugRender::SysDebugRender(ActiveScene &rScene) :
 
     glResources.add<SkyboxShader>("skybox_shader");
 
+    glResources.add<osp::active::shader::PrepassShader>("prepass_shader");
+
     // TMP: no shaderinstance
-    glResources.add<Magnum::Shaders::VertexColor3D>("vertexcolor_shader");
+    glResources.add<Shaders::VertexColor3D>("vertexcolor_shader");
 
     glResources.add<osp::active::shader::BillboardShader>("billboard_shader");
     /*using namespace Magnum;
@@ -78,7 +86,6 @@ SysDebugRender::SysDebugRender(ActiveScene &rScene) :
     GL::DebugOutput::setDefaultCallback();*/
 
     // Generate 1x1 quad for billboard rendering
-    using namespace Magnum;
     if (glResources.get<GL::Mesh>("billboard_quad").empty())
     {
         using namespace osp::active::shader;
@@ -105,7 +112,6 @@ SysDebugRender::SysDebugRender(ActiveScene &rScene) :
     }
 
     // Generate single-vertex mesh for point rendering
-    using namespace Magnum;
     if (glResources.get<GL::Mesh>("point").empty())
     {
         std::array<float, 3> point
@@ -125,7 +131,9 @@ SysDebugRender::SysDebugRender(ActiveScene &rScene) :
 
 void SysDebugRender::draw(ACompCamera const& camera)
 {
-    using Magnum::GL::Renderer;
+    using GL::Renderer;
+
+    GL::defaultFramebuffer.bind();
 
     auto& reg = m_scene.get_registry();
 
@@ -133,7 +141,7 @@ void SysDebugRender::draw(ACompCamera const& camera)
 
     // Get skybox
     using Skybox_t = SkyboxShader::ACompSkyboxShaderInstance;
-    auto boxview = reg.view<CompDrawableDebug, ACompTransform, Skybox_t>();
+    auto boxview = reg.view<CompDrawableDebug, ACompTransform, Skybox_t, CompBackgroundDebug>();
     // Disable depth test
     Renderer::disable(Renderer::Feature::Blending);
     Renderer::disable(Renderer::Feature::DepthTest);
@@ -192,7 +200,31 @@ void SysDebugRender::draw(ACompCamera const& camera)
         .view<CompDrawableDebug, CompVisibleDebug,
         CompTransparentDebug, ACompTransform, CompOverlayDebug>();
 
-    Magnum::GL::defaultFramebuffer.clear(Magnum::GL::FramebufferClear::Depth);
+    GL::defaultFramebuffer.clear(Magnum::GL::FramebufferClear::Depth);
     draw_group(overlayObjects, camera);
+}
+
+DependRes<GL::Framebuffer> SysDebugRender::create_framebuffer(ActiveScene& rScene,
+    std::string_view name)
+{
+    auto& glResources = rScene.get_context_resources();
+
+    Vector2i viewSize = GL::defaultFramebuffer.viewport().size();
+
+    GL::Texture2D color;
+    color.setStorage(1, GL::TextureFormat::RGB8, viewSize);
+    osp::DependRes<GL::Texture2D> colorRes = glResources.add<GL::Texture2D>(
+        osp::string_concat(name, "_color"), std::move(color));
+
+    GL::Renderbuffer depthStencil;
+    depthStencil.setStorage(GL::RenderbufferFormat::Depth24Stencil8, viewSize);
+    osp::DependRes<GL::Renderbuffer> depthStencilRes = glResources.add<GL::Renderbuffer>(
+            osp::string_concat(name, "_depthStencil"), std::move(depthStencil));
+
+    GL::Framebuffer fbo(Range2Di{{0, 0}, viewSize});
+    fbo.attachTexture(GL::Framebuffer::ColorAttachment{0}, *colorRes, 0);
+    fbo.attachRenderbuffer(GL::Framebuffer::BufferAttachment::DepthStencil, *depthStencilRes);
+
+    return glResources.add<GL::Framebuffer>(name, std::move(fbo));
 }
 

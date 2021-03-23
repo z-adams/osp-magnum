@@ -1,0 +1,82 @@
+/**
+ * Open Space Program
+ * Copyright © 2019-2020 Open Space Program Project
+ *
+ * MIT License
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+#include "SysPrepass.h"
+#include <osp/Shaders/RTPrepass.h>
+#include <Magnum/GL/Renderer.h>
+#include <Magnum/GL/Framebuffer.h>
+
+#include <osp/Active/SysDebugRender.h>
+#include "adera/Shaders/PlanetShader.h"
+
+using namespace Magnum;
+using namespace osp::active;
+using namespace osp::active::shader;
+using namespace std::placeholders;
+
+PrepassExecutor::PrepassExecutor(ActiveScene& rScene)
+    : m_order(rScene.get_render_order(), "prepass", "", "debug",
+        std::bind(&PrepassExecutor::execute_prepass, this, _1)),
+    m_scene(rScene)
+{
+    SysDebugRender::create_framebuffer(rScene, "prepass_fbo");
+}
+
+void PrepassExecutor::execute_prepass(ACompCamera const& camera)
+{
+    using PlanetShader_t = adera::shader::PlanetShader::ACompPlanetShaderInstance;
+
+    auto& rScene = m_scene;
+    auto& reg = rScene.get_registry();
+    auto view = reg.view<CompDrawableDebug, ACompTransform>(
+        entt::exclude<CompTransparentDebug, CompBackgroundDebug, CompOverlayDebug, PlanetShader_t>);
+
+    using Magnum::GL::Renderer;
+
+    Renderer::disable(Renderer::Feature::Blending);
+    Renderer::enable(Renderer::Feature::DepthTest);
+    Renderer::enable(Renderer::Feature::FaceCulling);
+    Renderer::setFaceCullingMode(Renderer::PolygonFacing::Back);
+
+    auto& ctxRes = rScene.get_context_resources();
+
+    DependRes<PrepassShader> shader = ctxRes.get<PrepassShader>("prepass_shader");
+    DependRes<GL::Framebuffer> framebuffer = ctxRes.get<GL::Framebuffer>("prepass_fbo");
+
+    framebuffer->bind();
+    framebuffer->clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
+    for (auto [e, drawable, compXform] : view.each())
+    {
+        DependRes<GL::Mesh> mesh = drawable.m_mesh;
+
+        Matrix4 transform = camera.m_inverse * compXform.m_transformWorld;
+        Vector3 cameraPos = camera.m_inverse.inverted().translation();
+
+        (*shader)
+            .set_transform_matrix(transform)
+            .set_proj_matrix(camera.m_projection)
+            .set_camera_pos_world(cameraPos)
+            .draw(*mesh);
+    }
+}

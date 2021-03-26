@@ -27,6 +27,7 @@
 #include <utility>
 #include <vector>
 #include <stack>
+#include <functional>
 
 #include "../OSPApplication.h"
 #include "../UserInputHandler.h"

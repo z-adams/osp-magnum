@@ -200,8 +200,8 @@ using namespace osp::active;
 
 void osp::active::SysRaytracer::add_functions(ActiveScene & rScene)
 {
-    rScene.debug_render_add(rScene.get_render_order(), "RT", "debug", "",
-        &raytrace);
+    /*rScene.debug_render_add(rScene.get_render_order(), "RT", "debug", "",
+        &raytrace);*/
 }
 
 void SysRaytracer::raytrace(ActiveScene& rScene, ACompCamera const& camera)

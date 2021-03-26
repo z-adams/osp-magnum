@@ -67,8 +67,8 @@ using namespace Magnum;
 
 void SysDebugRender::add_functions(ActiveScene &rScene)
 {
-    rScene.debug_render_add(rScene.get_render_order(), "debug", "", "",
-                            &SysDebugRender::draw);
+    /*rScene.debug_render_add(rScene.get_render_order(), "debug", "", "",
+                            &SysDebugRender::draw);*/
 
     // Initialize some GL resources (temporary)
 
@@ -248,7 +248,7 @@ void SysDebugRender::add_functions(ActiveScene &rScene)
     draw_group(rScene, overlayObjects, camera);
 }*/
 
-/*DependRes<GL::Framebuffer> SysDebugRender::create_framebuffer(ActiveScene& rScene,
+DependRes<GL::Framebuffer> SysDebugRender::create_framebuffer(ActiveScene& rScene,
     std::string_view name)
 {
     auto& glResources = rScene.get_context_resources();
@@ -270,16 +270,7 @@ void SysDebugRender::add_functions(ActiveScene &rScene)
     fbo.attachRenderbuffer(GL::Framebuffer::BufferAttachment::DepthStencil, *depthStencilRes);
 
     return glResources.add<GL::Framebuffer>(name, std::move(fbo));
-    framebuffer->clear(
-        GL::FramebufferClear::Color
-        | GL::FramebufferClear::Depth
-        | GL::FramebufferClear::Stencil);
-
-    for (auto& pass : m_renderPasses)
-    {
-        pass(m_scene, camera);
-    }
-}*/
+}
 
 void SysDebugRender::render_framebuffer(ActiveScene& rScene, Magnum::GL::Texture2D& rTexture)
 {

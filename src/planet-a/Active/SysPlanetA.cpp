@@ -243,25 +243,14 @@ void SysPlanetA::update_geometry(ActiveScene& rScene)
                     .draw(*planet.m_mesh);
             };
 
-            osp::Package& glResources = rScene.get_context_resources();
-
-            // Generate mesh resource
-            std::string name = osp::string_concat("planet_mesh_",
-                std::to_string(static_cast<int>(ent)));
-            planet.m_mesh = glResources.add<Magnum::GL::Mesh>(name);
-
-            // Emplace renderable
-            rScene.reg_emplace<osp::active::CompDrawableDebug>(ent,
-                planet.m_mesh, planetDrawFnc);
-
             //planet_update_geometry(ent, planet);
 
             // TMP: cubemap texture
             osp::Package& glResources = rScene.get_context_resources();
 
-            std::string name = osp::string_concat("planet_mesh_",
+            std::string cubeName = osp::string_concat("planet_mesh_",
                 std::to_string(static_cast<int>(ent)));
-            planet.m_mesh = glResources.add<Magnum::GL::Mesh>(name);
+            planet.m_mesh = glResources.add<Magnum::GL::Mesh>(cubeName);
 
             // Generate cubemaps
             osp::DependRes<Magnum::GL::CubeMapTexture> diffRes

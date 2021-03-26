@@ -42,6 +42,7 @@
 #include <adera/ShipResources.h>
 #include <adera/SysSunflare.h>
 #include <osp/Active/SysPrepass.h>
+#include <osp/Shaders/RT.h>
 #include <planet-a/Active/SysPlanetA.h>
 #include <planet-a/Satellites/SatPlanet.h>
 
@@ -145,6 +146,9 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
 
     // Define render passes
 
+    // Prepass
+    //rScene.get_render_queue().push_back(&osp::active::PrepassExecutor::execute_prepass);
+
     // Opaque pass
     rScene.get_render_queue().push_back(
         [](osp::active::ActiveScene& rScene, ACompCamera& camera)
@@ -166,11 +170,62 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
             Renderer::enable(Renderer::Feature::FaceCulling);
             Renderer::disable(Renderer::Feature::Blending);
 
+            using Skybox_t = SkyboxShader::ACompSkyboxShaderInstance;
+
             // Fetch opaque objects
             auto opaqueView = reg.view<CompDrawableDebug, ACompTransform>(
-                entt::exclude<CompTransparentDebug>);
+                entt::exclude<CompTransparentDebug, Skybox_t, CompBackgroundDebug>);
 
             SysDebugRender::draw_group(rScene, opaqueView, camera);
+        }
+    );
+
+    // Draw Skybox
+    rScene.get_render_queue().push_back(
+        [](osp::active::ActiveScene& rScene, ACompCamera& camera)
+        {
+            using Magnum::GL::Renderer;
+            using namespace osp::active;
+
+            auto& reg = rScene.get_registry();
+
+            using Skybox_t = SkyboxShader::ACompSkyboxShaderInstance;
+            auto boxview = reg.view<CompDrawableDebug, ACompTransform,
+                Skybox_t, CompBackgroundDebug>();
+            Renderer::enable(Renderer::Feature::SeamlessCubeMapTexture);
+            Renderer::disable(Renderer::Feature::Blending);
+            Renderer::enable(Renderer::Feature::DepthTest);
+            Renderer::enable(Renderer::Feature::DepthClamp);
+            Renderer::setDepthFunction(Renderer::DepthFunction::LessOrEqual);
+            Renderer::enable(Renderer::Feature::FaceCulling);
+            Renderer::setFaceCullingMode(Renderer::PolygonFacing::Front);
+
+            SysDebugRender::draw_group(rScene, boxview, camera);
+
+            Renderer::setDepthFunction(Renderer::DepthFunction::Less);
+            Renderer::setFaceCullingMode(Renderer::PolygonFacing::Back);
+            Renderer::disable(Renderer::Feature::DepthClamp);
+        }
+    );
+
+    // Draw sun test point
+    rScene.get_render_queue().push_back(
+        [](osp::active::ActiveScene& rScene, ACompCamera& camera)
+        {
+            using Magnum::GL::Renderer;
+            using namespace osp::active;
+
+            auto& reg = rScene.get_registry();
+
+            auto backgroundView = reg.view<CompDrawableDebug, ACompTransform,
+                CompBackgroundDebug, CompQueryObj>();
+            for (ActiveEnt e : backgroundView)
+            {
+                auto& q = backgroundView.get<CompQueryObj>(e);
+                glBeginQuery(GL_ANY_SAMPLES_PASSED, q.m_id);
+            }
+            SysDebugRender::draw_group(rScene, backgroundView, camera);
+            glEndQuery(GL_ANY_SAMPLES_PASSED);
         }
     );
 
@@ -191,7 +246,7 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
                 Renderer::BlendFunction::OneMinusSourceAlpha);
 
             auto transparentView = reg.view<CompDrawableDebug, CompVisibleDebug,
-                CompTransparentDebug, ACompTransform>();
+                CompTransparentDebug, ACompTransform>(entt::exclude<CompOverlayDebug>);
 
             // Draw backfaces
             Renderer::setFaceCullingMode(Renderer::PolygonFacing::Front);
@@ -202,6 +257,41 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
             SysDebugRender::draw_group(rScene, transparentView, camera);
         }
     );
+
+    // Draw overlays
+    rScene.get_render_queue().push_back(
+        [](osp::active::ActiveScene& rScene, ACompCamera& camera)
+        {
+            using namespace Magnum;
+            using Magnum::GL::Renderer;
+            using namespace osp::active;
+
+            auto& reg = rScene.get_registry();
+
+            auto overlayObjects = reg.view<CompDrawableDebug, CompVisibleDebug,
+                CompTransparentDebug, ACompTransform, CompOverlayDebug>();
+
+            if (camera.m_renderTarget.empty())
+            {
+                GL::defaultFramebuffer.clear(GL::FramebufferClear::Depth);
+            }
+            else
+            {
+                camera.m_renderTarget->clear(GL::FramebufferClear::Depth);
+            }
+
+            Renderer::enable(Renderer::Feature::Blending);
+            Renderer::setBlendFunction(
+                Renderer::BlendFunction::SourceAlpha,
+                Renderer::BlendFunction::OneMinusSourceAlpha);
+            Renderer::setFaceCullingMode(Renderer::PolygonFacing::Back);
+
+            SysDebugRender::draw_group(rScene, overlayObjects, camera);
+        }
+    );
+
+    // Raytracing pass
+    //rScene.get_render_queue().push_back(&osp::active::SysRaytracer::raytrace);
 
     // Render offscreen buffer
     rScene.get_render_queue().push_back(

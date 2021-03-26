@@ -99,7 +99,7 @@ public:
 
     static DependRes<Magnum::GL::Framebuffer> create_framebuffer(ActiveScene& rScene,
         std::string_view name);
-private:
+
     template <typename T>
     static void draw_group(ActiveScene& rScene, T& rCollection, ACompCamera& camera);
     static void render_framebuffer(ActiveScene& rScene, Magnum::GL::Texture2D& rTexture);

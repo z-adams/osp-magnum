@@ -37,8 +37,8 @@ using namespace std::placeholders;
 
 void PrepassExecutor::add_functions(ActiveScene& rScene)
 {
-    rScene.debug_render_add(rScene.get_render_order(), "prepass", "", "debug",
-        &PrepassExecutor::execute_prepass);
+    /*rScene.debug_render_add(rScene.get_render_order(), "prepass", "", "debug",
+        &PrepassExecutor::execute_prepass);*/
     SysDebugRender::create_framebuffer(rScene, "prepass_fbo");
 }
 

@@ -32,6 +32,8 @@
 
 #include <osp/Active/ActiveScene.h>
 #include <osp/Universe.h>
+#include <osp/string_concat.h>
+#include <osp/Active/SysDebugRender.h>
 
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Magnum/Math/Color.h>
@@ -81,9 +83,6 @@ void SysPlanetA::add_functions(osp::active::ActiveScene &rScene)
                             &SysPlanetA::update_geometry );
     rScene.debug_update_add(rScene.get_update_order(), "planet_phys", "planet_geo", "",
                             &SysPlanetA::update_physics);
-    /*rScene.debug_render_add(rScene.get_render_order(), "", "", "",
-                            &SysPlanetA::draw);*/
-
 }
 
 ActiveEnt SysPlanetA::activate(
@@ -219,6 +218,41 @@ void SysPlanetA::update_geometry(ActiveScene& rScene)
             {
                 return EChunkUpdateAction::Chunk;
             });
+
+            // TEMP: until we have a proper planet shader
+            static auto planetDrawFnc =
+                [](ActiveEnt e, ActiveScene& rScene, Magnum::GL::Mesh& rMesh,
+                    ACompCamera const& camera, ACompTransform const& transform)
+            {
+                using namespace Magnum;
+                auto& glResources = rScene.get_context_resources();
+                osp::DependRes<Shaders::MeshVisualizer3D> shader =
+                    glResources.get<Shaders::MeshVisualizer3D>("mesh_vis_shader");
+
+                auto& planet = rScene.reg_get<ACompPlanet>(e);
+
+                Matrix4 entRelative = camera.m_inverse * transform.m_transformWorld;
+
+                (*shader)
+                    .setColor(0x2f83cc_rgbf)
+                    .setWireframeColor(0xdcdcdc_rgbf)
+                    .setViewportSize(Vector2{Magnum::GL::defaultFramebuffer.viewport().size()})
+                    .setTransformationMatrix(entRelative)
+                    .setNormalMatrix(entRelative.normalMatrix())
+                    .setProjectionMatrix(camera.m_projection)
+                    .draw(*planet.m_mesh);
+            };
+
+            osp::Package& glResources = rScene.get_context_resources();
+
+            // Generate mesh resource
+            std::string name = osp::string_concat("planet_mesh_",
+                std::to_string(static_cast<int>(ent)));
+            planet.m_mesh = glResources.add<Magnum::GL::Mesh>(name);
+
+            // Emplace renderable
+            rScene.reg_emplace<osp::active::CompDrawableDebug>(ent,
+                planet.m_mesh, planetDrawFnc);
 
             //planet_update_geometry(ent, planet);
 

@@ -22,7 +22,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
+#include <array>
+
 #include <Magnum/GL/DefaultFramebuffer.h>
+#include <Magnum/GL/Framebuffer.h>
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/GL/Buffer.h>
 #include <Magnum/GL/Mesh.h>
@@ -31,6 +35,8 @@
 #include <Magnum/GL/RenderbufferFormat.h>
 #include <Magnum/Mesh.h>
 #include <Magnum/GL/DebugOutput.h>
+#include <Magnum/Shaders/MeshVisualizer.h>
+#include <Magnum/Mesh.h>
 #include <Corrade/Containers/ArrayViewStl.h>
 
 #include "SysDebugRender.h"
@@ -44,6 +50,10 @@
 #include <Magnum/Shaders/VertexColor.h>
 #include <osp/string_concat.h>
 
+#include <osp/Shaders/RenderTexture.h>
+
+
+using namespace Magnum;
 using namespace osp;
 using namespace osp::active;
 
@@ -65,6 +75,10 @@ void SysDebugRender::add_functions(ActiveScene &rScene)
     Package& glResources = rScene.get_context_resources();
 
     using namespace adera::shader;
+    using Magnum::Shaders::MeshVisualizer3D;
+
+    glResources.add<MeshVisualizer3D>("mesh_vis_shader",
+        MeshVisualizer3D{MeshVisualizer3D::Flag::Wireframe | MeshVisualizer3D::Flag::NormalDirection});
 
     glResources.add<Phong>("phong_shader",
         Phong{Shaders::Phong::Flag::DiffuseTexture});
@@ -75,13 +89,16 @@ void SysDebugRender::add_functions(ActiveScene &rScene)
 
     glResources.add<SkyboxShader>("skybox_shader");
 
+    glResources.add<RenderTexture>("render_texture");
+
     glResources.add<osp::active::shader::PrepassShader>("prepass_shader");
 
     // TMP: no shaderinstance
     glResources.add<Shaders::VertexColor3D>("vertexcolor_shader");
 
     glResources.add<osp::active::shader::BillboardShader>("billboard_shader");
-    /*using namespace Magnum;
+
+    /*// Enable OpenGL debug output
     GL::Renderer::enable(GL::Renderer::Feature::DebugOutput);
     GL::Renderer::enable(GL::Renderer::Feature::DebugOutputSynchronous);
     GL::DebugOutput::setDefaultCallback();*/
@@ -112,6 +129,32 @@ void SysDebugRender::add_functions(ActiveScene &rScene)
         glResources.add<GL::Mesh>("billboard_quad", std::move(surfaceMesh));
     }
 
+    // Generate fullscreen tri for texture rendering
+    using namespace Magnum; 
+    if (glResources.get<GL::Mesh>("fullscreen_tri").empty())
+    {
+        Vector2 screenSize = Vector2{GL::defaultFramebuffer.viewport().size()};
+
+        float aspectRatio = screenSize.x() / screenSize.y();
+
+        std::array<float, 12> surfData
+        {
+            // Vert position    // UV coordinate
+            -1.0f,  1.0f,       0.0f,  1.0f,
+            -1.0f, -3.0f,       0.0f, -1.0f,
+             3.0f,  1.0f,       2.0f,  1.0f
+        };
+
+        GL::Buffer surface(std::move(surfData), GL::BufferUsage::StaticDraw);
+        GL::Mesh surfaceMesh;
+        surfaceMesh
+            .setPrimitive(Magnum::MeshPrimitive::Triangles)
+            .setCount(3)
+            .addVertexBuffer(std::move(surface), 0,
+                RenderTexture::Position{}, RenderTexture::TextureCoordinates{});
+        glResources.add<GL::Mesh>("fullscreen_tri", std::move(surfaceMesh));
+    }
+
     // Generate single-vertex mesh for point rendering
     if (glResources.get<GL::Mesh>("point").empty())
     {
@@ -130,13 +173,13 @@ void SysDebugRender::add_functions(ActiveScene &rScene)
     }
 }
 
-void SysDebugRender::draw(ActiveScene &rScene, ACompCamera const& camera)
+/*void SysDebugRender::draw(ACompCamera& camera)
 {
-    using GL::Renderer;
+    GL::AbstractFramebuffer* framebuffer = (camera.m_renderTarget.empty()) ?
+        reinterpret_cast<GL::AbstractFramebuffer*>(&GL::defaultFramebuffer)
+        : reinterpret_cast<GL::AbstractFramebuffer*>(&(*camera.m_renderTarget));
 
-    GL::defaultFramebuffer.bind();
-
-    auto& reg = rScene.get_registry();
+    framebuffer->bind();
 
     Renderer::enable(Renderer::Feature::SeamlessCubeMapTexture);
 
@@ -203,9 +246,9 @@ void SysDebugRender::draw(ActiveScene &rScene, ACompCamera const& camera)
 
     GL::defaultFramebuffer.clear(GL::FramebufferClear::Depth);
     draw_group(rScene, overlayObjects, camera);
-}
+}*/
 
-DependRes<GL::Framebuffer> SysDebugRender::create_framebuffer(ActiveScene& rScene,
+/*DependRes<GL::Framebuffer> SysDebugRender::create_framebuffer(ActiveScene& rScene,
     std::string_view name)
 {
     auto& glResources = rScene.get_context_resources();
@@ -227,5 +270,25 @@ DependRes<GL::Framebuffer> SysDebugRender::create_framebuffer(ActiveScene& rScen
     fbo.attachRenderbuffer(GL::Framebuffer::BufferAttachment::DepthStencil, *depthStencilRes);
 
     return glResources.add<GL::Framebuffer>(name, std::move(fbo));
-}
+    framebuffer->clear(
+        GL::FramebufferClear::Color
+        | GL::FramebufferClear::Depth
+        | GL::FramebufferClear::Stencil);
 
+    for (auto& pass : m_renderPasses)
+    {
+        pass(m_scene, camera);
+    }
+}*/
+
+void SysDebugRender::render_framebuffer(ActiveScene& rScene, Magnum::GL::Texture2D& rTexture)
+{
+    using namespace Magnum;
+    
+    auto& glResources = rScene.get_context_resources();
+
+    DependRes<GL::Mesh> surface = glResources.get<GL::Mesh>("fullscreen_tri");
+    DependRes<RenderTexture> shader = glResources.get<RenderTexture>("render_texture");
+
+    shader->render_texure(*surface, rTexture);
+}

@@ -28,6 +28,7 @@
 #include <Magnum/Math/Color.h>
 #include <Magnum/GL/Mesh.h>
 #include <Magnum/GL/Framebuffer.h>
+#include <Magnum/GL/Texture.h>
 
 #include "osp/Resource/Resource.h"
 #include "osp/Active/Shader.h"
@@ -94,18 +95,18 @@ public:
 
     static void add_functions(ActiveScene& rScene);
 
-    static void draw(ActiveScene& rScene, ACompCamera const& camera);
+    //static void draw(ActiveScene& rScene, ACompCamera& camera);
 
     static DependRes<Magnum::GL::Framebuffer> create_framebuffer(ActiveScene& rScene,
         std::string_view name);
 private:
     template <typename T>
-    static void draw_group(ActiveScene& rScene, T& rCollection, ACompCamera const& camera);
-
+    static void draw_group(ActiveScene& rScene, T& rCollection, ACompCamera& camera);
+    static void render_framebuffer(ActiveScene& rScene, Magnum::GL::Texture2D& rTexture);
 };
 
 template<typename T>
-inline void SysDebugRender::draw_group(ActiveScene& rScene, T& rCollection, ACompCamera const& camera)
+inline void SysDebugRender::draw_group(ActiveScene& rScene, T& rCollection, ACompCamera& camera)
 {
     for (auto entity : rCollection)
     {

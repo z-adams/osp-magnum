@@ -42,6 +42,8 @@
 #include "SysWire.h"
 #include "adera/SysExhaustPlume.h"
 
+#include <Magnum/GL/Framebuffer.h>
+
 namespace osp::active
 {
 
@@ -128,7 +130,6 @@ public:
     template<class T>
     decltype(auto) reg_get(ActiveEnt ent) const { return m_registry.get<T>(ent); }
 
-
     /**
      * Shorthand for get_registry().try_get<T>()
      * @tparam T Component to get
@@ -169,7 +170,9 @@ public:
 
     constexpr UpdateOrder_t& get_update_order() { return m_updateOrder; }
 
-    constexpr RenderOrder_t& get_render_order() { return m_renderOrder; }
+    //constexpr RenderOrder_t& get_render_order() { return m_renderOrder; }
+    using RenderPass_t = std::function<void(ActiveScene& rScene, ACompCamera& rCamera)>;
+    constexpr std::vector<RenderPass_t>& get_render_queue() { return m_renderQueue; }
 
     // TODO
     constexpr float get_time_delta_fixed() const { return 1.0f / 60.0f; }
@@ -211,6 +214,7 @@ public:
     { m_renderHandles.emplace_back(std::forward<ARGS_T>(args)...); }
 
     Package& get_context_resources() { return m_context; }
+
 private:
 
     void on_hierarchy_construct(ActiveReg_t& reg, ActiveEnt ent);
@@ -229,7 +233,8 @@ private:
     UserInputHandler &m_userInput;
 
     UpdateOrder_t m_updateOrder;
-    RenderOrder_t m_renderOrder;
+    //RenderOrder_t m_renderOrder;
+    std::vector<RenderPass_t> m_renderQueue;
 
     std::vector<UpdateOrderHandle_t> m_updateHandles;
     std::vector<RenderOrderHandle_t> m_renderHandles;
@@ -305,6 +310,9 @@ struct ACompCamera
 
     Matrix4 m_projection;
     Matrix4 m_inverse;
+
+    // If empty, GL::DefaultFramebuffer is used
+    DependRes<Magnum::GL::Framebuffer> m_renderTarget;
 
     void calculate_projection();
 };

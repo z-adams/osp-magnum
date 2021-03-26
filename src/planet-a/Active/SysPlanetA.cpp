@@ -73,7 +73,6 @@ using namespace Magnum::Math::Literals;
 
 using osp::universe::Satellite;
 
-<<<<<<< HEAD
 void SysPlanetA::add_functions(osp::active::ActiveScene &rScene)
 {
     rScene.debug_update_add(rScene.get_update_order(), "planet_activate", "", "planet_geo",

@@ -28,6 +28,7 @@
 #include <Magnum/GL/Framebuffer.h>
 #include <Magnum/GL/Texture.h>
 #include <Magnum/GL/Buffer.h>
+#include <Magnum/Tags.h>
 
 #include <osp/Active/ActiveScene.h>
 #include <osp/Resource/Resource.h>
@@ -135,10 +136,10 @@ private:
     RTShader& bind_triangle_buffer(Magnum::GL::Buffer& rTriangles);
 
     // Data buffers (TMP)
-    Magnum::GL::Buffer m_objectBuffer{NoCreate};
-    Magnum::GL::Buffer m_lightBuffer{NoCreate};
-    Magnum::GL::Buffer m_gBuffer{NoCreate};
-    Magnum::GL::Buffer m_triangleBuffer{NoCreate};
+    Magnum::GL::Buffer m_objectBuffer{Magnum::NoCreate};
+    Magnum::GL::Buffer m_lightBuffer{Magnum::NoCreate};
+    Magnum::GL::Buffer m_gBuffer{Magnum::NoCreate};
+    Magnum::GL::Buffer m_triangleBuffer{Magnum::NoCreate};
 };
 
 }
@@ -146,19 +147,11 @@ private:
 namespace osp::active
 {
 
-class SysRaytracer : public osp::active::IDynamicSystem
+class SysRaytracer
 {
 public:
-    static inline std::string smc_name = "Raytracer";
-
-    SysRaytracer(ActiveScene& rScene);
-    ~SysRaytracer() = default;
-
-    void raytrace(ACompCamera const& camera);
-
-private:
-    ActiveScene& m_scene;
-    RenderOrderHandle_t m_order;
+    static void add_functions(ActiveScene& rScene);
+    static void raytrace(ActiveScene& rScene, ACompCamera const& camera);
 };
 
 }

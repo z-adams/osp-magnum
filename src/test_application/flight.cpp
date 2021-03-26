@@ -121,7 +121,7 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
     osp::active::SysSkybox::add_functions(rScene);
     adera::active::SysSunflare::add_functions(rScene);
 
-    osp::active::SysSkybox::set_skybox(scene, "WWWTyroSkybox");
+    osp::active::SysSkybox::set_skybox(rScene, "WWWTyroSkybox");
 
     // Register machines for that scene
     rScene.system_machine_create<SysMachineUserControl>(pMagnumApp->get_input_handler());
@@ -131,9 +131,9 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
 
     // Add sun flare
     {
-        ActiveEnt sunFlare = scene.hier_create_child(scene.hier_get_root(), "sunflare");
+        ActiveEnt sunFlare = rScene.hier_create_child(rScene.hier_get_root(), "sunflare");
 
-        adera::active::SysSunflare::add_flare(scene, sunFlare, "sunflare.png");
+        adera::active::SysSunflare::add_flare(rScene, sunFlare, "sunflare.png");
     }
 
 

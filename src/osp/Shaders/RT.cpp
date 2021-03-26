@@ -101,8 +101,8 @@ void RTShader::raytrace(ActiveScene& rScene, ACompCamera const& camera,
 
         if (mesh->isIndexed())
         {
-            auto indices = Corrade::Containers::arrayCast<UnsignedInt>(mesh->indexData());
-            auto vertices = Corrade::Containers::arrayCast<Vector3>(mesh->vertexData());
+            auto indices = Corrade::Containers::arrayCast<const UnsignedInt>(mesh->indexData());
+            auto vertices = Corrade::Containers::arrayCast<const Vector3>(mesh->vertexData());
 
             for (size_t i = 0; i < indices.size(); i += 3)
             {
@@ -115,7 +115,7 @@ void RTShader::raytrace(ActiveScene& rScene, ACompCamera const& camera,
         }
         else
         {
-            auto vertices = Corrade::Containers::arrayCast<Vector3>(mesh->vertexData());
+            auto vertices = Corrade::Containers::arrayCast<const Vector3>(mesh->vertexData());
             for (size_t i = 0; i < vertices.size(); i += 3)
             {
                 tris.emplace_back(
@@ -178,7 +178,7 @@ void RTShader::raytrace(ActiveScene& rScene, ACompCamera const& camera,
     dispatchCompute(dimensions);
 }
 
-Box box_to_AABB(Box& box, Magnum::Matrix3 const& rot)
+Box osp::active::shader::box_to_AABB(Box& box, Magnum::Matrix3 const& rot)
 {
     Box output{{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}};
 
@@ -197,17 +197,15 @@ Box box_to_AABB(Box& box, Magnum::Matrix3 const& rot)
 }
 
 using namespace osp::active;
-using namespace std::placeholders;
 
-SysRaytracer::SysRaytracer(ActiveScene& rScene)
-    : m_scene(rScene)
-    , m_order(rScene.get_render_order(), "RT", "debug", "",
-        std::bind(&raytrace, this, _1))
-{}
-
-void SysRaytracer::raytrace(ACompCamera const& camera)
+void osp::active::SysRaytracer::add_functions(ActiveScene & rScene)
 {
-    auto& rScene = m_scene;
+    rScene.debug_render_add(rScene.get_render_order(), "RT", "debug", "",
+        &raytrace);
+}
+
+void SysRaytracer::raytrace(ActiveScene& rScene, ACompCamera const& camera)
+{
     auto& gfxRes = rScene.get_context_resources();
     DependRes<RTShader> shader = gfxRes.get<RTShader>("RT_shader");
     DependRes<GL::Buffer> gbuf = gfxRes.get<GL::Buffer>("gbuffer");

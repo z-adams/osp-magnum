@@ -32,12 +32,8 @@ namespace osp::active
 class PrepassExecutor
 {
 public:
-    void add_functions(ActiveScene& rScene);
-    void execute_prepass(osp::active::ACompCamera const& camera);
-
-private:
-    osp::active::ActiveScene& m_scene;
-    osp::active::RenderOrderHandle_t m_order;
+    static void add_functions(ActiveScene& rScene);
+    static void execute_prepass(ActiveScene& rScene, ACompCamera const& camera);
 };
 
 } // namespace osp::active

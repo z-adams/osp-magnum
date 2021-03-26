@@ -36,7 +36,7 @@ namespace adera::active
 class SysSunflare
 {
 public:
-    void add_functions(osp::active::ActiveScene& rScene);
+    static void add_functions(osp::active::ActiveScene& rScene);
 
     static void update(osp::active::ActiveScene& rScene);
     static void add_flare(osp::active::ActiveScene& rScene, osp::active::ActiveEnt e,

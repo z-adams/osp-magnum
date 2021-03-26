@@ -150,7 +150,7 @@ void SysDebugRender::draw(ActiveScene &rScene, ACompCamera const& camera)
     Renderer::enable(Renderer::Feature::FaceCulling);
     Renderer::setFaceCullingMode(Renderer::PolygonFacing::Front);
     // Draw skybox
-    draw_group(boxview, camera);
+    draw_group(rScene, boxview, camera);
 
     Renderer::enable(Renderer::Feature::DepthTest);
     Renderer::disable(Renderer::Feature::DepthClamp);
@@ -173,7 +173,7 @@ void SysDebugRender::draw(ActiveScene &rScene, ACompCamera const& camera)
         auto& q = backgroundView.get<CompQueryObj>(e);
         glBeginQuery(GL_ANY_SAMPLES_PASSED, q.m_id);
     }
-    draw_group(backgroundView, camera);
+    draw_group(rScene, backgroundView, camera);
     glEndQuery(GL_ANY_SAMPLES_PASSED);
 
 
@@ -197,7 +197,7 @@ void SysDebugRender::draw(ActiveScene &rScene, ACompCamera const& camera)
     draw_group(rScene, transparentObjects, camera);
 
     // Get overlays
-    auto overlayObjects = m_scene.get_registry()
+    auto overlayObjects = rScene.get_registry()
         .view<CompDrawableDebug, CompVisibleDebug,
         CompTransparentDebug, ACompTransform, CompOverlayDebug>();
 

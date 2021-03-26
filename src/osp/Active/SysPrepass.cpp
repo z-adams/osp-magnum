@@ -37,16 +37,15 @@ using namespace std::placeholders;
 
 void PrepassExecutor::add_functions(ActiveScene& rScene)
 {
-    rScene.debug_update_add(rScene.get_render_order(), "prepass", "", "debug",
+    rScene.debug_render_add(rScene.get_render_order(), "prepass", "", "debug",
         &PrepassExecutor::execute_prepass);
     SysDebugRender::create_framebuffer(rScene, "prepass_fbo");
 }
 
-void PrepassExecutor::execute_prepass(ACompCamera const& camera)
+void PrepassExecutor::execute_prepass(ActiveScene& rScene, ACompCamera const& camera)
 {
     using PlanetShader_t = adera::shader::PlanetShader::ACompPlanetShaderInstance;
 
-    auto& rScene = m_scene;
     auto& reg = rScene.get_registry();
     auto view = reg.view<CompDrawableDebug, ACompTransform>(
         entt::exclude<CompTransparentDebug, CompBackgroundDebug, CompOverlayDebug, PlanetShader_t>);

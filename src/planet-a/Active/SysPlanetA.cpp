@@ -248,9 +248,9 @@ void SysPlanetA::update_geometry(ActiveScene& rScene)
             // TMP: cubemap texture
             osp::Package& glResources = rScene.get_context_resources();
 
-            std::string cubeName = osp::string_concat("planet_mesh_",
+            std::string planetMeshName = osp::string_concat("planet_mesh_",
                 std::to_string(static_cast<int>(ent)));
-            planet.m_mesh = glResources.add<Magnum::GL::Mesh>(cubeName);
+            planet.m_mesh = glResources.add<Magnum::GL::Mesh>(planetMeshName);
 
             // Generate cubemaps
             osp::DependRes<Magnum::GL::CubeMapTexture> diffRes

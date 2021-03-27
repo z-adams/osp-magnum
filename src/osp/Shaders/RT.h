@@ -55,8 +55,7 @@ struct DirectionalLight
 #pragma pack(push, 1)
 struct GBufferPixel
 {
-    Magnum::Vector3 m_castRay;
-    Magnum::Float m_sampleDepth;
+    Magnum::Vector4 m_castRay;
     Magnum::Vector2 m_normalXY;
     Magnum::Vector2 m_hitUV;
 };
@@ -102,11 +101,8 @@ private:
     // Uniforms
     enum class UniformPos : Magnum::Int
     {
-        ObjectBlock = 0,
-        LightBlock = 1,
-        OutputImg = 2,
-        GBuffer = 3,
-        TriBuffer = 4
+        UniformCounts = 0,
+        OutputImg = 1
     };
 
     // Buffer bindings
@@ -114,8 +110,8 @@ private:
     {
         ObjectsBuf = 0,
         LightsBuf = 1,
-        GBuf = 3,
-        TriBuf = 4
+        GBuf = 2,
+        TriBuf = 3
     };
 
     // ImageSlots
@@ -129,6 +125,7 @@ private:
     using Magnum::GL::AbstractShaderProgram::draw;
 
     // Uniform bindings
+    RTShader& set_uniform_counts(uint32_t nObjects, uint32_t nLights);
     RTShader& bind_objects_list(Magnum::GL::Buffer& objects);
     RTShader& bind_light_list(Magnum::GL::Buffer& lights);
     RTShader& bind_output_img(Magnum::GL::Texture2D& rTex);
@@ -136,10 +133,10 @@ private:
     RTShader& bind_triangle_buffer(Magnum::GL::Buffer& rTriangles);
 
     // Data buffers (TMP)
-    Magnum::GL::Buffer m_objectBuffer{Magnum::NoCreate};
-    Magnum::GL::Buffer m_lightBuffer{Magnum::NoCreate};
-    Magnum::GL::Buffer m_gBuffer{Magnum::NoCreate};
-    Magnum::GL::Buffer m_triangleBuffer{Magnum::NoCreate};
+    Magnum::GL::Buffer m_objectBuffer;// { Magnum::NoCreate };
+    Magnum::GL::Buffer m_lightBuffer;//{Magnum::NoCreate};
+    Magnum::GL::Buffer m_gBuffer;//{Magnum::NoCreate};
+    Magnum::GL::Buffer m_triangleBuffer;//{Magnum::NoCreate};
 };
 
 }
@@ -151,7 +148,8 @@ class SysRaytracer
 {
 public:
     static void add_functions(ActiveScene& rScene);
-    static void raytrace(ActiveScene& rScene, ACompCamera const& camera);
+    static void raytrace(ActiveScene& rScene, ACompCamera const& camera,
+        Magnum::GL::Buffer& gBuffer, Magnum::GL::Texture2D& color);
 };
 
 }

@@ -47,6 +47,7 @@
 #include <osp/Active/SysSkybox.h>
 #include <osp/Shaders/BillboardShader.h>
 #include <osp/Shaders/RTPrepass.h>
+#include <osp/Shaders/RT.h>
 #include <Magnum/Shaders/VertexColor.h>
 #include <osp/string_concat.h>
 
@@ -92,6 +93,8 @@ void SysDebugRender::add_functions(ActiveScene &rScene)
     glResources.add<RenderTexture>("render_texture");
 
     glResources.add<osp::active::shader::PrepassShader>("prepass_shader");
+
+    glResources.add<osp::active::shader::RTShader>("RT_shader");
 
     // TMP: no shaderinstance
     glResources.add<Shaders::VertexColor3D>("vertexcolor_shader");
@@ -272,7 +275,7 @@ DependRes<GL::Framebuffer> SysDebugRender::create_framebuffer(ActiveScene& rScen
     return glResources.add<GL::Framebuffer>(name, std::move(fbo));
 }
 
-void SysDebugRender::render_framebuffer(ActiveScene& rScene, Magnum::GL::Texture2D& rTexture)
+void SysDebugRender::display_framebuffer(ActiveScene& rScene, Magnum::GL::Texture2D& rTexture)
 {
     using namespace Magnum;
     

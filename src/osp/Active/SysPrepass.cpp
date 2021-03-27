@@ -26,6 +26,7 @@
 #include <osp/Shaders/RTPrepass.h>
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/GL/Framebuffer.h>
+#include <Magnum/GL/Buffer.h>
 
 #include <osp/Active/SysDebugRender.h>
 #include "adera/Shaders/PlanetShader.h"
@@ -39,10 +40,11 @@ void PrepassExecutor::add_functions(ActiveScene& rScene)
 {
     /*rScene.debug_render_add(rScene.get_render_order(), "prepass", "", "debug",
         &PrepassExecutor::execute_prepass);*/
-    SysDebugRender::create_framebuffer(rScene, "prepass_fbo");
+    //SysDebugRender::create_framebuffer(rScene, "prepass_fbo");
 }
 
-void PrepassExecutor::execute_prepass(ActiveScene& rScene, ACompCamera const& camera)
+void PrepassExecutor::execute_prepass(ActiveScene& rScene, ACompCamera const& camera,
+    GL::Buffer& gBuffer)
 {
     using PlanetShader_t = adera::shader::PlanetShader::ACompPlanetShaderInstance;
 
@@ -60,10 +62,6 @@ void PrepassExecutor::execute_prepass(ActiveScene& rScene, ACompCamera const& ca
     auto& ctxRes = rScene.get_context_resources();
 
     DependRes<PrepassShader> shader = ctxRes.get<PrepassShader>("prepass_shader");
-    DependRes<GL::Framebuffer> framebuffer = ctxRes.get<GL::Framebuffer>("prepass_fbo");
-
-    framebuffer->bind();
-    framebuffer->clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
     for (auto [e, drawable, compXform] : view.each())
     {
         DependRes<GL::Mesh> mesh = drawable.m_mesh;
@@ -75,6 +73,8 @@ void PrepassExecutor::execute_prepass(ActiveScene& rScene, ACompCamera const& ca
             .set_transform_matrix(transform)
             .set_proj_matrix(camera.m_projection)
             .set_camera_pos_world(cameraPos)
+            .bind_gbuffer(gBuffer)
             .draw(*mesh);
     }
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }

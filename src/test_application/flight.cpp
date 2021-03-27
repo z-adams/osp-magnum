@@ -55,6 +55,7 @@
 #include <Magnum/GL/RenderbufferFormat.h>
 #include <Magnum/GL/Texture.h>
 #include <Magnum/GL/TextureFormat.h>
+#include <Corrade/Containers/ArrayViewStl.h>
 
 using namespace testapp;
 
@@ -146,8 +147,38 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
 
     // Define render passes
 
+    // Create raytracing data
+    {
+        auto& resources = rScene.get_context_resources();
+        Magnum::Vector2i viewSize = Magnum::GL::defaultFramebuffer.viewport().size();
+
+        Magnum::GL::Texture2D rtTarget;
+        rtTarget.setStorage(1, Magnum::GL::TextureFormat::R8, viewSize);
+        resources.add<Magnum::GL::Texture2D>("RTtarget", std::move(rtTarget));
+
+        Magnum::GL::Buffer gBuffer;
+        std::vector<osp::active::shader::GBufferPixel> gbufdata(1280*720);
+        gBuffer.setData(std::move(gbufdata));
+        resources.add<Magnum::GL::Buffer>("gBuffer", std::move(gBuffer));
+    }
+
     // Prepass
-    //rScene.get_render_queue().push_back(&osp::active::PrepassExecutor::execute_prepass);
+    rScene.get_render_queue().push_back(
+        [](osp::active::ActiveScene& rScene, ACompCamera& camera)
+        {
+            using namespace Magnum;
+            using namespace osp;
+            using namespace osp::active;
+            auto& resources = rScene.get_context_resources();
+
+            GL::defaultFramebuffer.clear(GL::FramebufferClear::Depth);
+
+            DependRes<GL::Buffer> gBuffer = resources.get<GL::Buffer>("gBuffer");
+            float zero = 0.0f;
+            glClearNamedBufferData(gBuffer->id(), GL_R32F, GL_RED, GL_FLOAT, &zero);
+            PrepassExecutor::execute_prepass(rScene, camera, *gBuffer);
+        }
+    );
 
     // Opaque pass
     rScene.get_render_queue().push_back(
@@ -291,7 +322,21 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
     );
 
     // Raytracing pass
-    //rScene.get_render_queue().push_back(&osp::active::SysRaytracer::raytrace);
+    rScene.get_render_queue().push_back(
+        [](osp::active::ActiveScene& rScene, ACompCamera& camera)
+        {
+            using namespace Magnum;
+            using namespace osp;
+            using namespace osp::active;
+
+            auto& resources = rScene.get_context_resources();
+
+            DependRes<GL::Texture2D> colorTarget = resources.get<GL::Texture2D>("RTtarget");
+            DependRes<GL::Buffer> gBuffer = resources.get<GL::Buffer>("gBuffer");
+
+            SysRaytracer::raytrace(rScene, camera, *gBuffer, *colorTarget);
+        }
+    );
 
     // Render offscreen buffer
     rScene.get_render_queue().push_back(
@@ -312,9 +357,11 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
             Renderer::disable(Renderer::Feature::FaceCulling);
             Renderer::disable(Renderer::Feature::Blending);
 
-            DependRes<GL::Texture2D> colorTex =
-                rScene.get_context_resources().get<GL::Texture2D>("offscreen_fbo_color");
-            SysDebugRender::render_framebuffer(rScene, *colorTex);
+            auto& resources = rScene.get_context_resources();
+
+            //DependRes<GL::Texture2D> colorTex = resources.get<GL::Texture2D>("offscreen_fbo_color");
+            DependRes<GL::Texture2D> colorTex = resources.get<GL::Texture2D>("RTtarget");
+            SysDebugRender::display_framebuffer(rScene, *colorTex);
         }
     );
 
@@ -355,7 +402,8 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
 
         GL::Texture2D color;
         color.setStorage(1, GL::TextureFormat::RGB8, viewSize);
-        osp::DependRes<GL::Texture2D> colorRes = glResources.add<GL::Texture2D>("offscreen_fbo_color", std::move(color));
+        osp::DependRes<GL::Texture2D> colorRes =
+            glResources.add<GL::Texture2D>("offscreen_fbo_color", std::move(color));
 
         GL::Renderbuffer depthStencil;
         depthStencil.setStorage(GL::RenderbufferFormat::Depth24Stencil8, viewSize);
@@ -367,7 +415,7 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
         fbo.attachRenderbuffer(GL::Framebuffer::BufferAttachment::DepthStencil, *depthStencilRes);
 
         osp::DependRes<GL::Framebuffer> fboRes =
-            rScene.get_context_resources().add<GL::Framebuffer>("offscreen_fbo", std::move(fbo));
+            glResources.add<GL::Framebuffer>("offscreen_fbo", std::move(fbo));
 
         // Set up camera
         cameraComp.m_viewport = Vector2(viewSize);

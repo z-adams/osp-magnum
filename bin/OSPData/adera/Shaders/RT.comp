@@ -22,7 +22,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#version 430 core
+//#version 430 core
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
@@ -44,9 +44,11 @@ struct ObjectData
     uint numTriangles;
 };
 
+layout(location = 0) uniform uvec4 counts;
+
 layout(binding = 0) uniform objects
 {
-    ObjectData objs[];
+    ObjectData objs[64];
 };
 
 struct DirectionalLight
@@ -57,18 +59,17 @@ struct DirectionalLight
 
 layout(binding = 1) uniform lightBuf
 {
-    DirectionalLight lights[];
+    DirectionalLight lights[4];
 };
 
 struct GBufPixel
 {
-    vec3 castRay;
-    float sampleDepth;
+    vec4 castRay_Depth;
     vec2 normalXY;
     vec2 hitUV;
 };
 
-layout(std430, binding = 3) buffer gBuffer
+layout(std430, binding = 2) buffer gBuffer
 {
     GBufPixel gBuf[];
 };
@@ -80,12 +81,12 @@ struct Triangle
     vec3 v2;
 };
 
-layout(std430, binding = 4) buffer triangleBuffer
+layout(std430, binding = 3) buffer triangleBuffer
 {
     Triangle tris[];
 };
 
-layout(binding = 2, r8) uniform writeonly image2D brightnessOut;
+layout(location = 1, r8) uniform writeonly image2D brightnessOut;
 
 // Wikipedia Moller-Trumbore algorithm, GLSL-ified and branches removed
 bool RayIntersectsTriangle(vec3 rayOrigin, vec3 rayVector,
@@ -131,20 +132,22 @@ bool RayIntersectsTriangle(vec3 rayOrigin, vec3 rayVector,
 
 void main()
 {
-    GBufPixel px = gBuf[UV.y * DIMS.y + UV.x];
+    GBufPixel px = gBuf[UV.y * DIMS.x + UV.x];
 
-    if (px.sampleDepth == 0.0) { return; }
-    vec3 ray = px.castRay;
+    imageStore(brightnessOut, ivec2(UV), vec4(vec3(0.0), 1.0));
+    if (px.castRay_Depth.w == 0.0) { return; }
+    /*vec3 ray = px.castRay_Depth.xyz;
     vec3 normal = vec3(px.normalXY,
         sqrt(1.0 - px.normalXY.x*px.normalXY.x - px.normalXY.y*px.normalXY.y));
     vec2 uv = px.hitUV;
 
     float lightFacing = 0.0;
-    for (uint l = 0; l < lights.length(); l++)
+    for (uint l = 0; l < counts.y; l++)
     {
         lightFacing += lights[l].brightness * dot(normal, lights[l].direction);
-    }
+    }*/
 
-    imageStore(brightnessOut, ivec2(UV), vec4(lightFacing, 0.0, 0.0, 1.0));
+    //imageStore(brightnessOut, ivec2(UV), vec4(vec3(lightFacing), 1.0));
+    imageStore(brightnessOut, ivec2(UV), vec4(vec3(px.castRay_Depth.w), 1.0));
 }
 

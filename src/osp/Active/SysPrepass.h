@@ -25,6 +25,7 @@
 #pragma once
 
 #include "activetypes.h"
+#include <Magnum/GL/Buffer.h>
 
 namespace osp::active
 {
@@ -33,7 +34,8 @@ class PrepassExecutor
 {
 public:
     static void add_functions(ActiveScene& rScene);
-    static void execute_prepass(ActiveScene& rScene, ACompCamera const& camera);
+    static void execute_prepass(ActiveScene& rScene, ACompCamera const& camera,
+        Magnum::GL::Buffer& gBuffer);
 };
 
 } // namespace osp::active

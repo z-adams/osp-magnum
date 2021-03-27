@@ -102,7 +102,7 @@ public:
 
     template <typename T>
     static void draw_group(ActiveScene& rScene, T& rCollection, ACompCamera& camera);
-    static void render_framebuffer(ActiveScene& rScene, Magnum::GL::Texture2D& rTexture);
+    static void display_framebuffer(ActiveScene& rScene, Magnum::GL::Texture2D& rTexture);
 };
 
 template<typename T>

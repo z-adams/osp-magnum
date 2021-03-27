@@ -27,6 +27,7 @@
 #include <Magnum/GL/Shader.h>
 #include <Magnum/GL/Version.h>
 #include <Magnum/GL/ImageFormat.h>
+#include <Magnum/GL/Buffer.h>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Magnum/Trade/MeshData.h>
 
@@ -50,15 +51,22 @@ void RTShader::init()
         static_cast<Int>(ImageSlots::OutputMap));
 }
 
+RTShader& RTShader::set_uniform_counts(uint32_t nObjects, uint32_t nLights)
+{
+    setUniform(static_cast<Int>(UniformPos::UniformCounts),
+        Vector4ui{nObjects, nLights, 0, 0});
+    return *this;
+}
+
 RTShader& RTShader::bind_objects_list(GL::Buffer& objects)
 {
-    objects.bind(GL::Buffer::Target::Uniform, static_cast<Int>(UniformPos::ObjectBlock));
+    objects.bind(GL::Buffer::Target::Uniform, static_cast<Int>(BufferPos::ObjectsBuf));
     return *this;
 }
 
 RTShader& RTShader::bind_light_list(GL::Buffer& lights)
 {
-    lights.bind(GL::Buffer::Target::Uniform, static_cast<Int>(UniformPos::LightBlock));
+    lights.bind(GL::Buffer::Target::Uniform, static_cast<Int>(BufferPos::LightsBuf));
     return *this;
 }
 
@@ -71,28 +79,34 @@ RTShader& RTShader::bind_output_img(GL::Texture2D& rTex)
 
 RTShader& RTShader::bind_gbuffer(GL::Buffer& rGBuf)
 {
-    rGBuf.bind(GL::Buffer::Target::ShaderStorage, static_cast<Int>(UniformPos::GBuffer));
+    rGBuf.bind(GL::Buffer::Target::ShaderStorage, static_cast<Int>(BufferPos::GBuf));
     return *this;
 }
 
 RTShader& RTShader::bind_triangle_buffer(GL::Buffer& rTriangles)
 {
-    rTriangles.bind(GL::Buffer::Target::ShaderStorage, static_cast<Int>(UniformPos::TriBuffer));
+    rTriangles.bind(GL::Buffer::Target::ShaderStorage, static_cast<Int>(BufferPos::TriBuf));
     return *this;
 }
 
 void RTShader::raytrace(ActiveScene& rScene, ACompCamera const& camera,
     GL::Buffer& gBuffer, GL::Texture2D& target)
 {
-    std::vector<ObjectData> objects;
-    std::vector<DirectionalLight> lights = {DirectionalLight{{1.0f, 0.0f, 0.0f}, 1.0f}};
+    std::array<ObjectData, 64> objects;
+    std::array<DirectionalLight, 4> lights{
+        DirectionalLight{{1.0f, 0.0f, 0.0f}, 1.0f},
+        {},
+        {},
+        {}
+    };
     std::vector<Triangle> tris;
 
-    using adera::shader::PlanetShader;
+    using PlanetShader_t = adera::shader::PlanetShader::ACompPlanetShaderInstance;
     auto& pkg = rScene.get_application().debug_find_package("lzdb");
     auto geometry = rScene.get_registry().view<CompDrawableDebug, ACompTransform>(
-        entt::exclude<PlanetShader, CompBackgroundDebug,
+        entt::exclude<PlanetShader_t, CompBackgroundDebug,
         CompOverlayDebug, CompTransparentDebug>);
+    size_t objIndex = 0;
     for (auto [e, drawable, transform] : geometry.each())
     {
         DependRes<Trade::MeshData> mesh = pkg.get<Trade::MeshData>(drawable.m_mesh.name());
@@ -101,7 +115,7 @@ void RTShader::raytrace(ActiveScene& rScene, ACompCamera const& camera,
 
         if (mesh->isIndexed())
         {
-            auto indices = Corrade::Containers::arrayCast<const UnsignedInt>(mesh->indexData());
+            auto indices = Corrade::Containers::arrayCast<const UnsignedShort>(mesh->indexData());
             auto vertices = Corrade::Containers::arrayCast<const Vector3>(mesh->vertexData());
 
             for (size_t i = 0; i < indices.size(); i += 3)
@@ -128,7 +142,34 @@ void RTShader::raytrace(ActiveScene& rScene, ACompCamera const& camera,
 
         size_t numTriangles = tris.size() - firstTriIndex;
 
+        Vector3 mins{1e9f, 1e9f, 1e9f};
+        Vector3 maxs{-1e9f, -1e9f, -1e9f};
+        for (auto& tri : tris)
+        {
+            mins.x() = std::min(tri.m_v0.x(), mins.x());
+            mins.y() = std::min(tri.m_v0.y(), mins.y());
+            mins.y() = std::min(tri.m_v0.y(), mins.y());
+            maxs.x() = std::min(tri.m_v0.x(), maxs.x());
+            maxs.y() = std::min(tri.m_v0.y(), maxs.y());
+            maxs.y() = std::min(tri.m_v0.y(), maxs.y());
+
+            mins.x() = std::min(tri.m_v1.x(), mins.x());
+            mins.y() = std::min(tri.m_v1.y(), mins.y());
+            mins.y() = std::min(tri.m_v1.y(), mins.y());
+            maxs.x() = std::min(tri.m_v1.x(), maxs.x());
+            maxs.y() = std::min(tri.m_v1.y(), maxs.y());
+            maxs.y() = std::min(tri.m_v1.y(), maxs.y());
+
+            mins.x() = std::min(tri.m_v2.x(), mins.x());
+            mins.y() = std::min(tri.m_v2.y(), mins.y());
+            mins.y() = std::min(tri.m_v2.y(), mins.y());
+            maxs.x() = std::min(tri.m_v2.x(), maxs.x());
+            maxs.y() = std::min(tri.m_v2.y(), maxs.y());
+            maxs.y() = std::min(tri.m_v2.y(), maxs.y());
+        }
         Box boundingBox; // get from somewhere
+        boundingBox.m_min = mins;
+        boundingBox.m_max = maxs;
         Box aabb = box_to_AABB(boundingBox, Matrix3{transform.m_transformWorld});
         aabb.translate(transform.m_transformWorld.translation());
 
@@ -139,34 +180,17 @@ void RTShader::raytrace(ActiveScene& rScene, ACompCamera const& camera,
             aabb.m_min,
             numTriangles
         };
+
+        objects[objIndex] = obj;
+        objIndex++;
     }
 
-    if (m_objectBuffer.id() == 0)
-    {
-        m_objectBuffer.setData(objects);
-    }
-    else
-    {
-        m_objectBuffer.setSubData(0, objects);
-    }
+    set_uniform_counts(objects.size(), lights.size());
+    m_objectBuffer.setData(objects);
 
-    if (m_lightBuffer.id() == 0)
-    {
-        m_lightBuffer.setData(lights);
-    }
-    /*else
-    {
-        m_objectBuffer.setSubData(0, lights);
-    }*/
+    m_lightBuffer.setData(lights);
+    m_triangleBuffer.setData(tris);
 
-    if (m_triangleBuffer.id() == 0)
-    {
-        m_triangleBuffer.setData(tris);
-    }
-    /*else
-    {
-        m_objectBuffer.setSubData(0, tris);
-    }*/
 
     bind_objects_list(m_objectBuffer);
     bind_light_list(m_lightBuffer);
@@ -174,8 +198,9 @@ void RTShader::raytrace(ActiveScene& rScene, ACompCamera const& camera,
     bind_gbuffer(gBuffer);
     bind_triangle_buffer(m_triangleBuffer);
 
-    constexpr Vector3ui dimensions{1280, 720, 0};
+    constexpr Vector3ui dimensions{1280/8, 720/8, 1};
     dispatchCompute(dimensions);
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
 Box osp::active::shader::box_to_AABB(Box& box, Magnum::Matrix3 const& rot)
@@ -204,11 +229,10 @@ void osp::active::SysRaytracer::add_functions(ActiveScene & rScene)
         &raytrace);*/
 }
 
-void SysRaytracer::raytrace(ActiveScene& rScene, ACompCamera const& camera)
+void SysRaytracer::raytrace(ActiveScene& rScene, ACompCamera const& camera,
+    GL::Buffer& gBuffer, GL::Texture2D& color)
 {
     auto& gfxRes = rScene.get_context_resources();
     DependRes<RTShader> shader = gfxRes.get<RTShader>("RT_shader");
-    DependRes<GL::Buffer> gbuf = gfxRes.get<GL::Buffer>("gbuffer");
-    DependRes<GL::Texture2D> color = gfxRes.get<GL::Texture2D>("output");
-    shader->raytrace(rScene, camera, *gbuf, *color);
+    shader->raytrace(rScene, camera, gBuffer, color);
 }

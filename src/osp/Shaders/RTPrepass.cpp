@@ -61,3 +61,9 @@ PrepassShader& PrepassShader::set_camera_pos_world(Vector3 const& pos)
     setUniform(static_cast<Int>(UniformPos::cameraPos), pos);
     return *this;
 }
+
+PrepassShader& PrepassShader::bind_gbuffer(GL::Buffer& gBuffer)
+{
+    gBuffer.bind(GL::Buffer::Target::ShaderStorage, static_cast<Int>(BufferPos::gbuffer));
+    return *this;
+}

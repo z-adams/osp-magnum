@@ -73,13 +73,14 @@ RTShader& RTShader::bind_light_list(GL::Buffer& lights)
 RTShader& RTShader::bind_output_img(GL::Texture2D& rTex)
 {
     rTex.bindImage(static_cast<Int>(ImageSlots::OutputMap), 0,
-        GL::ImageAccess::WriteOnly, GL::ImageFormat::R8);
+        GL::ImageAccess::WriteOnly, GL::ImageFormat::RGBA8);
     return *this;
 }
 
-RTShader& RTShader::bind_gbuffer(GL::Buffer& rGBuf)
+RTShader& RTShader::bind_gbuffer(GL::Texture2D& rRayDepth, GL::Texture2D& rNormalUV)
 {
-    rGBuf.bind(GL::Buffer::Target::ShaderStorage, static_cast<Int>(BufferPos::GBuf));
+    rRayDepth.bind(static_cast<Int>(TextureSlots::RayDepth));
+    rNormalUV.bind(static_cast<Int>(TextureSlots::NormalUV));
     return *this;
 }
 
@@ -90,7 +91,7 @@ RTShader& RTShader::bind_triangle_buffer(GL::Buffer& rTriangles)
 }
 
 void RTShader::raytrace(ActiveScene& rScene, ACompCamera const& camera,
-    GL::Buffer& gBuffer, GL::Texture2D& target)
+    GL::Texture2D& rGRayDepth, GL::Texture2D& rGNormUV, GL::Texture2D& target)
 {
     std::array<ObjectData, 64> objects;
     std::array<DirectionalLight, 4> lights{
@@ -195,7 +196,7 @@ void RTShader::raytrace(ActiveScene& rScene, ACompCamera const& camera,
     bind_objects_list(m_objectBuffer);
     bind_light_list(m_lightBuffer);
     bind_output_img(target);
-    bind_gbuffer(gBuffer);
+    bind_gbuffer(rGRayDepth, rGNormUV);
     bind_triangle_buffer(m_triangleBuffer);
 
     constexpr Vector3ui dimensions{1280/8, 720/8, 1};
@@ -229,10 +230,11 @@ void osp::active::SysRaytracer::add_functions(ActiveScene & rScene)
         &raytrace);*/
 }
 
-void SysRaytracer::raytrace(ActiveScene& rScene, ACompCamera const& camera,
-    GL::Buffer& gBuffer, GL::Texture2D& color)
+void SysRaytracer::raytrace(ActiveScene& rScene, ACompCamera const& camera, GL::Texture2D& color)
 {
     auto& gfxRes = rScene.get_context_resources();
     DependRes<RTShader> shader = gfxRes.get<RTShader>("RT_shader");
-    shader->raytrace(rScene, camera, gBuffer, color);
+    DependRes<GL::Texture2D> rayDepth = gfxRes.get<GL::Texture2D>("gBuffer_ray_depth");
+    DependRes<GL::Texture2D> normUV = gfxRes.get<GL::Texture2D>("gBuffer_normal_uv");
+    shader->raytrace(rScene, camera, *rayDepth, *normUV, color);
 }

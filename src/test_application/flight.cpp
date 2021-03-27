@@ -149,17 +149,39 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
 
     // Create raytracing data
     {
+        using namespace Magnum;
+
         auto& resources = rScene.get_context_resources();
-        Magnum::Vector2i viewSize = Magnum::GL::defaultFramebuffer.viewport().size();
+        Vector2i viewSize = Magnum::GL::defaultFramebuffer.viewport().size();
 
         Magnum::GL::Texture2D rtTarget;
-        rtTarget.setStorage(1, Magnum::GL::TextureFormat::R8, viewSize);
-        resources.add<Magnum::GL::Texture2D>("RTtarget", std::move(rtTarget));
+        rtTarget.setStorage(1, GL::TextureFormat::RGBA8, viewSize);
+        resources.add<GL::Texture2D>("RTtarget", std::move(rtTarget));
 
-        Magnum::GL::Buffer gBuffer;
-        std::vector<osp::active::shader::GBufferPixel> gbufdata(1280*720);
-        gBuffer.setData(std::move(gbufdata));
-        resources.add<Magnum::GL::Buffer>("gBuffer", std::move(gBuffer));
+        // Create GBuffer
+        constexpr std::string_view name = "gBuffer";
+
+        GL::Texture2D rayDepth;
+        rayDepth.setStorage(1, GL::TextureFormat::RGBA8, viewSize);
+        osp::DependRes<GL::Texture2D> rdRes = resources.add<GL::Texture2D>(
+            osp::string_concat(name, "_ray_depth"), std::move(rayDepth));
+
+        GL::Texture2D normalUV;
+        normalUV.setStorage(1, GL::TextureFormat::RGBA8, viewSize);
+        osp::DependRes<GL::Texture2D> nuvRes = resources.add<GL::Texture2D>(
+            osp::string_concat(name, "_normal_uv"), std::move(normalUV));
+
+        GL::Renderbuffer depthStencil;
+        depthStencil.setStorage(GL::RenderbufferFormat::Depth24Stencil8, viewSize);
+        osp::DependRes<GL::Renderbuffer> depthStencilRes = resources.add<GL::Renderbuffer>(
+            osp::string_concat(name, "_depthStencil"), std::move(depthStencil));
+
+        GL::Framebuffer fbo(Range2Di{{0, 0}, viewSize});
+        fbo.attachTexture(GL::Framebuffer::ColorAttachment{0}, *rdRes, 0);
+        fbo.attachTexture(GL::Framebuffer::ColorAttachment{1}, *nuvRes, 0);
+        fbo.attachRenderbuffer(GL::Framebuffer::BufferAttachment::DepthStencil, *depthStencilRes);
+
+        resources.add<GL::Framebuffer>(name, std::move(fbo));
     }
 
     // Prepass
@@ -173,9 +195,9 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
 
             GL::defaultFramebuffer.clear(GL::FramebufferClear::Depth);
 
-            DependRes<GL::Buffer> gBuffer = resources.get<GL::Buffer>("gBuffer");
-            float zero = 0.0f;
-            glClearNamedBufferData(gBuffer->id(), GL_R32F, GL_RED, GL_FLOAT, &zero);
+            DependRes<GL::Framebuffer> gBuffer = resources.get<GL::Framebuffer>("gBuffer");
+            gBuffer->clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
+            gBuffer->bind();
             PrepassExecutor::execute_prepass(rScene, camera, *gBuffer);
         }
     );
@@ -332,9 +354,8 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
             auto& resources = rScene.get_context_resources();
 
             DependRes<GL::Texture2D> colorTarget = resources.get<GL::Texture2D>("RTtarget");
-            DependRes<GL::Buffer> gBuffer = resources.get<GL::Buffer>("gBuffer");
 
-            SysRaytracer::raytrace(rScene, camera, *gBuffer, *colorTarget);
+            SysRaytracer::raytrace(rScene, camera, *colorTarget);
         }
     );
 

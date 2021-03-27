@@ -58,6 +58,13 @@ private:
         gbuffer = 0
     };
 
+    // Output targets
+    enum class Outputs : Magnum::Int
+    {
+        gCastRay_Depth = 0,
+        gNormalXY_HitUV = 1
+    };
+
     // Hide irrelevant calls
     using Magnum::GL::AbstractShaderProgram::drawTransformFeedback;
     using Magnum::GL::AbstractShaderProgram::dispatchCompute;
@@ -66,7 +73,7 @@ private:
     PrepassShader& set_transform_matrix(Magnum::Matrix4 const& matrix);
     PrepassShader& set_proj_matrix(Magnum::Matrix4 const& matrix);
     PrepassShader& set_camera_pos_world(Magnum::Vector3 const& pos);
-    PrepassShader& bind_gbuffer(Magnum::GL::Buffer& gBuffer);
+    PrepassShader& bind_gbuffer(Magnum::GL::Framebuffer& buffer);
 };
 
 }

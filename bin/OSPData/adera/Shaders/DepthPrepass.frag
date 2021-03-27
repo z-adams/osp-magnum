@@ -29,17 +29,8 @@ in vec3 cameraPos;
 in vec3 normal;
 in vec2 uv;
 
-struct GBufPixel
-{
-    vec4 castRay_Depth;
-    vec2 normalXY;
-    vec2 hitUV;
-};
-
-layout(std430, binding = 0) buffer gBuffer
-{
-    GBufPixel gBuf[];
-};
+layout(location = 0) out vec4 gCastRay_Depth;
+layout(location = 1) out vec4 gNormalXY_HitUV;
 
 layout(pixel_center_integer) in vec4 gl_FragCoord;
 
@@ -49,17 +40,9 @@ const int height = 720;
 
 void main()
 {
-    /*vec3 ray = fragPos - cameraPos;
+    vec3 ray = fragPos - cameraPos;
     vec2 normal2D = normalize(normal).xy;
     float depth = gl_FragCoord.z;
-    vec2 coord = gl_FragCoord.xy;
-    uint index = uint(coord.y*width + coord.x);
-    gBuf[index].castRay = ray;
-    gBuf[index].sampleDepth = depth;
-    gBuf[index].normalXY = normal2D;
-    gBuf[index].hitUV = uv;*/
-    
-    vec2 coord = gl_FragCoord.xy;
-    uint index = uint(coord.y*width + coord.x);
-    gBuf[index].castRay_Depth.w = 0.5;
+    gCastRay_Depth = vec4(ray, depth);
+    gNormalXY_HitUV = vec4(normal2D, uv);
 }

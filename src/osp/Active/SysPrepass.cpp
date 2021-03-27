@@ -44,7 +44,7 @@ void PrepassExecutor::add_functions(ActiveScene& rScene)
 }
 
 void PrepassExecutor::execute_prepass(ActiveScene& rScene, ACompCamera const& camera,
-    GL::Buffer& gBuffer)
+    GL::Framebuffer& gBuffer)
 {
     using PlanetShader_t = adera::shader::PlanetShader::ACompPlanetShaderInstance;
 

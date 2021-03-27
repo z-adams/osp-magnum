@@ -93,7 +93,7 @@ public:
     RTShader() { init(); }
 
     void raytrace(ActiveScene& rScene, ACompCamera const& camera,
-        Magnum::GL::Buffer& gBuffer, Magnum::GL::Texture2D& target);
+        Magnum::GL::Texture2D& rGRayDepth, Magnum::GL::Texture2D& rGNormUV, Magnum::GL::Texture2D& target);
 
 private:
     void init();
@@ -102,7 +102,9 @@ private:
     enum class UniformPos : Magnum::Int
     {
         UniformCounts = 0,
-        OutputImg = 1
+        OutputImg = 1,
+        GRayDepth = 2,
+        GNormalUV = 3
     };
 
     // Buffer bindings
@@ -110,8 +112,14 @@ private:
     {
         ObjectsBuf = 0,
         LightsBuf = 1,
-        GBuf = 2,
-        TriBuf = 3
+        TriBuf = 2
+    };
+
+    // Texture Slots
+    enum class TextureSlots : Magnum::Int
+    {
+        RayDepth = 0,
+        NormalUV = 1
     };
 
     // ImageSlots
@@ -129,7 +137,7 @@ private:
     RTShader& bind_objects_list(Magnum::GL::Buffer& objects);
     RTShader& bind_light_list(Magnum::GL::Buffer& lights);
     RTShader& bind_output_img(Magnum::GL::Texture2D& rTex);
-    RTShader& bind_gbuffer(Magnum::GL::Buffer& rGBuf);
+    RTShader& bind_gbuffer(Magnum::GL::Texture2D& rRayDepth, Magnum::GL::Texture2D& rNormalUV);
     RTShader& bind_triangle_buffer(Magnum::GL::Buffer& rTriangles);
 
     // Data buffers (TMP)
@@ -149,7 +157,7 @@ class SysRaytracer
 public:
     static void add_functions(ActiveScene& rScene);
     static void raytrace(ActiveScene& rScene, ACompCamera const& camera,
-        Magnum::GL::Buffer& gBuffer, Magnum::GL::Texture2D& color);
+        Magnum::GL::Texture2D& color);
 };
 
 }

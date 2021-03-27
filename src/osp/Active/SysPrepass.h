@@ -35,7 +35,7 @@ class PrepassExecutor
 public:
     static void add_functions(ActiveScene& rScene);
     static void execute_prepass(ActiveScene& rScene, ACompCamera const& camera,
-        Magnum::GL::Buffer& gBuffer);
+        Magnum::GL::Framebuffer& gBuffer);
 };
 
 } // namespace osp::active

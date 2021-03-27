@@ -62,8 +62,11 @@ PrepassShader& PrepassShader::set_camera_pos_world(Vector3 const& pos)
     return *this;
 }
 
-PrepassShader& PrepassShader::bind_gbuffer(GL::Buffer& gBuffer)
+PrepassShader& PrepassShader::bind_gbuffer(GL::Framebuffer& buffer)
 {
-    gBuffer.bind(GL::Buffer::Target::ShaderStorage, static_cast<Int>(BufferPos::gbuffer));
+    buffer.mapForDraw({
+        {static_cast<Int>(Outputs::gCastRay_Depth), GL::Framebuffer::ColorAttachment{0}},
+        {static_cast<Int>(Outputs::gNormalXY_HitUV), GL::Framebuffer::ColorAttachment{1}},
+        });
     return *this;
 }

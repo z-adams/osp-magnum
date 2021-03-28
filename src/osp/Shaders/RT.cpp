@@ -49,6 +49,12 @@ void RTShader::init()
     setUniform(
         static_cast<Int>(UniformPos::OutputImg),
         static_cast<Int>(ImageSlots::OutputMap));
+    setUniform(
+        static_cast<Int>(UniformPos::GRayDepth),
+        static_cast<Int>(TextureSlots::RayDepth));
+    setUniform(
+        static_cast<Int>(UniformPos::GNormalUV),
+        static_cast<Int>(TextureSlots::NormalUV));
 }
 
 RTShader& RTShader::set_uniform_counts(uint32_t nObjects, uint32_t nLights)

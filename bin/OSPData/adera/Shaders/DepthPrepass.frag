@@ -38,11 +38,17 @@ layout(pixel_center_integer) in vec4 gl_FragCoord;
 const int width = 1280;
 const int height = 720;
 
+vec3 encode(vec3 inVal)
+{
+    return 0.5*normalize(inVal) + 0.5;
+}
+
 void main()
 {
     vec3 ray = fragPos - cameraPos;
-    vec2 normal2D = normalize(normal).xy;
+    vec2 normal2D = encode(normal).xy;
     float depth = gl_FragCoord.z;
-    gCastRay_Depth = vec4(ray, depth);
-    gNormalXY_HitUV = vec4(normal2D, uv);
+    vec2 screenCoord = gl_FragCoord.xy / vec2(1280.0, 720.0);
+    gCastRay_Depth = vec4(encode(ray), depth);
+    gNormalXY_HitUV = vec4(encode(normal), 1.0);
 }

@@ -70,3 +70,9 @@ PrepassShader& PrepassShader::bind_gbuffer(GL::Framebuffer& buffer)
         });
     return *this;
 }
+
+PrepassShader& PrepassShader::set_normal_matrix(Matrix3 const& matrix)
+{
+    setUniform(static_cast<Int>(UniformPos::normalMatrix), matrix);
+    return *this;
+}

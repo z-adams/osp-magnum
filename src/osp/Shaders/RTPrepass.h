@@ -36,7 +36,6 @@ class PrepassShader : Magnum::GL::AbstractShaderProgram
 {
     friend class PrepassExecutor;
 public:
-
     PrepassShader() { init(); }
     PrepassShader(PrepassShader const& copy) = delete;
     ~PrepassShader() = default;
@@ -49,7 +48,8 @@ private:
     {
         modelViewMatrix = 0,
         projMatrix = 1,
-        cameraPos = 2
+        cameraPos = 2,
+        normalMatrix = 3
     };
 
     // Buffer binding points
@@ -74,6 +74,7 @@ private:
     PrepassShader& set_proj_matrix(Magnum::Matrix4 const& matrix);
     PrepassShader& set_camera_pos_world(Magnum::Vector3 const& pos);
     PrepassShader& bind_gbuffer(Magnum::GL::Framebuffer& buffer);
+    PrepassShader& set_normal_matrix(Magnum::Matrix3 const& matrix);
 };
 
 }

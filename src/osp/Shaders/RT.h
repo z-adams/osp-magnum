@@ -46,11 +46,13 @@ struct ObjectData
 };
 #pragma pack(pop)
 
+#pragma pack(push, 1)
 struct DirectionalLight
 {
     Magnum::Vector3 m_direction;
     Magnum::Float m_brightness;
 };
+#pragma pack(pop)
 
 #pragma pack(push, 1)
 struct GBufferPixel
@@ -104,7 +106,9 @@ private:
         UniformCounts = 0,
         OutputImg = 1,
         GRayDepth = 2,
-        GNormalUV = 3
+        GNormalUV = 3,
+        CameraPosWorld = 4,
+        CameraRot = 5
     };
 
     // Buffer bindings
@@ -139,6 +143,8 @@ private:
     RTShader& bind_output_img(Magnum::GL::Texture2D& rTex);
     RTShader& bind_gbuffer(Magnum::GL::Texture2D& rRayDepth, Magnum::GL::Texture2D& rNormalUV);
     RTShader& bind_triangle_buffer(Magnum::GL::Buffer& rTriangles);
+    RTShader& set_camera_pos(Magnum::Vector3 const& pos);
+    RTShader& set_camera_rot(Magnum::Matrix3 const& rot);
 
     // Data buffers (TMP)
     Magnum::GL::Buffer m_objectBuffer;// { Magnum::NoCreate };

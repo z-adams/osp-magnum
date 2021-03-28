@@ -96,16 +96,23 @@ RTShader& RTShader::bind_triangle_buffer(GL::Buffer& rTriangles)
     return *this;
 }
 
+RTShader& RTShader::set_camera_pos(Vector3 const& pos)
+{
+    setUniform(static_cast<Int>(UniformPos::CameraPosWorld), pos);
+    return *this;
+}
+
+RTShader& RTShader::set_camera_rot(Matrix3 const& rot)
+{
+    setUniform(static_cast<Int>(UniformPos::CameraRot), rot);
+    return *this;
+}
+
 void RTShader::raytrace(ActiveScene& rScene, ACompCamera const& camera,
     GL::Texture2D& rGRayDepth, GL::Texture2D& rGNormUV, GL::Texture2D& target)
 {
     std::array<ObjectData, 64> objects;
-    std::array<DirectionalLight, 4> lights{
-        DirectionalLight{{1.0f, 0.0f, 0.0f}, 1.0f},
-        {},
-        {},
-        {}
-    };
+    std::array<DirectionalLight, 1> lights{DirectionalLight{{1.0f, 0.0f, 0.0f}, 1.0f}};
     std::vector<Triangle> tris;
 
     using PlanetShader_t = adera::shader::PlanetShader::ACompPlanetShaderInstance;
@@ -155,24 +162,24 @@ void RTShader::raytrace(ActiveScene& rScene, ACompCamera const& camera,
         {
             mins.x() = std::min(tri.m_v0.x(), mins.x());
             mins.y() = std::min(tri.m_v0.y(), mins.y());
-            mins.y() = std::min(tri.m_v0.y(), mins.y());
-            maxs.x() = std::min(tri.m_v0.x(), maxs.x());
-            maxs.y() = std::min(tri.m_v0.y(), maxs.y());
-            maxs.y() = std::min(tri.m_v0.y(), maxs.y());
+            mins.z() = std::min(tri.m_v0.z(), mins.y());
+            maxs.x() = std::max(tri.m_v0.x(), maxs.x());
+            maxs.y() = std::max(tri.m_v0.y(), maxs.y());
+            maxs.z() = std::max(tri.m_v0.z(), maxs.z());
 
             mins.x() = std::min(tri.m_v1.x(), mins.x());
             mins.y() = std::min(tri.m_v1.y(), mins.y());
-            mins.y() = std::min(tri.m_v1.y(), mins.y());
-            maxs.x() = std::min(tri.m_v1.x(), maxs.x());
-            maxs.y() = std::min(tri.m_v1.y(), maxs.y());
-            maxs.y() = std::min(tri.m_v1.y(), maxs.y());
+            mins.z() = std::min(tri.m_v1.z(), mins.z());
+            maxs.x() = std::max(tri.m_v1.x(), maxs.x());
+            maxs.y() = std::max(tri.m_v1.y(), maxs.y());
+            maxs.z() = std::max(tri.m_v1.z(), maxs.z());
 
             mins.x() = std::min(tri.m_v2.x(), mins.x());
             mins.y() = std::min(tri.m_v2.y(), mins.y());
-            mins.y() = std::min(tri.m_v2.y(), mins.y());
-            maxs.x() = std::min(tri.m_v2.x(), maxs.x());
-            maxs.y() = std::min(tri.m_v2.y(), maxs.y());
-            maxs.y() = std::min(tri.m_v2.y(), maxs.y());
+            mins.z() = std::min(tri.m_v2.z(), mins.z());
+            maxs.x() = std::max(tri.m_v2.x(), maxs.x());
+            maxs.y() = std::max(tri.m_v2.y(), maxs.y());
+            maxs.z() = std::max(tri.m_v2.z(), maxs.z());
         }
         Box boundingBox; // get from somewhere
         boundingBox.m_min = mins;
@@ -192,18 +199,19 @@ void RTShader::raytrace(ActiveScene& rScene, ACompCamera const& camera,
         objIndex++;
     }
 
-    set_uniform_counts(objects.size(), lights.size());
+    set_uniform_counts(objIndex, 1);
     m_objectBuffer.setData(objects);
 
     m_lightBuffer.setData(lights);
     m_triangleBuffer.setData(tris);
-
 
     bind_objects_list(m_objectBuffer);
     bind_light_list(m_lightBuffer);
     bind_output_img(target);
     bind_gbuffer(rGRayDepth, rGNormUV);
     bind_triangle_buffer(m_triangleBuffer);
+    set_camera_pos(camera.m_inverse.inverted().translation());
+    set_camera_rot(Matrix3{camera.m_inverse.inverted()});
 
     constexpr Vector3ui dimensions{1280/8, 720/8, 1};
     dispatchCompute(dimensions);

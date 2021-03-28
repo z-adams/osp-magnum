@@ -46,20 +46,17 @@ struct ObjectData
 
 layout(location = 0) uniform uvec4 counts;
 
-layout(binding = 0) uniform objects
+const uint OBJ_COUNT = counts.x;
+const uint LIGHT_COUNT = counts.y;
+
+layout(std140, binding = 0) uniform objects
 {
     ObjectData objs[64];
 };
 
-struct DirectionalLight
+layout(std140, binding = 1) uniform lightBuf
 {
-    vec3 direction;
-    float brightness;
-};
-
-layout(binding = 1) uniform lightBuf
-{
-    DirectionalLight lights[4];
+    vec4 lights[1];
 };
 
 struct Triangle
@@ -69,17 +66,133 @@ struct Triangle
     vec3 v2;
 };
 
+struct TrianglePacked
+{
+    float v0x;
+    float v0y;
+    float v0z;
+
+    float v1x;
+    float v1y;
+    float v1z;
+
+    float v2x;
+    float v2y;
+    float v2z;
+};
+
+Triangle unpack_tri(TrianglePacked p)
+{
+    Triangle t;
+    t.v0 = vec3(p.v0x, p.v0y, p.v0z);
+    t.v1 = vec3(p.v1x, p.v1y, p.v1z);
+    t.v2 = vec3(p.v2x, p.v2y, p.v2z);
+    return t;
+}
+
 layout(std430, binding = 2) buffer triangleBuffer
 {
-    Triangle tris[];
+    TrianglePacked tris[];
 };
 
 layout(location = 1, rgba8) uniform writeonly image2D brightnessOut;
 layout(location = 2) uniform sampler2D gRayDepth;
 layout(location = 3) uniform sampler2D gNormalUV;
+layout(location = 4) uniform vec3 cameraPosWorld;
+layout(location = 5) uniform mat3 cameraRot;
+
+struct Box
+{
+    vec3 mins;
+    vec3 maxs;
+};
+
+struct Ray
+{
+    vec3 origin;
+    vec3 direction;
+    vec3 inv;
+};
+
+//tavianator
+bool ray_aabb_intersection(Box b, Ray r)
+{ 
+    float tmin = (b.mins.x - r.origin.x) / r.direction.x; 
+    float tmax = (b.maxs.x - r.origin.x) / r.direction.x; 
+ 
+    if (tmin > tmax)
+    {
+        float tmp = tmin;
+        tmin = tmax;
+        tmax = tmp;
+    }
+ 
+    float tymin = (b.mins.y - r.origin.y) / r.direction.y; 
+    float tymax = (b.maxs.y - r.origin.y) / r.direction.y; 
+ 
+    if (tymin > tymax)
+    {
+        float tmp = tymin;
+        tymin = tymax;
+        tymax = tmp;
+    }
+ 
+    if ((tmin > tymax) || (tymin > tmax)) 
+        return false; 
+ 
+    if (tymin > tmin) 
+        tmin = tymin; 
+ 
+    if (tymax < tmax) 
+        tmax = tymax; 
+ 
+    float tzmin = (b.mins.z - r.origin.z) / r.direction.z; 
+    float tzmax = (b.maxs.z - r.origin.z) / r.direction.z; 
+ 
+    if (tzmin > tzmax)
+    {
+        float tmp = tzmin;
+        tzmin = tzmax;
+        tzmax = tmp;
+    }
+ 
+    if ((tmin > tzmax) || (tzmin > tmax)) 
+        return false; 
+ 
+    if (tzmin > tmin) 
+        tmin = tzmin; 
+ 
+    if (tzmax < tmax) 
+        tmax = tzmax; 
+ 
+    return true; 
+} 
+
+/*{
+    float tx1 = (b.mins.x - r.origin.x)*r.inv.x;
+    float tx2 = (b.maxs.x - r.origin.x)*r.inv.x;
+
+    float tmin = min(tx1, tx2);
+    float tmax = max(tx1, tx2);
+
+    float ty1 = (b.mins.y - r.origin.y)*r.inv.y;
+    float ty2 = (b.maxs.y - r.origin.y)*r.inv.y;
+
+    tmin = max(tmin, min(ty1, ty2));
+    tmax = min(tmax, max(ty1, ty2));
+
+    float tz1 = (b.mins.z - r.origin.z)*r.inv.z;
+    float tz2 = (b.maxs.z - r.origin.z)*r.inv.z;
+
+    tmin = max(tmin, min(tz1, tz2));
+    tmax = max(tmax, max(tz1, tz2));
+
+    return tmax >= tmin;
+}*/
+
 
 // Wikipedia Moller-Trumbore algorithm, GLSL-ified and branches removed
-bool RayIntersectsTriangle(vec3 rayOrigin, vec3 rayVector,
+bool ray_triangle_intersection(vec3 rayOrigin, vec3 rayVector,
     in Triangle inTriangle, out vec3 outIntersectionPoint)
 {
     const float EPSILON = 0.0000001;
@@ -134,31 +247,48 @@ void main()
 {
     imageStore(brightnessOut, ivec2(UV), vec4(vec3(0.0), 1.0));
 
-    /*float depth = texture(gRayDepth, uvf).w;
-    if (depth == 0.0) { return; }
+    float depth = texture(gRayDepth, uvf).w;
+    //if (depth == 1.0) { return; }
 
-    vec3 ray = decode(texture(gRayDepth, uvf).xyz);
-    vec2 normal2D = decode(texture(gNormalUV, uvf).xy);
+    const float HFOV = (3.14159265359/180.0)*45.0;
+    const float WIDTH_PX = 1280.0;
+    const float HEIGHT_PX = 720.0;
+    float VIEW_PLANE_D = (WIDTH_PX/2.0)/tan(HFOV/2.0);
+    vec2 rayXY = vec2(UV) - vec2(WIDTH_PX/2.0, HEIGHT_PX/2.0);
+
+    Ray r;
+    r.origin = cameraPosWorld;
+    r.direction = cameraRot*normalize(vec3(rayXY, VIEW_PLANE_D));// decode(texture(gRayDepth, uvf).xyz);
+    r.inv = 1.0 / r.direction;
+
+    Box b;
+    b.mins = objs[17].aabbMins;
+    b.maxs = objs[17].aabbMaxs;
+
+    vec3 intersect = vec3(0.0);
+    bool hit = ray_aabb_intersection(b, r);
+
+    vec4 color = vec4((hit)? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0), 1.0);
+    imageStore(brightnessOut, ivec2(UV), color);
+
+    /*vec2 normal2D = decode(texture(gNormalUV, uvf).xy);
     vec2 uv = decode(texture(gNormalUV, uvf).zw);
     vec3 normal = vec3(normal2D,
         sqrt(1.0 - normal2D.x*normal2D.x - normal2D.y*normal2D.y));
 
-    float lightFacing = 0.0;
-    for (uint l = 0; l < counts.y; l++)
+    for (uint i = 17; i < OBJ_COUNT; i++)
     {
-        lightFacing += lights[l].brightness * dot(normal, lights[l].direction);
-    }
+        ObjectData o = objs[i];
+        Box aabb;
+        aabb.mins = o.aabbMins;
+        aabb.maxs = o.aabbMaxs;
+        vec3 intersect = vec3(0.0);
+        bool hit = ray_aabb_intersection(aabb, r);
+        //vec4 color = vec4(float(hit)*vec3(0.0, 1.0, 0.0) + (1 - float(hit))*vec3(1.0, 0.0, 0.0), 1.0);
+        vec4 color = vec4(float(hit)*vec3(0.0, 1.0, 0.0) + (1 - float(hit))*vec3(1.0, 0.0, 0.0), 1.0);
+        imageStore(brightnessOut, ivec2(UV), color);
+    }*/
 
-    //imageStore(brightnessOut, ivec2(UV), vec4(vec3(lightFacing), 1.0));
-    vec3 normal3D = decode(texture(gNormalUV, uvf).xyz);
-    float tmpVal = dot(normal3D, vec3(0.0, 0.0, 1.0));
-    imageStore(brightnessOut, ivec2(UV), vec4(normal3D, 1.0));*/
-    float depth = texture(gRayDepth, uvf).w;
-    if (depth < 1.0)
-    {
-        vec4 value = texture(gNormalUV, uvf);
-        imageStore(brightnessOut, ivec2(UV), vec4(value.xyz, 1.0));
-    }
-
+    //imageStore(brightnessOut, ivec2(UV), vec4(ray, 1.0));
 }
 

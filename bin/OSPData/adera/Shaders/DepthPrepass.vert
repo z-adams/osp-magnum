@@ -43,6 +43,6 @@ void main()
     gl_Position = projMatrix * modelViewMatrix * vertPos;
     fragPos = (modelViewMatrix * vertPos).xyz;
     cameraPos = cameraPosWorld;
-    normal = normalMatrix * vertNormal; //(modelViewMatrix * vec4(vertNormal, 1.0)).xyz;
+    normal = normalMatrix * vertNormal;
     uv = vertTexCoord;
 }

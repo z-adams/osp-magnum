@@ -73,7 +73,7 @@ void PrepassExecutor::execute_prepass(ActiveScene& rScene, ACompCamera const& ca
             .set_transform_matrix(transform)
             .set_proj_matrix(camera.m_projection)
             .set_camera_pos_world(cameraPos)
-            .set_normal_matrix(transform.normalMatrix())
+            .set_normal_matrix(Matrix3{compXform.m_transformWorld})
             .bind_gbuffer(gBuffer)
             .draw(*mesh);
     }

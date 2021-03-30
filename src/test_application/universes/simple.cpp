@@ -78,14 +78,14 @@ void testapp::create_simple_solar_system(osp::OSPApplication& ospApp)
     //Satellite sat = debug_add_deterministic_vehicle(uni, pkg, "Stomper Mk. I");
     Satellite sat = testapp::debug_add_part_vehicle(rUni, rPkg, "Placeholder Mk. I");
     auto& posTraj = rUni.get_reg().get<UCompTransformTraj>(sat);
-    posTraj.m_position = osp::Vector3s(320l * 1024l, 0l, 0l);
+    posTraj.m_position = osp::Vector3s(320l * 1024l * 0l, 0l, 0l);
     posTraj.m_dirty = true;
     stationary.add(sat);
 
 
     // Add Grid of planets too
 
-    for (int x = -0; x < 1; x ++)
+    /*for (int x = -0; x < 1; x ++)
     {
         for (int z = -0; z < 1; z ++)
         {
@@ -111,7 +111,7 @@ void testapp::create_simple_solar_system(osp::OSPApplication& ospApp)
                                   0l,
                                   z * 1024l * 6000l};
         }
-    }
+    }*/
 
     std::cout << "Created simple solar system\n";
 }

@@ -34,6 +34,8 @@
 #include <osp/Active/SysDebugRender.h>
 #include <adera/Shaders/PlanetShader.h>
 
+#include <iostream>
+
 using namespace osp::active::shader;
 using namespace Magnum;
 
@@ -57,10 +59,10 @@ void RTShader::init()
         static_cast<Int>(TextureSlots::NormalUV));
 }
 
-RTShader& RTShader::set_uniform_counts(uint32_t nObjects, uint32_t nLights)
+RTShader& RTShader::set_uniform_counts(uint32_t nObjects, uint32_t nLights, uint32_t nTris)
 {
     setUniform(static_cast<Int>(UniformPos::UniformCounts),
-        Vector4ui{nObjects, nLights, 0, 0});
+        Vector4ui{nObjects, nLights, nTris, 0});
     return *this;
 }
 
@@ -189,6 +191,7 @@ void RTShader::raytrace(ActiveScene& rScene, ACompCamera const& camera,
 
         ObjectData obj
         {
+            transform.m_transformWorld,
             aabb.m_max,
             firstTriIndex,
             aabb.m_min,
@@ -199,7 +202,7 @@ void RTShader::raytrace(ActiveScene& rScene, ACompCamera const& camera,
         objIndex++;
     }
 
-    set_uniform_counts(objIndex, 1);
+    set_uniform_counts(objIndex, 1, tris.size());
     m_objectBuffer.setData(objects);
 
     m_lightBuffer.setData(lights);
@@ -210,12 +213,16 @@ void RTShader::raytrace(ActiveScene& rScene, ACompCamera const& camera,
     bind_output_img(target);
     bind_gbuffer(rGRayDepth, rGNormUV);
     bind_triangle_buffer(m_triangleBuffer);
-    set_camera_pos(camera.m_inverse.inverted().translation());
+    Vector3 cameraPos = camera.m_inverse.inverted().translation();
+    std::cout << "Pos: (" << cameraPos.x() << ", " << cameraPos.y() << ", "
+        << cameraPos.z() << ")" << "\n";
+    set_camera_pos(cameraPos);
     set_camera_rot(Matrix3{camera.m_inverse.inverted()});
 
     constexpr Vector3ui dimensions{1280/8, 720/8, 1};
+    glMemoryBarrier(GL_ALL_BARRIER_BITS);
     dispatchCompute(dimensions);
-    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
 
 Box osp::active::shader::box_to_AABB(Box& box, Magnum::Matrix3 const& rot)

@@ -39,6 +39,7 @@ namespace osp::active::shader
 #pragma pack(push, 1)
 struct ObjectData
 {
+    Magnum::Matrix4 m_transform;
     Magnum::Vector3 m_AABBMaxs;
     Magnum::UnsignedInt m_firstTriIndex;
     Magnum::Vector3 m_AABBMins;
@@ -137,7 +138,7 @@ private:
     using Magnum::GL::AbstractShaderProgram::draw;
 
     // Uniform bindings
-    RTShader& set_uniform_counts(uint32_t nObjects, uint32_t nLights);
+    RTShader& set_uniform_counts(uint32_t nObjects, uint32_t nLights, uint32_t nTris);
     RTShader& bind_objects_list(Magnum::GL::Buffer& objects);
     RTShader& bind_light_list(Magnum::GL::Buffer& lights);
     RTShader& bind_output_img(Magnum::GL::Texture2D& rTex);

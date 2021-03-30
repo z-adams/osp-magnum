@@ -77,5 +77,5 @@ void PrepassExecutor::execute_prepass(ActiveScene& rScene, ACompCamera const& ca
             .bind_gbuffer(gBuffer)
             .draw(*mesh);
     }
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }

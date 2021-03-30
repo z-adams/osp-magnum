@@ -103,8 +103,41 @@ struct Ray
     vec3 inv;
 };
 
+/*
+branched: 46000 microseconds
+branch-free: 99000 microseconds
+branch-free bounding box test: 107000 microseconds
+branch-free triangle test: 23700 microseconds
+*/
+
+//#define BRANCH_FREE_BROADPHASE
+#define BRANCH_FREE_TRIANGLES
+
 //tavianator
 bool ray_aabb_intersection(Box b, Ray r)
+#ifdef BRANCH_FREE_BROADPHASE
+{
+    float tx1 = (b.mins.x - r.origin.x)*r.inv.x;
+    float tx2 = (b.maxs.x - r.origin.x)*r.inv.x;
+
+    float tmin = min(tx1, tx2);
+    float tmax = max(tx1, tx2);
+
+    float ty1 = (b.mins.y - r.origin.y)*r.inv.y;
+    float ty2 = (b.maxs.y - r.origin.y)*r.inv.y;
+
+    tmin = max(tmin, min(ty1, ty2));
+    tmax = min(tmax, max(ty1, ty2));
+
+    float tz1 = (b.mins.z - r.origin.z)*r.inv.z;
+    float tz2 = (b.maxs.z - r.origin.z)*r.inv.z;
+
+    tmin = max(tmin, min(tz1, tz2));
+    tmax = max(tmax, max(tz1, tz2));
+
+    return tmax >= tmin;
+}
+#else
 { 
     float tmin = (b.mins.x - r.origin.x) / r.direction.x; 
     float tmax = (b.maxs.x - r.origin.x) / r.direction.x; 
@@ -155,35 +188,15 @@ bool ray_aabb_intersection(Box b, Ray r)
         tmax = tzmax; 
  
     return true; 
-} 
-
-/*{
-    float tx1 = (b.mins.x - r.origin.x)*r.inv.x;
-    float tx2 = (b.maxs.x - r.origin.x)*r.inv.x;
-
-    float tmin = min(tx1, tx2);
-    float tmax = max(tx1, tx2);
-
-    float ty1 = (b.mins.y - r.origin.y)*r.inv.y;
-    float ty2 = (b.maxs.y - r.origin.y)*r.inv.y;
-
-    tmin = max(tmin, min(ty1, ty2));
-    tmax = min(tmax, max(ty1, ty2));
-
-    float tz1 = (b.mins.z - r.origin.z)*r.inv.z;
-    float tz2 = (b.maxs.z - r.origin.z)*r.inv.z;
-
-    tmin = max(tmin, min(tz1, tz2));
-    tmax = max(tmax, max(tz1, tz2));
-
-    return tmax >= tmin;
-}*/
+}
+#endif
 
 
 // Wikipedia Moller-Trumbore algorithm, GLSL-ified and branches removed
 bool ray_triangle_intersection(vec3 rayOrigin, vec3 rayVector,
     in Triangle inTriangle, out vec3 outIntersectionPoint)
-/*{
+#ifdef BRANCH_FREE_TRIANGLES
+{
     const float EPSILON = 0.0000001;
     vec3 vertex0 = inTriangle.v0;
     vec3 vertex1 = inTriangle.v1;
@@ -220,7 +233,8 @@ bool ray_triangle_intersection(vec3 rayOrigin, vec3 rayVector,
     resultHit = (t > EPSILON); // ray intersection
 
     return resultA && resultB && resultC && resultHit;
-}*/
+}
+#else
 {
     const float EPSILON = 0.0000001;
     vec3 vertex0 = inTriangle.v0;
@@ -267,6 +281,7 @@ bool ray_triangle_intersection(vec3 rayOrigin, vec3 rayVector,
     }
     return false;
 }
+#endif
 
 vec3 decode(vec3 rgb)
 {
@@ -283,6 +298,11 @@ void store(vec4 rgba)
     imageStore(brightnessOut, ivec2(UV), rgba);
 }
 
+void store(vec3 rgb)
+{
+    store(vec4(rgb, 1.0));
+}
+
 void draw_circle(ivec2 pos)
 {
     vec2 r = vec2(pos - ivec2(UV));
@@ -291,12 +311,50 @@ void draw_circle(ivec2 pos)
     store(vec4(vec3(doDraw), 1.0));
 }
 
+float light_at_point(vec3 origin)
+{
+    vec3 direction = vec3(1.0, 0.0, 0.0);
+
+    for (uint i = 0; i < OBJ_COUNT; i++)
+    {
+        ObjectData o = objs[i];
+        Box aabb;
+        aabb.mins = o.aabbMins;
+        aabb.maxs = o.aabbMaxs;
+        Ray testRay;
+        testRay.origin = origin;
+        testRay.direction = direction;
+        bool hit = ray_aabb_intersection(aabb, testRay);
+        if (hit)
+        {
+            uint start = o.firstTriIndex;
+            uint stop = start + o.numTriangles;
+            for (uint j = start; j < stop; j++)
+            {
+                Triangle t = unpack_tri(j);
+                Triangle tTransformed;
+                tTransformed.v0 = vec3(o.transform * vec4(t.v0, 1.0));
+                tTransformed.v1 = vec3(o.transform * vec4(t.v1, 1.0));
+                tTransformed.v2 = vec3(o.transform * vec4(t.v2, 1.0));
+                vec3 intersect = vec3(0.0);
+                bool hitTri = ray_triangle_intersection(origin, direction, tTransformed, intersect);
+                if (hitTri)
+                {
+                    return 1.0;
+                }
+            }
+        }
+    }
+
+    return 0.0;
+}
+
 void main()
 {
-    //imageStore(brightnessOut, ivec2(UV), vec4(vec3(0.0), 1.0));
+    store(vec4(0.0));
 
-    //float depth = texture(gRayDepth, uvf).w;
-    //if (depth == 1.0) { return; }
+    float depth = texture(gRayDepth, uvf).w;
+    if (depth == 1.0) { return; }
 
     const float HFOV = (3.14159265359/180.0)*45.0;
     const float WIDTH_PX = 1280.0;
@@ -309,85 +367,12 @@ void main()
     r.direction = cameraRot * normalize(vec3(rayXY, -VIEW_PLANE_D));
     r.inv = 1.0 / r.direction;
 
-    store(vec4(r.direction, 1.0));
-
-    Triangle debugTri;
-    debugTri.v0 = vec3(-2.0, 0.0, 0.0);
-    debugTri.v1 = vec3(2.0, 0.0, 0.0);
-    debugTri.v2 = vec3(0.0, 0.0, 4.0);
-
-    vec3 hitPos = vec3(0.0);
-    bool hit = ray_triangle_intersection(r.origin, r.direction, debugTri, hitPos);
-    if (hit)
-    {
-        store(vec4(1.0));
-    }
-
-    /*for (uint i = 0; i < TRI_COUNT; i++)
-    {
-        Triangle t = unpack_tri(i);
-        vec3 hitPos = vec3(0.0);
-        bool hit = ray_triangle_intersection(r.origin, r.direction, t, hitPos);
-        if (hit)
-        {
-            store(vec4(1.0));
-        }
-    }*/
-
-    /*ObjectData fuselage = objs[17];
-    Box aabb;
-    aabb.mins = fuselage.aabbMins;
-    aabb.maxs = fuselage.aabbMaxs;*/
-
-    /*vec4 vertPos = fuselage.transform * vec4(unpack_tri(tris[fuselage.firstTriIndex]).v0, 1.0);
-    vec2 vertPos2D = vertPos.xy;
-    ivec2 coords = ivec2(vec2(vertPos2D / vec2(600.0, 5.0) + vec2(0.0, 0.0)) * ivec2(DIMS));
-    draw_circle(coords);
-
-    return;
-    if (fuselage.transform[3][0] > 300.0)
-    {
-        store(vec4(1.0));
-    }
-    return;*/
-
-    /*bool hitBox = ray_aabb_intersection(aabb, r);
-    if (hitBox)
-    {
-        imageStore(brightnessOut, ivec2(UV), vec4(1.0, 0.0, 0.0, 1.0));
-        for (uint i = fuselage.firstTriIndex; i < fuselage.firstTriIndex + fuselage.numTriangles; i++)
-        {
-            Triangle t = unpack_tri(tris[i]);
-            Triangle tWorld;
-            tWorld.v0 = vec3(fuselage.transform * vec4(t.v0, 1.0));
-            tWorld.v1 = vec3(fuselage.transform * vec4(t.v1, 1.0));
-            tWorld.v2 = vec3(fuselage.transform * vec4(t.v2, 1.0));
-
-            vec3 hitPos = vec3(0.0);
-            bool hitTri = ray_triangle_intersection(r.origin, r.direction, t, hitPos);
-            if (hitTri)
-            {
-                imageStore(brightnessOut, ivec2(UV), vec4(1.0));
-            }
-        }
-    }*/
-
-    /*Box b;
-    b.mins = objs[17].aabbMins;
-    b.maxs = objs[17].aabbMaxs;
-
-    vec3 intersect = vec3(0.0);
-    bool hit = ray_aabb_intersection(b, r);
-
-    vec4 color = vec4((hit)? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0), 1.0);
-    imageStore(brightnessOut, ivec2(UV), color);*/
-
-    /*vec2 normal2D = decode(texture(gNormalUV, uvf).xy);
-    vec2 uv = decode(texture(gNormalUV, uvf).zw);
+    vec2 normal2D = decode(texture(gNormalUV, uvf).xy);
     vec3 normal = vec3(normal2D,
-        sqrt(1.0 - normal2D.x*normal2D.x - normal2D.y*normal2D.y));*/
+        sqrt(1 - normal2D.x*normal2D.x - normal2D.y*normal2D.y));
+    vec2 uv = texture(gNormalUV, uvf).zw;
 
-    /*for (uint i = 0; i < OBJ_COUNT; i++)
+    for (uint i = 0; i < OBJ_COUNT; i++)
     {
         ObjectData o = objs[i];
         Box aabb;
@@ -396,9 +381,6 @@ void main()
         bool hit = ray_aabb_intersection(aabb, r);
         if (hit)
         {
-            //vec3 color = cameraPosWorld - vec3(o.transform[3][0], o.transform[3][1], o.transform[3][2]);
-            vec3 color = vec3(0.5, 0.0, 0.0);
-            //imageStore(brightnessOut, ivec2(UV), vec4(color, 1.0));
             uint start = o.firstTriIndex;
             uint stop = start + o.numTriangles;
             for (uint j = start; j < stop; j++)
@@ -409,14 +391,19 @@ void main()
                 tTransformed.v1 = vec3(o.transform * vec4(t.v1, 1.0));
                 tTransformed.v2 = vec3(o.transform * vec4(t.v2, 1.0));
                 vec3 intersect = vec3(0.0);
-                bool hitTri = ray_triangle_intersection(r.origin, r.direction, t, intersect);
+                bool hitTri = ray_triangle_intersection(r.origin, r.direction, tTransformed, intersect);
                 if (hitTri)
                 {
-                    imageStore(brightnessOut, ivec2(UV), vec4(1.0));
+                    float color = clamp(dot(normal, vec3(1.0, 0.0, 0.0)), 0.0, 1.0);
+                    if (color > 0.0)
+                    {
+                        vec3 osetOrigin = intersect + 0.00001*normal;
+                        store(vec3(color)); //light_at_point(osetOrigin)));
+                    }
                 }
             }
         }
-    }*/
+    }
 
     //imageStore(brightnessOut, ivec2(UV), vec4(ray, 1.0));
 }

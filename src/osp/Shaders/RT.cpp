@@ -213,16 +213,12 @@ void RTShader::raytrace(ActiveScene& rScene, ACompCamera const& camera,
     bind_output_img(target);
     bind_gbuffer(rGRayDepth, rGNormUV);
     bind_triangle_buffer(m_triangleBuffer);
-    Vector3 cameraPos = camera.m_inverse.inverted().translation();
-    std::cout << "Pos: (" << cameraPos.x() << ", " << cameraPos.y() << ", "
-        << cameraPos.z() << ")" << "\n";
-    set_camera_pos(cameraPos);
+    set_camera_pos(camera.m_inverse.inverted().translation());
     set_camera_rot(Matrix3{camera.m_inverse.inverted()});
 
     constexpr Vector3ui dimensions{1280/8, 720/8, 1};
-    glMemoryBarrier(GL_ALL_BARRIER_BITS);
     dispatchCompute(dimensions);
-    glMemoryBarrier(GL_ALL_BARRIER_BITS);
+    glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
 }
 
 Box osp::active::shader::box_to_AABB(Box& box, Magnum::Matrix3 const& rot)

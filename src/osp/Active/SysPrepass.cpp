@@ -58,6 +58,7 @@ void PrepassExecutor::execute_prepass(ActiveScene& rScene, ACompCamera const& ca
     Renderer::enable(Renderer::Feature::DepthTest);
     Renderer::enable(Renderer::Feature::FaceCulling);
     Renderer::setFaceCullingMode(Renderer::PolygonFacing::Back);
+    Renderer::disable(Renderer::Feature::Multisampling);
 
     auto& ctxRes = rScene.get_context_resources();
 
@@ -66,16 +67,16 @@ void PrepassExecutor::execute_prepass(ActiveScene& rScene, ACompCamera const& ca
     {
         DependRes<GL::Mesh> mesh = drawable.m_mesh;
 
-        Matrix4 transform = camera.m_inverse * compXform.m_transformWorld;
         Vector3 cameraPos = camera.m_inverse.inverted().translation();
 
         (*shader)
-            .set_transform_matrix(transform)
+            .set_model_matrix(compXform.m_transformWorld)
+            .set_view_matrix(camera.m_inverse)
             .set_proj_matrix(camera.m_projection)
             .set_camera_pos_world(cameraPos)
-            .set_normal_matrix(Matrix3{compXform.m_transformWorld})
             .bind_gbuffer(gBuffer)
             .draw(*mesh);
     }
-    //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
+    Renderer::enable(Renderer::Feature::Multisampling);
 }

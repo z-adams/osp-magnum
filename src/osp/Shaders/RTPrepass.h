@@ -46,10 +46,10 @@ private:
     // Uniforms
     enum class UniformPos : Magnum::Int
     {
-        modelViewMatrix = 0,
-        projMatrix = 1,
-        cameraPos = 2,
-        normalMatrix = 3
+        modelMatrix = 0,
+        viewMatrix = 1,
+        projMatrix = 2,
+        cameraPos = 3
     };
 
     // Buffer binding points
@@ -70,11 +70,11 @@ private:
     using Magnum::GL::AbstractShaderProgram::dispatchCompute;
 
     // Private uniform setters
-    PrepassShader& set_transform_matrix(Magnum::Matrix4 const& matrix);
+    PrepassShader& set_model_matrix(Magnum::Matrix4 const& matrix);
+    PrepassShader& set_view_matrix(Magnum::Matrix4 const& matrix);
     PrepassShader& set_proj_matrix(Magnum::Matrix4 const& matrix);
     PrepassShader& set_camera_pos_world(Magnum::Vector3 const& pos);
     PrepassShader& bind_gbuffer(Magnum::GL::Framebuffer& buffer);
-    PrepassShader& set_normal_matrix(Magnum::Matrix3 const& matrix);
 };
 
 }

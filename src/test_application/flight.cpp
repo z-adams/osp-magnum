@@ -161,13 +161,13 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
         // Create GBuffer
         constexpr std::string_view name = "gBuffer";
 
-        GL::Texture2D rayDepth;
-        rayDepth.setStorage(1, GL::TextureFormat::RGBA8, viewSize);
+        GL::Texture2D posDepth;
+        posDepth.setStorage(1, GL::TextureFormat::RGBA32F, viewSize);
         osp::DependRes<GL::Texture2D> rdRes = resources.add<GL::Texture2D>(
-            osp::string_concat(name, "_ray_depth"), std::move(rayDepth));
+            osp::string_concat(name, "_ray_depth"), std::move(posDepth));
 
         GL::Texture2D normalUV;
-        normalUV.setStorage(1, GL::TextureFormat::RGBA8, viewSize);
+        normalUV.setStorage(1, GL::TextureFormat::RGBA32F, viewSize);
         osp::DependRes<GL::Texture2D> nuvRes = resources.add<GL::Texture2D>(
             osp::string_concat(name, "_normal_uv"), std::move(normalUV));
 

@@ -28,10 +28,10 @@ layout(location = 0) in vec4 vertPos;
 layout(location = 1) in vec2 vertTexCoord;
 layout(location = 5) in vec3 vertNormal;
 
-layout(location = 0) uniform mat4 modelViewMatrix;
-layout(location = 1) uniform mat4 projMatrix;
-layout(location = 2) uniform vec3 cameraPosWorld;
-layout(location = 3) uniform mat3 normalMatrix;
+layout(location = 0) uniform mat4 modelMatrix;
+layout(location = 1) uniform mat4 viewMatrix;
+layout(location = 2) uniform mat4 projMatrix;
+layout(location = 3) uniform vec3 cameraPosWorld;
 
 out vec3 fragPos;
 out vec3 cameraPos;
@@ -40,9 +40,9 @@ out vec2 uv;
 
 void main()
 {
-    gl_Position = projMatrix * modelViewMatrix * vertPos;
-    fragPos = (modelViewMatrix * vertPos).xyz;
+    gl_Position = projMatrix * viewMatrix * modelMatrix * vertPos;
+    fragPos = (modelMatrix * vertPos).xyz;
     cameraPos = cameraPosWorld;
-    normal = normalMatrix * vertNormal;
+    normal = mat3(modelMatrix) * vertNormal;
     uv = vertTexCoord;
 }

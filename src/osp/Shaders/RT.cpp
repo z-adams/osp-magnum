@@ -191,7 +191,7 @@ void RTShader::raytrace(ActiveScene& rScene, ACompCamera const& camera,
 
         ObjectData obj
         {
-            transform.m_transformWorld,
+            transform.m_transformWorld.inverted(),
             aabb.m_max,
             firstTriIndex,
             aabb.m_min,

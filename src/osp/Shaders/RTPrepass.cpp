@@ -44,9 +44,15 @@ void PrepassShader::init()
     CORRADE_INTERNAL_ASSERT_OUTPUT(link());
 }
 
-PrepassShader& PrepassShader::set_transform_matrix(Matrix4 const& matrix)
+PrepassShader& PrepassShader::set_model_matrix(Matrix4 const& matrix)
 {
-    setUniform(static_cast<Int>(UniformPos::modelViewMatrix), matrix);
+    setUniform(static_cast<Int>(UniformPos::modelMatrix), matrix);
+    return *this;
+}
+
+PrepassShader& PrepassShader::set_view_matrix(Matrix4 const& matrix)
+{
+    setUniform(static_cast<Int>(UniformPos::viewMatrix), matrix);
     return *this;
 }
 
@@ -71,8 +77,3 @@ PrepassShader& PrepassShader::bind_gbuffer(GL::Framebuffer& buffer)
     return *this;
 }
 
-PrepassShader& PrepassShader::set_normal_matrix(Matrix3 const& matrix)
-{
-    setUniform(static_cast<Int>(UniformPos::normalMatrix), matrix);
-    return *this;
-}

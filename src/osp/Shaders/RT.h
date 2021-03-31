@@ -39,7 +39,7 @@ namespace osp::active::shader
 #pragma pack(push, 1)
 struct ObjectData
 {
-    Magnum::Matrix4 m_transform;
+    Magnum::Matrix4 m_invTransform;
     Magnum::Vector3 m_AABBMaxs;
     Magnum::UnsignedInt m_firstTriIndex;
     Magnum::Vector3 m_AABBMins;

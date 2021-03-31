@@ -365,6 +365,7 @@ void main()
     // Early normal test
     if (dot(normal, SUN_DIR) < 0.0)
     {
+        store(vec4(0.0, 0.0, 0.0, 1.0));
         return;
     }
 

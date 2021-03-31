@@ -32,6 +32,7 @@
 #include "../Resource/PrototypePart.h"
 #include "../Resource/AssetImporter.h"
 #include "adera/Shaders/Phong.h"
+#include <osp/Shaders/Flat.h>
 
 #include <Magnum/GL/Mesh.h>
 #include <Magnum/GL/Texture.h>
@@ -367,7 +368,7 @@ std::pair<ActiveEnt, std::vector<SysVehicle::MachineDef>> SysVehicle::part_insta
             }
 
             // by now, the mesh and texture should both exist
-            using adera::shader::Phong;
+            /*using adera::shader::Phong;
             Phong::ACompPhongInstance shader;
             shader.m_shaderProgram = glResources.get<Phong>("phong_shader");
             shader.m_textures = std::move(textureResources);
@@ -377,9 +378,15 @@ std::pair<ActiveEnt, std::vector<SysVehicle::MachineDef>> SysVehicle::part_insta
             rScene.reg_emplace<Phong::ACompPhongInstance>(currentEnt, std::move(shader));
 
             CompDrawableDebug& bBocks = rScene.reg_emplace<CompDrawableDebug>(
-                        currentEnt, meshRes, &Phong::draw_entity, 0x0202EE_rgbf);
+                        currentEnt, meshRes, &Phong::draw_entity, 0x0202EE_rgbf);*/
 
-            //new DrawablePhongColored(*obj, *m_shader, *mesh, 0xff0000_rgbf, m_drawables);
+            using osp::active::shader::Flat;
+            Flat::ACompFlatInstance shader;
+            shader.m_shaderProgram = glResources.get<Flat>("flat_shader");
+            shader.m_texture = std::move(textureResources[0]);
+            rScene.reg_emplace<Flat::ACompFlatInstance>(currentEnt, std::move(shader));
+
+            rScene.reg_emplace<CompDrawableDebug>(currentEnt, meshRes, &Flat::draw_entity);
         }
         else if (currentPrototype.m_type == ObjectType::COLLIDER)
         {

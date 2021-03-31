@@ -42,12 +42,14 @@
 #include "SysDebugRender.h"
 #include "ActiveScene.h"
 #include "adera/Shaders/Phong.h"
+#include <osp/Shaders/Flat.h>
 #include "adera/Shaders/PlumeShader.h"
 #include "adera/Shaders/PlanetShader.h"
 #include <osp/Active/SysSkybox.h>
 #include <osp/Shaders/BillboardShader.h>
 #include <osp/Shaders/RTPrepass.h>
 #include <osp/Shaders/RT.h>
+#include <osp/Shaders/CompositePass.h>
 #include <Magnum/Shaders/VertexColor.h>
 #include <osp/string_concat.h>
 
@@ -71,7 +73,7 @@ void SysDebugRender::add_functions(ActiveScene &rScene)
     /*rScene.debug_render_add(rScene.get_render_order(), "debug", "", "",
                             &SysDebugRender::draw);*/
 
-    // Initialize some GL resources (temporary)
+                            // Initialize some GL resources (temporary)
 
     Package& glResources = rScene.get_context_resources();
 
@@ -84,6 +86,9 @@ void SysDebugRender::add_functions(ActiveScene &rScene)
     glResources.add<Phong>("phong_shader",
         Phong{Shaders::Phong::Flag::DiffuseTexture});
 
+    glResources.add<osp::active::shader::Flat>("flat_shader",
+        osp::active::shader::Flat{Shaders::Flat3D::Flag::Textured});
+
     glResources.add<PlumeShader>("plume_shader");
 
     glResources.add<PlanetShader>("planet_shader");
@@ -95,6 +100,8 @@ void SysDebugRender::add_functions(ActiveScene &rScene)
     glResources.add<osp::active::shader::PrepassShader>("prepass_shader");
 
     glResources.add<osp::active::shader::RTShader>("RT_shader");
+
+    glResources.add<osp::active::shader::CompositePass>("composite_shader");
 
     // TMP: no shaderinstance
     glResources.add<Shaders::VertexColor3D>("vertexcolor_shader");

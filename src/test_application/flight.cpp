@@ -49,6 +49,7 @@
 //tmp
 #include <osp/CubemapUtils.h>
 #include <osp/Shaders/CompositePass.h>
+#include <osp/Shaders/PassthroughShader.h>
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/GL/Framebuffer.h>
 #include <Magnum/Math/Range.h>
@@ -238,6 +239,45 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
         }
     );
 
+    // Raytracing pass
+    rScene.get_render_queue().push_back(
+        [](osp::active::ActiveScene& rScene, ACompCamera& camera)
+        {
+            using namespace Magnum;
+            using namespace osp;
+            using namespace osp::active;
+
+            auto& resources = rScene.get_context_resources();
+
+            DependRes<GL::Texture2D> colorTarget = resources.get<GL::Texture2D>("RTtarget");
+
+            SysRaytracer::raytrace(rScene, camera, *colorTarget);
+        }
+    );
+
+    // Compositing pass
+    rScene.get_render_queue().push_back(
+        [](osp::active::ActiveScene& rScene, ACompCamera& camera)
+        {
+            using namespace Magnum;
+            using namespace osp;
+            using namespace osp::active::shader;
+
+            auto& resources = rScene.get_context_resources();
+            DependRes<GL::Texture2D> lightPass = resources.get<GL::Texture2D>("RTtarget");
+            DependRes<GL::Texture2D> diffPass = resources.get<GL::Texture2D>("offscreen_fbo_color");
+            DependRes<GL::Texture2D> outputTgt = resources.get<GL::Texture2D>("final_composite");
+
+            DependRes<CompositePass> program = resources.get<CompositePass>("composite_shader");
+            program->compose_image(*diffPass, *lightPass, *outputTgt);
+
+            // Copy composite to offscreen_fbo
+            DependRes<PassthroughShader> copy =
+                resources.get<PassthroughShader>("passthrough_shader");
+            copy->copy_textures<GL::ImageFormat::RGBA8>(*outputTgt, *diffPass);
+        }
+    );
+
     // Draw Skybox
     rScene.get_render_queue().push_back(
         [](osp::active::ActiveScene& rScene, ACompCamera& camera)
@@ -317,7 +357,7 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
     );
 
     // Draw overlays
-    /*rScene.get_render_queue().push_back(
+    rScene.get_render_queue().push_back(
         [](osp::active::ActiveScene& rScene, ACompCamera& camera)
         {
             using namespace Magnum;
@@ -346,40 +386,6 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
 
             SysDebugRender::draw_group(rScene, overlayObjects, camera);
         }
-    );*/
-
-    // Raytracing pass
-    rScene.get_render_queue().push_back(
-        [](osp::active::ActiveScene& rScene, ACompCamera& camera)
-        {
-            using namespace Magnum;
-            using namespace osp;
-            using namespace osp::active;
-
-            auto& resources = rScene.get_context_resources();
-
-            DependRes<GL::Texture2D> colorTarget = resources.get<GL::Texture2D>("RTtarget");
-
-            SysRaytracer::raytrace(rScene, camera, *colorTarget);
-        }
-    );
-
-    // Compositing pass
-    rScene.get_render_queue().push_back(
-        [](osp::active::ActiveScene& rScene, ACompCamera& camera)
-        {
-            using namespace Magnum;
-            using namespace osp;
-            using namespace osp::active::shader;
-
-            auto& resources = rScene.get_context_resources();
-            DependRes<GL::Texture2D> lightPass = resources.get<GL::Texture2D>("RTtarget");
-            DependRes<GL::Texture2D> diffPass = resources.get<GL::Texture2D>("offscreen_fbo_color");
-            DependRes<GL::Texture2D> outputTgt = resources.get<GL::Texture2D>("final_composite");
-
-            DependRes<CompositePass> program = resources.get<CompositePass>("composite_shader");
-            program->compose_image(*diffPass, *lightPass, *outputTgt);
-        }
     );
 
     // Render offscreen buffer
@@ -403,8 +409,8 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
 
             auto& resources = rScene.get_context_resources();
 
-            //DependRes<GL::Texture2D> colorTex = resources.get<GL::Texture2D>("offscreen_fbo_color");
-            DependRes<GL::Texture2D> colorTex = resources.get<GL::Texture2D>("final_composite");
+            DependRes<GL::Texture2D> colorTex = resources.get<GL::Texture2D>("offscreen_fbo_color");
+            //DependRes<GL::Texture2D> colorTex = resources.get<GL::Texture2D>("final_composite");
             SysDebugRender::display_framebuffer(rScene, *colorTex);
         }
     );
@@ -445,7 +451,7 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
         Vector2i viewSize = GL::defaultFramebuffer.viewport().size();
 
         GL::Texture2D color;
-        color.setStorage(1, GL::TextureFormat::RGB8, viewSize);
+        color.setStorage(1, GL::TextureFormat::RGBA8, viewSize);
         osp::DependRes<GL::Texture2D> colorRes =
             glResources.add<GL::Texture2D>("offscreen_fbo_color", std::move(color));
 

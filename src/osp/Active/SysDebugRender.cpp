@@ -50,6 +50,7 @@
 #include <osp/Shaders/RTPrepass.h>
 #include <osp/Shaders/RT.h>
 #include <osp/Shaders/CompositePass.h>
+#include <osp/Shaders/PassthroughShader.h>
 #include <Magnum/Shaders/VertexColor.h>
 #include <osp/string_concat.h>
 
@@ -102,6 +103,8 @@ void SysDebugRender::add_functions(ActiveScene &rScene)
     glResources.add<osp::active::shader::RTShader>("RT_shader");
 
     glResources.add<osp::active::shader::CompositePass>("composite_shader");
+
+    glResources.add<osp::active::shader::PassthroughShader>("passthrough_shader");
 
     // TMP: no shaderinstance
     glResources.add<Shaders::VertexColor3D>("vertexcolor_shader");

@@ -60,11 +60,13 @@ void interpret_input_points(uint index)
     const double scalingFactor = 1e-6LF;
     vec3 result = vec3(dvec3(x_i, y_i, z_i) * scalingFactor);
     pointVerts[OUTPUT_OSET + index].position = vec4(result, 1.0);
-    pointVerts[OUTPUT_OSET + index].color = vec4(1.0);
+    pointVerts[OUTPUT_OSET + index].color.a = 1.0;
 }
 
 void main()
 {
+    // Discard threads that are out of bounds
     if (THREAD_INDEX > N_POINTS) { return; }
+
     interpret_input_points(THREAD_INDEX);
 }

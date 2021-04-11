@@ -22,25 +22,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#pragma once
+//#version 430 core
 
-#include "activetypes.h"
-#include <Magnum/GL/Mesh.h>
+layout(location = 0) in vec4 position;
+layout(location = 1) in vec4 color;
 
-namespace osp::active
+out vec4 fragColor;
+
+layout(location = 0) uniform mat4 transformation;
+
+void main()
 {
-/**
- * A function pointer to a Shader's draw() function
- * @param ActiveEnt - The entity being drawn; used to fetch component data
- * @param ActiveScene - The scene containing the entity's component data
- * @param Mesh - Mesh data to be drawn with the shader
- * @param ACompCamera - Camera used to draw the scene
- * @param ACompTransform - Object transformation data
- */
-using ShaderDrawFnc_t = void (*)(
-    ActiveEnt,
-    ActiveScene&,
-    Magnum::GL::Mesh&,
-    ACompCamera const&,
-    ACompTransform const&);
+    gl_Position = transformation * position;
+    fragColor = color;
 }
+

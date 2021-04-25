@@ -178,7 +178,7 @@ int debug_cli_loop()
         }
         else if (command == "moon")
         {
-            if (destroy_universe())
+            //if (destroy_universe())
             {
                 create_real_moon(g_osp);
             }
@@ -201,7 +201,7 @@ int debug_cli_loop()
         {
             //if (destroy_universe())
             {
-                create_solar_system(g_osp);
+                //create_solar_system(g_osp);
             }
 
             if (g_magnumThread.joinable())

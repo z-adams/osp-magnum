@@ -212,6 +212,7 @@ const std::map<std::string_view, button_tuple, std::less<>> buttonMap = {
     {"Backspace", {osp::sc_keyboard, (int)Key_t::Backspace }},
     {"Backslash", {osp::sc_keyboard, (int)Key_t::Backslash  }},
     {"Comma", {osp::sc_keyboard, (int)Key_t::Comma  }},
+    {"Period", {osp::sc_keyboard, (int)Key_t::Period  }},
     {"Delete", {osp::sc_keyboard, (int)Key_t::Delete }},
     {"Enter", {osp::sc_keyboard, (int)Key_t::Enter }},
     {"Equal", {osp::sc_keyboard, (int)Key_t::Equal }},

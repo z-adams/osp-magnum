@@ -335,7 +335,7 @@ void SysMap::register_system(ActiveScene& rScene)
 
 void SysMap::process_raw_state(osp::active::ActiveScene& rScene, MapRenderData& rMapData, osp::universe::TrajNBody* traj)
 {
-    auto [nBodyData, insignificantsData] = traj->get_latest_state();
+    auto [nBodyData, insignificantsData] = traj->get_present_state();
 
     size_t totalSize = nBodyData.m_data.size() + insignificantsData.m_data.size();
     auto& rawData = rMapData.m_rawState;

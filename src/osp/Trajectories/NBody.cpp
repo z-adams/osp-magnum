@@ -27,6 +27,7 @@
 #include <iostream>
 #include <immintrin.h>
 #include <assert.h>
+#include <osp/CommonMath.h>
 
 using namespace osp::universe;
 using osp::Vector3d;
@@ -246,6 +247,11 @@ size_t EvolutionTable::get_index(Satellite sat) const
     return 0;
 }
 
+void EvolutionTable::advance_step()
+{
+    m_currentStep = (m_currentStep + 1) % m_numTimesteps;
+}
+
 #if 0
 void EvolutionTable::copy_step_to_top(size_t timestep)
 {
@@ -349,24 +355,28 @@ void TrajNBody::update()
     {
         m_updatedLastFrame = true;
         m_timestepElapsed -= smc_timestep;
+        m_lastUpdateTime = m_timestepElapsed;
 
         auto& reg = m_universe.get_reg();
 
-        solve_nbody_timestep_AVX(m_nBodyData.m_currentStep);
-        solve_insignificant_bodies_AVX(m_nBodyData.m_currentStep);
-        update_all_predictions(m_nBodyData.m_currentStep);
+        size_t newStateN = m_nBodyData.m_currentStep;
+        size_t prevStateN = ((newStateN == 0) ? m_nBodyData.m_numTimesteps : newStateN) - 1;
+        solve_nbody_timestep_AVX(newStateN, prevStateN);
 
-        m_nBodyData.m_currentStep++;
+        size_t newStateI = m_insignificantBodyData.m_currentStep;
+        size_t prevStateI =
+            ((newStateI == 0) ? m_insignificantBodyData.m_numTimesteps : newStateI) - 1;
+        solve_insignificant_bodies_AVX(newStateI, prevStateI, prevStateN);
 
-        if (m_nBodyData.m_currentStep == m_nBodyData.m_numTimesteps)
-        {
-            m_nBodyData.m_currentStep = 0;
-        }
+        update_all_predictions(prevStateN);
 
-        write_universe_components(m_nBodyData);
-        write_universe_components(m_insignificantBodyData);
-        return;
+        m_nBodyData.advance_step();
+        m_insignificantBodyData.advance_step();
+
+        recompute_interp_params(m_nBodyData, m_nBodyHermite);
+        recompute_interp_params(m_insignificantBodyData, m_insignificantBodyHermite);
     }
+    update_universe();
 }
 
 void TrajNBody::build_table()
@@ -397,7 +407,7 @@ void TrajNBody::build_table()
     {
         insignificantBodies.push_back(sat);
     }
-    m_insignificantBodyData.resize(insignificantBodies.size(), 1);
+    m_insignificantBodyData.resize(insignificantBodies.size(), smc_hermiteSteps);
 
     for (size_t i = 0; i < insignificantBodies.size(); i++)
     {
@@ -416,13 +426,16 @@ void TrajNBody::build_table()
         m_predictionTables[i].resize(smc_numTimesteps);
         m_predictionTableUsage[i] = entt::null;
     }
+
+    m_nBodyHermite = InterpParams_t(significantBodies.size());
+    m_insignificantBodyHermite = InterpParams_t(insignificantBodies.size());
 }
 
-TrajNBody::FullState_t TrajNBody::get_latest_state()
+TrajNBody::FullState_t TrajNBody::get_present_state()
 {
     return std::make_pair(
         m_nBodyData.get_step(m_nBodyData.m_currentStep),
-        m_insignificantBodyData.get_step(0));
+        m_insignificantBodyData.get_step(m_insignificantBodyData.m_currentStep));
 }
 
 bool TrajNBody::is_in_table(Satellite sat) const
@@ -490,7 +503,7 @@ bool TrajNBody::predict_insignificant_sat(Satellite sat)
     for (size_t i = 1; i < smc_numTimesteps; i++)
     {
         size_t sourceIndex = (m_nBodyData.m_currentStep + i) % m_nBodyData.m_numTimesteps;
-        solve_prediction_timestep(sat, i, sourceIndex);
+        solve_prediction_timestep(sat, i, i - 1, sourceIndex);
     }
 
     return true;
@@ -549,7 +562,7 @@ void TrajNBody::solve_table()
 {
     for (size_t i = 1; i < m_nBodyData.m_numTimesteps; i++)
     {
-        solve_nbody_timestep_AVX(i);
+        solve_nbody_timestep_AVX(i, i - 1);
     }
 }
 
@@ -568,22 +581,21 @@ size_t TrajNBody::get_prediction_slot_index(Satellite sat) const
     return 0;
 }
 
-void TrajNBody::solve_prediction_timestep(Satellite sat, size_t predStepIndex, size_t sourceStepIndex)
+void TrajNBody::solve_prediction_timestep(Satellite sat,
+    size_t predDestIndex, size_t predSrcIndex, size_t sourceStepIndex)
 {
     constexpr double dt = smc_timestep;
 
     PredictionTable& table = m_predictionTables[get_prediction_slot_index(sat)];
 
     assert(sourceStepIndex < m_nBodyData.m_numTimesteps);
-    size_t prevSrcStep = ((sourceStepIndex == 0) ? m_nBodyData.m_numTimesteps : sourceStepIndex) - 1;
-    size_t prevDstStep = ((predStepIndex == 0) ? table.m_numTimesteps : predStepIndex) - 1;
 
-    Vector3d currentPos = table.get_pos(prevDstStep);
+    Vector3d currentPos = table.get_pos(predSrcIndex);
 
     Vector3d A{0.0};
     for (size_t n = 0; n < m_nBodyData.m_numBodies; n++)
     {
-        Vector3d r = m_nBodyData.get_position(n, prevSrcStep) - currentPos;
+        Vector3d r = m_nBodyData.get_position(n, sourceStepIndex) - currentPos;
         double otherMass = m_nBodyData.get_mass(n);
         Vector3d rHat = r.normalized();
         double denom = r.x() * r.x() + r.y() * r.y() + r.z() * r.z();
@@ -595,7 +607,7 @@ void TrajNBody::solve_prediction_timestep(Satellite sat, size_t predStepIndex, s
     Vector3d newVel = v + A * dt;
     Vector3d newPos = currentPos + newVel * dt;
     table.m_velocity = newVel;
-    table.set_pos(predStepIndex, newPos);
+    table.set_pos(predDestIndex, newPos);
 }
 
 void TrajNBody::update_all_predictions(size_t sourceStepIndex)
@@ -606,7 +618,9 @@ void TrajNBody::update_all_predictions(size_t sourceStepIndex)
         if (sat != entt::null)
         {
             auto& table = m_predictionTables[i];
-            solve_prediction_timestep(sat, table.m_currentStep, sourceStepIndex);
+            size_t srcIndex = ((table.m_currentStep == 0)
+                ? table.m_numTimesteps : table.m_currentStep) - 1;
+            solve_prediction_timestep(sat, table.m_currentStep, srcIndex, sourceStepIndex);
             table.m_currentStep++;
             if (table.m_currentStep >= table.m_numTimesteps)
             {
@@ -616,17 +630,15 @@ void TrajNBody::update_all_predictions(size_t sourceStepIndex)
     }
 }
 
-void TrajNBody::solve_nbody_timestep(size_t stepIndex)
+void TrajNBody::solve_nbody_timestep(size_t destIndex, size_t srcIndex)
 {
     constexpr double dt = smc_timestep;
-    assert(stepIndex < m_nBodyData.m_numTimesteps);
-    // Set previous step, account for table wraparound
-    size_t prevStep = ((stepIndex == 0) ? m_nBodyData.m_numTimesteps : stepIndex) - 1;
+    assert(destIndex < m_nBodyData.m_numTimesteps && srcIndex < m_nBodyData.m_numTimesteps);
 
     for (size_t m = 0; m < m_nBodyData.m_numBodies; m++)
     {
         Satellite current = m_nBodyData.get_ID(m);
-        Vector3d currentPos = m_nBodyData.get_position(m, prevStep);
+        Vector3d currentPos = m_nBodyData.get_position(m, srcIndex);
         double currentMass = m_nBodyData.get_mass(m);
 
         Vector3d A{0.0};
@@ -634,7 +646,7 @@ void TrajNBody::solve_nbody_timestep(size_t stepIndex)
         {
             if (n == m) { continue; }
 
-            Vector3d r = m_nBodyData.get_position(n, prevStep) - currentPos;
+            Vector3d r = m_nBodyData.get_position(n, srcIndex) - currentPos;
             double otherMass = m_nBodyData.get_mass(n);
             Vector3d rHat = r.normalized();
             double denom = r.x() * r.x() + r.y() * r.y() + r.z() * r.z();
@@ -646,30 +658,28 @@ void TrajNBody::solve_nbody_timestep(size_t stepIndex)
 
     for (size_t n = 0; n < m_nBodyData.m_numBodies; n++)
     {
-        Vector3d x = m_nBodyData.get_position(n, prevStep);
+        Vector3d x = m_nBodyData.get_position(n, srcIndex);
         Vector3d v = m_nBodyData.get_velocity(n);
         Vector3d a = m_nBodyData.get_acceleration(n);
 
         Vector3d newVel = v + a * dt;
         Vector3d newPos = x + newVel * dt;
         m_nBodyData.set_velocity(n, newVel);
-        m_nBodyData.set_position(n, stepIndex, newPos);
+        m_nBodyData.set_position(n, destIndex, newPos);
     }
 }
 
-void TrajNBody::solve_nbody_timestep_AVX(size_t stepIndex)
+void TrajNBody::solve_nbody_timestep_AVX(size_t destIndex, size_t srcIndex)
 {
     constexpr double dt = smc_timestep;
-    assert(stepIndex < m_nBodyData.m_numTimesteps);
-    // Set previous step, account for table wraparound
-    size_t prevStep = ((stepIndex == 0) ? m_nBodyData.m_numTimesteps : stepIndex) - 1;
+    assert(destIndex < m_nBodyData.m_numTimesteps && srcIndex < m_nBodyData.m_numTimesteps);
 
     __m256d vec4_0 = _mm256_set_pd(0.0, 0.0, 0.0, 0.0);
     __m256d vec4_1 = _mm256_set_pd(1.0, 1.0, 1.0, 1.0);
     constexpr size_t simdWidthBytes = 256/8;
     size_t nLoops = m_nBodyData.m_scalarArraySizeBytes / simdWidthBytes;
 
-    EvolutionTable::SystemState prevState = m_nBodyData.get_system_state(prevStep);
+    EvolutionTable::SystemState prevState = m_nBodyData.get_system_state(srcIndex);
 
     for (size_t n = 0; n < m_nBodyData.m_numBodies; n++)
     {
@@ -760,7 +770,7 @@ void TrajNBody::solve_nbody_timestep_AVX(size_t stepIndex)
         m_nBodyData.set_acceleration(n, {data[3], data[2], data[1]});
     }
 
-    EvolutionTable::SystemState newState = m_nBodyData.get_system_state(stepIndex);
+    EvolutionTable::SystemState newState = m_nBodyData.get_system_state(destIndex);
     __m256d dt_4 = _mm256_set_pd(dt, dt, dt, dt);
     for (size_t i = 0; i < 4 * nLoops; i += 4)
     {
@@ -793,21 +803,22 @@ void TrajNBody::solve_nbody_timestep_AVX(size_t stepIndex)
     }
 }
 
-void TrajNBody::solve_insignificant_bodies(size_t inputStepIndex)
+void TrajNBody::solve_insignificant_bodies(size_t destIndex, size_t srcIndex, size_t inputStepIndex)
 {
     constexpr double dt = smc_timestep;
-    assert(inputStepIndex < m_nBodyData.m_numTimesteps);
-    size_t prevStep = ((inputStepIndex == 0) ? m_nBodyData.m_numTimesteps : inputStepIndex) - 1;
+    assert(destIndex < m_insignificantBodyData.m_numTimesteps
+        && srcIndex < m_insignificantBodyData.m_numTimesteps
+        && inputStepIndex < m_nBodyData.m_numTimesteps);
 
     for (size_t m = 0; m < m_insignificantBodyData.m_numBodies; m++)
     {
         Satellite current = m_insignificantBodyData.get_ID(m);
-        Vector3d currentPos = m_insignificantBodyData.get_position(m, 0);
+        Vector3d currentPos = m_insignificantBodyData.get_position(m, srcIndex);
 
         Vector3d A{0.0};
         for (size_t n = 0; n < m_nBodyData.m_numBodies; n++)
         {
-            Vector3d r = m_nBodyData.get_position(n, prevStep) - currentPos;
+            Vector3d r = m_nBodyData.get_position(n, inputStepIndex) - currentPos;
             double otherMass = m_nBodyData.get_mass(n);
             Vector3d rHat = r.normalized();
             double denom = r.x() * r.x() + r.y() * r.y() + r.z() * r.z();
@@ -819,23 +830,25 @@ void TrajNBody::solve_insignificant_bodies(size_t inputStepIndex)
         Vector3d newVel = v + A * dt;
         Vector3d newPos = currentPos + newVel * dt;
         m_insignificantBodyData.set_velocity(m, newVel);
-        m_insignificantBodyData.set_position(m, 0, newPos);
+        m_insignificantBodyData.set_position(m, destIndex, newPos);
     }
 }
 
-void TrajNBody::solve_insignificant_bodies_AVX(size_t inputStepIndex)
+void TrajNBody::solve_insignificant_bodies_AVX(
+    size_t destIndex, size_t srcIndex, size_t inputStepIndex)
 {
     constexpr double dt = smc_timestep;
-    assert(inputStepIndex < m_nBodyData.m_numTimesteps);
-    size_t prevStep = ((inputStepIndex == 0) ? m_nBodyData.m_numTimesteps : inputStepIndex) - 1;
+    assert(destIndex < m_insignificantBodyData.m_numTimesteps
+        && srcIndex < m_insignificantBodyData.m_numTimesteps
+        && inputStepIndex < m_nBodyData.m_numTimesteps);
 
     __m256d vec4_0 = _mm256_set_pd(0.0, 0.0, 0.0, 0.0);
     __m256d vec4_1 = _mm256_set_pd(1.0, 1.0, 1.0, 1.0);
     constexpr size_t simdWidthBytes = 256 / 8;
     size_t nLoops = m_nBodyData.m_scalarArraySizeBytes / simdWidthBytes;
 
-    EvolutionTable::SystemState state = m_insignificantBodyData.get_system_state(0);
-    EvolutionTable::SystemState sources = m_nBodyData.get_system_state(prevStep);
+    EvolutionTable::SystemState state = m_insignificantBodyData.get_system_state(srcIndex);
+    EvolutionTable::SystemState sources = m_nBodyData.get_system_state(inputStepIndex);
 
     for (size_t m = 0; m < m_insignificantBodyData.m_numBodies; m++)
     {
@@ -952,6 +965,20 @@ void TrajNBody::solve_insignificant_bodies_AVX(size_t inputStepIndex)
     }
 }
 
+void TrajNBody::update_universe()
+{
+    if (m_updatedLastFrame)
+    {
+        write_universe_components(m_nBodyData);
+        write_universe_components(m_insignificantBodyData);
+    }
+    else
+    {
+        write_interpolated_universe_components(m_nBodyData, m_nBodyHermite);
+        write_interpolated_universe_components(m_insignificantBodyData, m_insignificantBodyHermite);
+    }
+}
+
 void TrajNBody::write_universe_components(EvolutionTable& dataSource)
 {
     auto& reg = m_universe.get_reg();
@@ -963,10 +990,50 @@ void TrajNBody::write_universe_components(EvolutionTable& dataSource)
         Vector3d accel = dataSource.get_acceleration(i);
         Vector3d pos = dataSource.get_position(i, dataSource.m_currentStep);
 
-        //std::cout << "pos: (" << pos.x() << ", " << pos.y() << ", " << pos.z() << ")\n";
         reg.get<UCompTransformTraj>(sat).m_position = Vector3s{pos * 1024.0};
         reg.get<UCompVel>(sat).m_velocity = vel;
         reg.get<UCompAccel>(sat).m_acceleration = accel;
+    }
+}
+
+void TrajNBody::recompute_interp_params(EvolutionTable& dataSource, InterpParams_t& params)
+{
+    size_t currStep = dataSource.m_currentStep;
+    size_t prevStep = ((currStep == 0) ? dataSource.m_numTimesteps : currStep) - 1;
+    size_t nextStep = (currStep++) % dataSource.m_numTimesteps;
+
+    for (size_t i = 0; i < dataSource.m_numBodies; i++)
+    {
+        Vector3d prevPos = dataSource.get_position(i, prevStep);
+        Vector3d currPos = dataSource.get_position(i, currStep);
+        Vector3d nextPos = dataSource.get_position(i, nextStep);
+
+        params[i].m0 = params[i].m1;
+        params[i].m1 = osp::math::hermite_tangent_fd(
+            std::make_pair(-smc_timestep, prevPos),
+            std::make_pair(0.0, currPos),
+            std::make_pair(smc_timestep, nextPos));
+    }
+}
+
+void TrajNBody::write_interpolated_universe_components(
+    EvolutionTable& dataSource, InterpParams_t& interpParams)
+{
+    auto& reg = m_universe.get_reg();
+
+    size_t currStep = dataSource.m_currentStep;
+    size_t nextStep = (currStep++) % dataSource.m_numTimesteps;
+
+    for (size_t i = 0; i < dataSource.m_numBodies; i++)
+    {
+        Satellite sat = dataSource.get_ID(i);
+        Vector3d currPos = dataSource.get_position(i, currStep);
+        Vector3d nextPos = dataSource.get_position(i, nextStep);
+        HermiteParams& params = interpParams[i];
+
+        double t = (m_timestepElapsed - m_lastUpdateTime) / smc_timestep;
+        Vector3d interpPos = osp::math::hermite_cubic(t, currPos, nextPos, params.m0, params.m1);
+        reg.get<UCompTransformTraj>(sat).m_position = Vector3s{interpPos * 1024.0};
     }
 }
 

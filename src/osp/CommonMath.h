@@ -57,4 +57,31 @@ constexpr INT_T num_blocks(INT_T nElements, INT_T blockSize)
     return (nElements / blockSize) + ((remainder > 0) ? 1 : 0);
 }
 
+template <typename PARAM_T, typename VAL_T>
+constexpr VAL_T hermite_cubic(PARAM_T t, VAL_T p0, VAL_T p1, VAL_T m0, VAL_T m1)
+{
+    static_assert(std::is_floating_point<PARAM_T>::value, "Floating point type required");
+    PARAM_T t3 = t * t * t;
+    PARAM_T t2 = t * t;
+
+    return (2*t3 - 3*t2 + 1)*p0 + (t3 - 2*t2 + t)*m0 + (-2*t3 + 3*t2)*p1 + (t3 - t2)*m1;
+}
+
+/**
+ * Calculates the finite different tangent of the middle of a set of 3 (x, p) points
+ * Wikipedia: Cubic Hermite Spline
+ */
+template <typename PARAM_T, typename VAL_T>
+constexpr VAL_T hermite_tangent_fd(
+    std::pair<PARAM_T, VAL_T> prevPoint,
+    std::pair<PARAM_T, VAL_T> centerPoint,
+    std::pair<PARAM_T, VAL_T> nextPoint)
+{
+    VAL_T forwardDifference =
+        (nextPoint.second - centerPoint.second) / (nextPoint.first - centerPoint.first);
+    VAL_T backwardsDifference =
+        (centerPoint.second - prevPoint.second) / (centerPoint.first - prevPoint.first);
+    return static_cast<PARAM_T>(0.5) * (forwardDifference + backwardsDifference);
+}
+
 } // namespace osp::math

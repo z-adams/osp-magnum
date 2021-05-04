@@ -181,6 +181,7 @@ public:
 
     size_t get_index(Satellite sat) const;
 
+    void advance_step();
     //void copy_step_to_top(size_t timestep);
 private:
     // Table dimensions
@@ -262,7 +263,7 @@ public:
     void build_table();
 
     using FullState_t = std::pair<EvolutionTable::RawStepData, EvolutionTable::RawStepData>;
-    FullState_t get_latest_state();
+    FullState_t get_present_state();
 
     bool is_in_table(Satellite sat) const;
     bool is_in_prediction_list(Satellite sat) const;
@@ -287,6 +288,7 @@ public:
     constexpr bool updated_last_frame() const noexcept { return m_updatedLastFrame; }
 public:
     static constexpr size_t smc_numTimesteps = 16384;
+    static constexpr size_t smc_hermiteSteps = 3;
 
     template <typename VIEW_T, typename SRC_VIEW_T>
     static void update_full_dynamics_acceleration(VIEW_T& bodyView, SRC_VIEW_T& sources);
@@ -297,22 +299,38 @@ public:
     void solve_table();
 
     size_t get_prediction_slot_index(Satellite sat) const;
-    void solve_prediction_timestep(Satellite sat, size_t predStepIndex, size_t sourceStepIndex);
+    void solve_prediction_timestep(Satellite sat, size_t predDestIndex, size_t predSrcIndex, size_t sourceStepIndex);
     void update_all_predictions(size_t sourceStepIndex);
 
-    void solve_nbody_timestep(size_t stepIndex);
-    void solve_nbody_timestep_AVX(size_t stepIndex);
+    void solve_nbody_timestep(size_t destIndex, size_t srcIndex);
+    void solve_nbody_timestep_AVX(size_t destIndex, size_t srcIndex);
 
-    void solve_insignificant_bodies(size_t inputStepIndex);
-    void solve_insignificant_bodies_AVX(size_t inputStepIndex);
+    void solve_insignificant_bodies(size_t destIndex, size_t srcIndex, size_t inputStepIndex);
+    void solve_insignificant_bodies_AVX(size_t destIndex, size_t srcIndex, size_t inputStepIndex);
 
+    void update_universe();
     void write_universe_components(EvolutionTable& dataSource);
+
+    struct HermiteParams
+    {
+        Vector3d m0;
+        Vector3d m1;
+    };
+    using InterpParams_t = std::vector<HermiteParams>;
+    void recompute_interp_params(EvolutionTable& dataSource, InterpParams_t& params);
+    void write_interpolated_universe_components(
+        EvolutionTable& dataSource, InterpParams_t& interpParams);
 
     EvolutionTable m_nBodyData;
     EvolutionTable m_insignificantBodyData;
+
+    InterpParams_t m_nBodyHermite;
+    InterpParams_t m_insignificantBodyHermite;
+
     std::array<PredictionTable, 8> m_predictionTables;
     std::array<Satellite, 8> m_predictionTableUsage;
     double m_timestepElapsed{0.0};
+    double m_lastUpdateTime{0.0};
     bool m_updatedLastFrame{true};
 };
 
